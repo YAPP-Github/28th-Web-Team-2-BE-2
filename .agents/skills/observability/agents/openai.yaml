@@ -1,0 +1,4 @@
+interface:
+  display_name: "Observability"
+  short_description: "Apply logging metrics and health endpoint rules"
+  default_prompt: "$observability 지침을 읽고 현재 요청에 적용하세요."

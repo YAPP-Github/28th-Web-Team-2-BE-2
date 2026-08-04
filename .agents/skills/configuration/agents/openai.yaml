@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configuration"
+  short_description: "Manage profiles secrets and infrastructure settings"
+  default_prompt: "$configuration 지침을 읽고 현재 요청에 적용하세요."

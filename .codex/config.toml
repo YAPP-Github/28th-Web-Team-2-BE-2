@@ -1,0 +1,43 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 4
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "max"
+interrupt_message = true
+
+[agents."api-scaffold"]
+description = "Implementation agent for the main Java API and application layers; does not edit migrations or tests."
+config_file = "agents/api-scaffold.toml"
+
+[agents."db-migration"]
+description = "Narrow database-migration agent; does not edit Java source or tests."
+config_file = "agents/db-migration.toml"
+
+[agents."unit-test-writer"]
+description = "Red-stage unit-test agent; does not edit production code."
+config_file = "agents/unit-test-writer.toml"
+
+[agents."service-integration-test-writer"]
+description = "Red-stage service integration agent using @SpringBootTest and the real database; does not edit production code."
+config_file = "agents/service-integration-test-writer.toml"
+
+[agents."controller-test-writer"]
+description = "Red-stage controller-slice agent using @WebMvcTest and MockMvc; does not edit production code."
+config_file = "agents/controller-test-writer.toml"
+
+[agents."e2e-test-writer"]
+description = "Red-stage integration and API test agent; does not edit production code."
+config_file = "agents/e2e-test-writer.toml"
+
+[agents."pr-reviewer"]
+description = "Read-only reviewer for regressions, security, and contract risks."
+config_file = "agents/pr-reviewer.toml"
+
+[agents."test-validator"]
+description = "Read-only validator that independently compares requirements with executed test evidence."
+config_file = "agents/test-validator.toml"

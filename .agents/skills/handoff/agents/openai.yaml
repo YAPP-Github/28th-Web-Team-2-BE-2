@@ -1,0 +1,6 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Create a secure continuation handoff"
+  default_prompt: "Use $handoff to preserve this task for another Codex task or agent."
+policy:
+  allow_implicit_invocation: false

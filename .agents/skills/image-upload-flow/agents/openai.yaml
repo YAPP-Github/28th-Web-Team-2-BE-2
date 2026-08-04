@@ -1,0 +1,4 @@
+interface:
+  display_name: "Image Upload Flow"
+  short_description: "Implement both supported S3 image upload flows"
+  default_prompt: "$image-upload-flow 지침을 읽고 현재 요청에 적용하세요."

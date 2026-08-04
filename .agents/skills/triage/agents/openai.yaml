@@ -1,0 +1,6 @@
+interface:
+  display_name: "Triage"
+  short_description: "Triage issues and external pull requests"
+  default_prompt: "Use $triage to classify and prepare these issues or pull requests for action."
+policy:
+  allow_implicit_invocation: false

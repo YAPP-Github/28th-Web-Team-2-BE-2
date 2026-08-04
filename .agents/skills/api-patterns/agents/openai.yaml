@@ -1,0 +1,4 @@
+interface:
+  display_name: "API Patterns"
+  short_description: "Java API 계약과 예외 처리 규칙을 적용합니다."
+  default_prompt: "$api-patterns 지침을 읽고 현재 요청에 적용하세요."

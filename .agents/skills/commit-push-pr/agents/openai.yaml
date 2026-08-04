@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit Push PR"
+  short_description: "Publish approved changes and open a pull request"
+  default_prompt: "$commit-push-pr 지침을 읽고 현재 요청에 적용하세요."
