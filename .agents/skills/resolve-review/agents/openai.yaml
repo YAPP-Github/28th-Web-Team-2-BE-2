@@ -1,0 +1,4 @@
+interface:
+  display_name: "Resolve Review"
+  short_description: "Verify and address approved pull request feedback"
+  default_prompt: "$resolve-review 지침을 읽고 현재 요청에 적용하세요."

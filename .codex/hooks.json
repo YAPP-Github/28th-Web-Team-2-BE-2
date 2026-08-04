@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/pre-session.js\"",
+            "timeout": 5,
+            "statusMessage": "Loading Backend pre-session routing..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/pre-push-tests.js\"",
+            "timeout": 900,
+            "statusMessage": "Checking diff and Gradle build before git push..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Orchestrator"
+  short_description: "Coordinate only the backend agents each task needs"
+  default_prompt: "$backend-orchestrator 지침을 읽고 현재 요청에 적용하세요."

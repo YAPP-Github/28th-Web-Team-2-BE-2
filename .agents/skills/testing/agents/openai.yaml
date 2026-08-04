@@ -1,0 +1,4 @@
+interface:
+  display_name: "Testing"
+  short_description: "Apply JUnit Mockito MockMvc and integration testing"
+  default_prompt: "$testing 지침을 읽고 현재 요청에 적용하세요."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Issue"
+  short_description: "Create approved issues with repository conventions"
+  default_prompt: "$create-issue 지침을 읽고 현재 요청에 적용하세요."

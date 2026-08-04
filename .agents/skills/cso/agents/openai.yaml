@@ -1,0 +1,4 @@
+interface:
+  display_name: "CSO Security Audit"
+  short_description: "고신뢰 공격 경로 중심의 읽기 전용 보안 감사"
+  default_prompt: "Use $cso to run a read-only security audit of this repository."

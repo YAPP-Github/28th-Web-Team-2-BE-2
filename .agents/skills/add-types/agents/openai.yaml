@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add Types"
+  short_description: "Replace eligible Java var declarations with types"
+  default_prompt: "$add-types 지침을 읽고 현재 요청에 적용하세요."

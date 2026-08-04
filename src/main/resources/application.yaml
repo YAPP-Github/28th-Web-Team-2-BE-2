@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: demo
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
