@@ -24,6 +24,7 @@ Issue
 - 하나의 Branch와 Pull Request는 가능한 한 하나의 Issue를 해결한다.
 - Commit은 하나의 논리적 변경만 담는다.
 - Issue, Branch, Commit, Pull Request의 연결이 끊기지 않도록 Issue 번호를 Branch와 Pull Request에 포함한다.
+- Issue를 구현 대상으로 확정한 뒤 Issue와 연결된 Branch를 만든다.
 
 ## 3. Issue
 
@@ -64,6 +65,14 @@ docs: Git 컨벤션 문서화
 
 Issue의 triage 상태는 `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix` 규칙을 따른다.
 
+### 3.3 Issue와 Branch 연결
+
+Issue와 Branch 생성은 별도 단계다. Issue를 생성했다고 Branch가 자동으로 만들어지지는 않는다.
+
+- Issue에 linked Branch를 연결하면 작업 중인 Issue임을 표시할 수 있다.
+- Branch 이름은 [4.1 Branch 이름](#41-branch-이름)의 규칙을 따른다.
+- GitHub CLI를 사용하는 절차와 외부·로컬 상태 변경의 승인 경계는 [`docs/agents/issue-tracker.md`](agents/issue-tracker.md)에 둔다.
+
 ## 4. Branch
 
 Branch는 하나의 Issue를 독립적으로 구현하고 검증하기 위한 작업 공간이다.
@@ -72,7 +81,7 @@ Branch는 하나의 Issue를 독립적으로 구현하고 검증하기 위한 �
 ### 4.1 Branch 이름
 
 ```text
-<type>/issue-<issue-number>-<kebab-case-summary>
+<type>/<issue-number>-<kebab-case-summary>
 ```
 
 허용하는 `<type>`은 Issue 유형과 동일하게 `feat`, `fix`, `refactor`, `test`, `docs`, `chore`를 사용한다.
@@ -80,9 +89,9 @@ Branch는 하나의 Issue를 독립적으로 구현하고 검증하기 위한 �
 예시:
 
 ```text
-feat/issue-123-reservation-conflict
-fix/issue-124-refresh-token
-docs/issue-125-git-convention
+feat/123-reservation-conflict
+fix/124-refresh-token
+docs/125-git-convention
 ```
 
 - Issue 번호는 생략하지 않는다.
@@ -165,6 +174,8 @@ Closes #123
 
 - 이번 PR에서 변경하지 않은 내용
 ```
+
+PR 본문에는 `Closes #<issue-number>` 또는 `Fixes #<issue-number>`처럼 Issue를 닫는 키워드를 사용한다. 이 키워드는 PR이 저장소의 기본 Branch를 대상으로 할 때 Merge 후 Issue를 닫으며, Branch를 Issue에 연결한 것만으로는 자동 종료되지 않는다.
 
 ### 6.3 PR 등록 전 확인
 
