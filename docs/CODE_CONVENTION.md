@@ -60,7 +60,13 @@
 - 클래스는 하나의 책임을 중심으로 작게 유지한다.
 - 여러 책임이 섞이면 역할별 클래스로 분리한다.
 
-## 3. TDD
+## 3. API 문서화
+
+- Controller나 공개 API를 추가·변경할 때 SpringDoc `@Operation`과 성공·실패 응답, 요청·응답 스키마를 실제 HTTP 계약과 함께 갱신한다.
+- Swagger 문서가 복잡하거나 여러 Controller에서 공유될 때만 `presentation/spec/<Domain>ControllerSpec`에 OpenAPI annotation을 두고 Controller가 이를 `implements`한다. 단순한 API는 Controller에 직접 annotation을 둔다.
+- 문서 설명과 상태 코드는 구현보다 앞서가지 않게 유지하고, `/v3/api-docs` 또는 그룹별 OpenAPI endpoint의 JSON을 테스트해 문서가 실제 경로·요약·응답을 반영하는지 확인한다.
+
+## 4. TDD
 
 Java production code는 Red → Green → Refactor 순서로 구현한다.
 

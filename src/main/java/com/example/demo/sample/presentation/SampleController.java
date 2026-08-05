@@ -8,6 +8,7 @@ import com.example.demo.sample.presentation.converter.SampleCommandConverter;
 import com.example.demo.sample.presentation.converter.SampleResultConverter;
 import com.example.demo.sample.presentation.dto.CreateSampleMessageRequest;
 import com.example.demo.sample.presentation.dto.SampleMessageResponse;
+import com.example.demo.sample.presentation.spec.SampleControllerSpec;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/samples")
 @RequiredArgsConstructor
-public class SampleController {
+public class SampleController implements SampleControllerSpec {
 
     private final CreateSampleMessageUseCase createSampleMessageUseCase;
     private final GetSampleMessageUseCase getSampleMessageUseCase;
@@ -29,6 +30,7 @@ public class SampleController {
     private final SampleResultConverter resultConverter;
 
     @PostMapping
+    @Override
     public ResponseEntity<SampleMessageResponse> createSampleMessage(
             @Valid @RequestBody final CreateSampleMessageRequest request) {
         final CreateSampleMessageCommand command = commandConverter.toCreateSampleMessageCommand(request);
@@ -38,6 +40,7 @@ public class SampleController {
     }
 
     @GetMapping
+    @Override
     public ResponseEntity<SampleMessageResponse> getSampleMessage() {
         final SampleMessageResult result = getSampleMessageUseCase.execute();
         final SampleMessageResponse response = resultConverter.toSampleMessageResponse(result);
