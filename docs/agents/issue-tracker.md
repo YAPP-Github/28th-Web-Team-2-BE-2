@@ -25,7 +25,7 @@ Before drafting an issue, inspect the repository's actual configuration:
 
 - Issue templates: `.github/ISSUE_TEMPLATE/`의 `.md`, `.yml`, `config.yml`을 확인하고, 기존 단일 `.github/ISSUE_TEMPLATE.md`가 있으면 함께 읽는다.
 - Pull Request template: 루트, `docs/`, `.github/` 중 실제로 존재하는 템플릿을 확인한다.
-- Labels: `.github/labels.json`이 있을 때만 로컬 정의를 참고하고, 없으면 `gh label list`로 원격 label을 확인한다.
+- Labels: `.github/labels.json`이 있을 때만 로컬 정의를 참고하고, 없으면 `gh label list --limit 1000`으로 원격 label을 확인한다.
 - 최근 issue의 제목·본문·label 형식을 읽고 같은 저장소의 실제 관례를 따른다.
 
 ## Issue-linked branches
@@ -33,8 +33,10 @@ Before drafting an issue, inspect the repository's actual configuration:
 Issue 생성과 linked Branch 생성은 각각 외부 변경이다. Issue 생성만으로 Branch를 자동 생성하지 않는다.
 
 - 사용자가 Branch 생성을 요청하면 저장소·기준 Branch·생성할 Branch를 먼저 보여주고 별도 승인을 받은 뒤 실행한다.
+- Branch 생성 직전에 `git status --short`로 dirty 상태를 확인한다. 변경 경로가 있으면 보고하고, 별도 지시와 승인 전에는 stash·reset·clean·checkout·switch를 실행하지 않는다.
 - Branch 이름은 [`docs/GIT_CONVENTION.md`](../GIT_CONVENTION.md)의 `<type>/<issue-number>-<kebab-case-summary>`를 사용한다.
 - 로컬 Branch Checkout은 저장소와 Branch를 확인받은 뒤 별도 승인된 경우에만 `--checkout`을 사용한다.
+- `--checkout` 직전에도 `git status --short`를 다시 실행한다. 변경 경로가 있으면 보고하고 별도 승인을 받은 뒤 진행한다.
 - working tree가 dirty하면 상태와 영향을 받는 경로를 보고하고, stash·reset·clean·checkout 없이 승인을 기다린다.
 
 ```bash
