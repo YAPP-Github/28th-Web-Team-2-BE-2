@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   gradle-check:
@@ -31,3 +32,25 @@ jobs:
 
       - name: Run Gradle check
         run: ./gradlew clean check --no-daemon
+
+      - name: Publish JaCoCo report to PR
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        uses: madrapps/jacoco-report@50d3aff4548aa991e6753342d9ba291084e63848 # v1.7.2
+        with:
+          title: "📊 테스트 커버리지"
+          paths: ${{ github.workspace }}/build/reports/jacoco/test/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 90
+          update-comment: true
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: |
+            build/reports/jacoco/test/html/
+            build/reports/jacoco/test/jacocoTestReport.xml
+          if-no-files-found: warn
+          retention-days: 14
