@@ -27,6 +27,9 @@ def validate_skill(skill_md: Path):
     if not isinstance(frontmatter, dict):
         return False, "Frontmatter must be a YAML dictionary"
 
+    if any(not isinstance(key, str) for key in frontmatter):
+        return False, "Frontmatter keys must be strings"
+
     unexpected_keys = set(frontmatter) - ALLOWED_PROPERTIES
     if unexpected_keys:
         unexpected = ", ".join(sorted(unexpected_keys))
@@ -41,7 +44,9 @@ def validate_skill(skill_md: Path):
     if not isinstance(name, str):
         return False, f"Name must be a string, got {type(name).__name__}"
     name = name.strip()
-    if name and not re.match(r"^[a-z0-9-]+$", name):
+    if not name:
+        return False, "Name cannot be empty"
+    if not re.match(r"^[a-z0-9-]+$", name):
         return False, f"Name '{name}' should be hyphen-case"
     if name.startswith("-") or name.endswith("-") or "--" in name:
         return False, f"Name '{name}' cannot start/end with hyphen or contain consecutive hyphens"
@@ -52,6 +57,8 @@ def validate_skill(skill_md: Path):
     if not isinstance(description, str):
         return False, f"Description must be a string, got {type(description).__name__}"
     description = description.strip()
+    if not description:
+        return False, "Description cannot be empty"
     if "<" in description or ">" in description:
         return False, "Description cannot contain angle brackets (< or >)"
     if len(description) > 1024:
