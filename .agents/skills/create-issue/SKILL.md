@@ -1,33 +1,31 @@
 ---
 name: create-issue
-description: 사용자가 GitHub 이슈 생성을 명시적으로 승인했을 때 저장소 템플릿과 실제 label을 확인해 이슈를 만듭니다.
+description: 사용자가 GitHub 이슈 생성을 명시적으로 승인했을 때 저장소의 실제 템플릿·label을 확인해 이슈를 만들고, 요청과 별도 승인이 있을 때만 linked Branch를 생성합니다.
 ---
 
-# 이슈 생성
+# GitHub 이슈 생성
+
+## 선행 읽기
+
+- `docs/GIT_CONVENTION.md`: Issue·Branch·PR의 이름과 연결 규칙
+- `docs/agents/issue-tracker.md`: GitHub CLI 명령과 승인 경계
+- `git remote -v`: 실제 대상 저장소
+
+저장소에 있는 실제 설정만 사용한다. Issue template은 `.github/ISSUE_TEMPLATE/`의 Markdown·YAML form과 `config.yml`을 우선 확인하고, 기존 단일 `.github/ISSUE_TEMPLATE.md`가 있으면 함께 확인한다. Label은 `.github/labels.json`이 있을 때만 로컬 정의를 참고하며, 그 외에는 `gh label list --limit 1000`으로 원격 label을 읽는다.
 
 ## 승인 경계
 
-이슈 생성과 sub-issue 연결은 외부 변경이다. 사용자의 명시적 승인 전에는 제목과 본문 초안만 작성한다.
+Issue 생성, linked Branch 생성, 로컬 Checkout은 서로 다른 변경이다. Issue 생성 전에는 저장소·제목·본문·label을, Branch 생성 전에는 저장소·Branch 이름·기준 Branch를, Checkout 전에는 저장소·Branch를 보여주고 각각 별도 승인을 받는다.
+
+working tree가 dirty하면 영향을 받는 경로를 먼저 보고한다. 사용자의 별도 승인 없이 stash·reset·clean·checkout으로 작업물을 숨기거나 되돌리거나 Branch를 전환하지 않는다.
 
 ## 절차
 
-1. `.github/ISSUE_TEMPLATE.md`, `.github/labels.json`, 최근 이슈 형식을 읽는다.
-2. 실제 요청과 코드 근거로 범위, 완료 조건, 제외 범위를 작성한다.
-3. 제목은 `feat|fix|docs|chore: 한국어 설명`을 기본으로 한다.
-4. type에 맞는 label이 `.github/labels.json`에 실제 존재할 때만 사용한다.
-5. 승인된 실행에서는 `--assignee @me`로 작성자를 지정한다.
-6. parent issue가 지정된 경우 새 issue의 node ID를 조회해 `addSubIssue` GraphQL mutation으로 연결한다.
-7. 생성 URL과 적용한 type·label·assignee·parent를 보고한다.
+1. 저장소 remote, 실제 Issue template, 원격 label, 최근 Issue 형식을 읽는다.
+2. 요청에 근거해 제목, 본문, 완료 조건, 범위 외 항목을 초안으로 만든다. 제목은 `docs/GIT_CONVENTION.md`의 `<type>: <short summary>` 규칙을 따른다. parent Issue가 있으면 번호도 함께 확인한다.
+3. Issue 생성 승인 후 `gh issue create`를 실행한다. 실제 존재하는 label만 사용하고, 승인 범위에 포함된 경우에만 `--assignee @me`를 사용한다. parent Issue 연결이 요청된 경우 확인된 번호를 `--parent <parent-number>`로 포함한다.
+4. Issue 생성만으로 Branch를 만들지 않는다. 사용자가 linked Branch도 요청한 경우 `git status --short`로 dirty 상태를 먼저 확인한다. 변경 경로가 있으면 보고하고, 별도 지시와 승인 전에는 stash·reset·clean·checkout·switch를 실행하지 않는다. 상태가 확인되면 저장소·기준 Branch·생성할 Branch를 보여주고 별도 승인 후 `docs/agents/issue-tracker.md`의 `gh issue develop` 절차를 실행한다.
+5. 사용자가 Checkout도 요청한 경우 `git status --short`를 다시 실행해 상태를 확인하고, 변경 경로가 있으면 보고한 뒤 별도 승인을 받는다. 저장소와 Branch를 다시 확인받은 뒤에만 `--checkout`을 사용한다.
+6. Issue URL, 제목, 적용한 label·assignee·parent, linked Branch와 Checkout 여부를 보고한다.
 
-## Type과 label
-
-| Type | 용도 | Label |
-|---|---|---|
-| `feat` | 새 기능 | `enhancement` |
-| `fix` | 버그 수정 | `bug` |
-| `docs` | 문서 | `documentation` |
-| `chore` | 설정·리팩터링 | 없음 |
-
-현재 저장소는 유형별 form이 아니라 `.github/ISSUE_TEMPLATE.md` 하나를 사용하므로 `Description`, `Tasks`, `Notes` 구조를 그대로 채운다.
-
-민감 정보, 추측한 장애 원인, 구현되지 않은 API 계약은 본문에 넣지 않는다.
+민감 정보, 추측한 장애 원인, 구현되지 않은 API 계약은 Issue 본문에 넣지 않는다.

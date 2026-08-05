@@ -58,6 +58,8 @@ Before creating, modifying, or deleting a file under `docs/`, state the target f
 
 Do not commit, push, create or modify Issues/PRs, merge, deploy, or send external messages without explicit user approval. Read-only inspection of external systems is allowed when it supports the requested work.
 
+Do not create or checkout branches, stash/reset/clean user changes, or otherwise alter local Git state without separate explicit approval. If the working tree is dirty, report the affected paths and ask before stashing or changing them.
+
 ## Codex Harness
 
 - Use `$backend-orchestrator` for complex backend implementation, migration, separated test, or independent validation work.
