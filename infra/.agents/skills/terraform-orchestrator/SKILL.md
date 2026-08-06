@@ -1,6 +1,6 @@
 ---
 name: terraform-orchestrator
-description: "Use for AWS Terraform work, including 'Terraform 변경 검증', 'AWS Terraform 보안 리뷰', and 'Terraform harness 복구'."
+description: "Use for AWS Terraform CI/CD work, including 'Terraform 변경 검증', 'AWS Terraform 보안 리뷰', 'CI/CD Terraform 계약 검증', and 'Terraform harness 복구'."
 ---
 
 # Terraform Orchestrator

@@ -1,6 +1,6 @@
 # Infrastructure 작업 지침
 
-이 디렉터리는 AWS Terraform 작업을 위한 독립 Codex project root다. 상위 Java 프로젝트의 코드, 설정, skill, agent를 수정하거나 참조하지 않는다. 이 디렉터리만 별도 저장소로 이동해도 동작하도록 프로젝트 경로는 모두 현재 디렉터리 기준으로 작성한다.
+이 디렉터리는 AWS Terraform CI/CD 작업을 위한 독립 Codex project root다. 현재는 상위 저장소 안에 있는 과도기 상태이므로 Codex가 상위 `AGENTS.md`와 `.codex/config.toml`을 계층으로 읽을 수 있지만, 상위 Java 프로젝트의 코드·workflow·agent를 Terraform 작업의 의존성으로 사용하지 않는다. 추후 이 디렉터리만 별도 Git root/repository로 이동해도 동작하도록 프로젝트 경로는 모두 현재 디렉터리 기준으로 작성한다.
 
 ## 범위
 
@@ -12,10 +12,11 @@
 
 ## Codex Harness
 
-- **범위:** AWS Terraform의 읽기 전용 inventory, IAM/state/security review, CLI·CI 계약 검증.
-- **호출:** Terraform 변경 검증, AWS Terraform 보안 리뷰, Terraform harness 복구 요청에는 `$terraform-orchestrator`를 사용한다.
+- **범위:** CI/CD를 위한 AWS Terraform의 읽기 전용 inventory, IAM/state/security review, CLI·CI 계약 검증.
+- **호출:** Terraform 변경 검증, AWS Terraform 보안 리뷰, CI/CD Terraform 계약 검증, Terraform harness 복구 요청에는 `$terraform-orchestrator`를 사용한다.
 - **역할:** `.codex/agents/terraform-inventory.toml`, `.codex/agents/terraform-reviewer.toml`, `.codex/agents/terraform-verifier.toml`.
-- **검증:** `python3 /Users/connor/.codex/plugins/cache/personal/codex-harness/0.1.0+codex.20260728062412/skills/harness/scripts/validate_harness.py . --strict`.
+- **검증 prerequisite:** strict validator는 프로젝트에 포함하지 않는 Codex Harness plugin이 제공한다. 실행 전에 호스트 환경의 `CODEX_HARNESS_PLUGIN_ROOT`를 해당 plugin root로 설정한다.
+- **검증:** `python3 "$CODEX_HARNESS_PLUGIN_ROOT/skills/harness/scripts/validate_harness.py" . --strict`.
 
 ## 안전한 검증
 
@@ -29,3 +30,5 @@ terraform validate
 ```
 
 전체 검증 단계는 같은 임시 `TF_DATA_DIR`를 사용해 프로젝트 디렉터리에 Terraform 작업 데이터를 만들지 않는다. Terraform CLI가 없거나 provider를 준비할 수 없으면 설치·네트워크 우회 없이 `unverified`로 보고한다.
+
+주 orchestrator의 `workspace-write`는 CI/CD용 `terraform init`이 프로젝트 밖의 임시 `TF_DATA_DIR`에 작업 데이터를 작성해야 하기 때문에 유지한다. Terraform 소스·state·plan을 수정하거나 AWS 리소스를 변경하지 않으며, 세 specialist agent는 `read-only` sandbox를 사용한다.

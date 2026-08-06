@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This directory is an independently movable Codex project root for AWS Terraform work. Its harness is deliberately read-only: it helps inspect infrastructure changes and validate their local CLI and CI contracts without changing AWS resources or Terraform state.
+This directory is an independently movable Codex project root for AWS Terraform CI/CD work. Its specialist roles are deliberately read-only: they inspect infrastructure changes and validate local CLI and CI contracts without changing Terraform source, state, or AWS resources. The primary orchestrator keeps `workspace-write` only because CI-style `terraform init` writes temporary data to `TF_DATA_DIR` outside the project.
 
 ## Scope
 
@@ -38,4 +38,8 @@ If this project contains no `.tf` file, the orchestrator returns `not-applicable
 
 ## Extraction boundary
 
-The project contract, configuration, roles, workflow, documentation, and Terraform-specific ignore rules live under this directory. They use relative project paths and do not depend on the parent Java project's `AGENTS.md`, `.codex`, `.agents`, or backend workflow. When this directory moves to a repository root, run the same harness validator from the new root.
+The project contract, configuration, roles, workflow, documentation, and Terraform-specific ignore rules live under this directory. They use relative project paths and do not depend on the parent Java project's code or workflow. While nested under the parent repository, Codex may still load the parent `AGENTS.md` and `.codex/config.toml` as higher-level layers; this is transitional and disappears when the directory becomes its own Git root. When this directory moves to a repository root, run the same harness validator from the new root.
+
+## Validator prerequisite
+
+The strict Harness validator is supplied by the host-installed `codex-harness` plugin and is intentionally not vendored into this project. Set `CODEX_HARNESS_PLUGIN_ROOT` to that plugin root before running the command in `AGENTS.md`. If the plugin or validator is unavailable, report the structural check as `unverified` rather than copying a version-specific cache path into the project.
