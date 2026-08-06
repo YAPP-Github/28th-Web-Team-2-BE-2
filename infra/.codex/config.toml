@@ -1,0 +1,29 @@
+# This configuration belongs to the independent infrastructure project root.
+# Do not copy the parent Java project's agent registrations into this file.
+
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 3
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "max"
+interrupt_message = true
+
+[agents."terraform-inventory"]
+description = "Read-only inventory of AWS Terraform roots, providers, state, resources, and CI triggers."
+config_file = "agents/terraform-inventory.toml"
+
+[agents."terraform-reviewer"]
+description = "Read-only AWS Terraform security and lifecycle reviewer."
+config_file = "agents/terraform-reviewer.toml"
+
+[agents."terraform-verifier"]
+description = "Read-only verifier for Terraform CLI checks and CI-to-root contracts."
+config_file = "agents/terraform-verifier.toml"
+
+[features]
+multi_agent = true
