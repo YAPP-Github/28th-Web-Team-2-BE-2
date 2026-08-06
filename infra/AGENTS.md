@@ -25,10 +25,13 @@ Terraform root가 존재할 때만 다음 검증을 수행한다.
 ```bash
 terraform fmt -check -recursive
 export TF_DATA_DIR="$(mktemp -d)"
+# Run init only after local dependency coverage and blocked egress are proven.
 terraform init -backend=false -input=false
 terraform validate
 ```
 
-전체 검증 단계는 같은 임시 `TF_DATA_DIR`를 사용해 프로젝트 디렉터리에 Terraform 작업 데이터를 만들지 않는다. Terraform CLI가 없거나 provider를 준비할 수 없으면 설치·네트워크 우회 없이 `unverified`로 보고한다.
+`terraform init -backend=false`는 backend-free 검증일 뿐 offline/no-install 검증이 아니다. `-backend=false`는 backend 초기화와 원격 state 접근만 막으며 provider나 child module 다운로드를 막지 않는다. `TF_DATA_DIR`도 작업 데이터를 프로젝트 밖에 둘 뿐 dependency cache가 아니며 네트워크를 차단하지 않는다.
+
+init 전에 verifier는 required provider와 lock/declaration, `TF_PLUGIN_CACHE_DIR`, Terraform CLI provider-installation mirror, 기존 provider/module cache, effective sandbox/network 정책을 확인한다. 모든 provider/module이 로컬 cache 또는 filesystem mirror로 충족되고 Terraform egress 차단을 증명할 수 있을 때만 같은 임시 `TF_DATA_DIR`로 init과 validate를 수행한다. cache/mirror가 없거나 remote module이 uncached 상태이거나 egress 차단을 증명할 수 없으면 `terraform init -backend=false -input=false`를 실행하지 않고 `unverified`로 보고한다. Terraform CLI가 없거나 provider를 준비할 수 없는 경우에도 설치·네트워크 우회 없이 `unverified`로 보고한다.
 
 주 orchestrator의 `workspace-write`는 CI/CD용 `terraform init`이 프로젝트 밖의 임시 `TF_DATA_DIR`에 작업 데이터를 작성해야 하기 때문에 유지한다. Terraform 소스·state·plan을 수정하거나 AWS 리소스를 변경하지 않으며, 세 specialist agent는 `read-only` sandbox를 사용한다.

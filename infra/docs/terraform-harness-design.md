@@ -11,9 +11,15 @@ Included:
 - Terraform root and provider/backend inventory;
 - AWS IAM, state, secret, network, and resource-lifecycle review;
 - `terraform fmt -check -recursive`;
-- `terraform init -backend=false -input=false` using temporary data outside the project;
+- `terraform init -backend=false -input=false` using temporary data outside the project, only when local dependency coverage and blocked egress are proven;
 - `terraform validate`;
 - comparison of CI Terraform paths and commands with the actual root.
+
+## Dependency and egress boundary
+
+`-backend=false` is backend-free, not offline or no-install. It prevents backend initialization and remote state access, but Terraform may still download providers and child modules. `TF_DATA_DIR` keeps Terraform's working data outside the project; it is not a provider/module cache and does not block network access.
+
+Before running init, the verifier records evidence for the required provider declarations and lock file, `TF_PLUGIN_CACHE_DIR`, Terraform CLI `provider_installation` filesystem mirrors, existing provider/module caches, and the effective sandbox/network policy. Init runs only when every required dependency is covered locally and Terraform egress is blocked. If coverage or egress blocking cannot be proven, the verifier skips `terraform init -backend=false -input=false` and `terraform validate`, returns `unverified`, and reports the exact blocked command. It never runs init merely to discover whether a download would occur.
 
 Excluded:
 
@@ -28,7 +34,7 @@ Excluded:
 | --- | --- | --- |
 | `terraform-inventory` | Enumerate Terraform roots, providers, state, resources, and CI triggers | Concise evidence-backed inventory |
 | `terraform-reviewer` | Review AWS security, permissions, state, exposure, and lifecycle risk | Severity-ordered actionable findings |
-| `terraform-verifier` | Run safe CLI checks and compare CI commands with the discovered root | Per-check `passed`, `failed`, `not-applicable`, or `unverified` status |
+| `terraform-verifier` | Check dependency caches and egress policy, run safe CLI checks, and compare CI commands with the discovered root | Per-check status plus cache/egress evidence |
 
 The orchestrator runs inventory and review in parallel, then sends both outputs to the independent verifier. The primary task synthesizes the final report; no specialist role edits files.
 
