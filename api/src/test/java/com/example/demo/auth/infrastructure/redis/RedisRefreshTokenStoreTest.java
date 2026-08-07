@@ -13,27 +13,27 @@ import org.springframework.data.redis.core.ValueOperations;
 class RedisRefreshTokenStoreTest {
 
     @Test
-    void refresh_token을_해시_키로_저장하고_GETDEL로_소비한다() {
+    void 사용자별_키에_refresh_token_해시를_저장하고_비교한다() {
         final StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         final ValueOperations<String, String> values = mock(ValueOperations.class);
         when(redisTemplate.opsForValue()).thenReturn(values);
-        when(values.getAndDelete("auth:refresh:hash")).thenReturn("subject");
+        when(values.get("auth:refresh:1")).thenReturn("hash");
         final RedisRefreshTokenStore store = new RedisRefreshTokenStore(redisTemplate);
 
-        store.save("hash", "subject", Duration.ofDays(14));
+        store.save(1L, "hash", Duration.ofDays(14));
 
-        assertThat(store.consume("hash", "subject")).isTrue();
-        assertThat(store.consume("hash", "other-subject")).isFalse();
-        verify(values).set("auth:refresh:hash", "subject", Duration.ofDays(14));
+        assertThat(store.matches(1L, "hash")).isTrue();
+        assertThat(store.matches(1L, "other-hash")).isFalse();
+        verify(values).set("auth:refresh:1", "hash", Duration.ofDays(14));
     }
 
     @Test
-    void 로그아웃은_해시_키를_삭제한다() {
+    void 로그아웃은_사용자별_Redis_키를_삭제한다() {
         final StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
         final RedisRefreshTokenStore store = new RedisRefreshTokenStore(redisTemplate);
 
-        store.delete("hash");
+        store.delete(1L);
 
-        verify(redisTemplate).delete("auth:refresh:hash");
+        verify(redisTemplate).delete("auth:refresh:1");
     }
 }

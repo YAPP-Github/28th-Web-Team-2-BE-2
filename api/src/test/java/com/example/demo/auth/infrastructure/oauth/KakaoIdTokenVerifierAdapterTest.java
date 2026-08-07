@@ -14,17 +14,22 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 class KakaoIdTokenVerifierAdapterTest {
 
     @Test
-    void 검증된_JWT의_subject를_반환한다() {
+    void 검증된_JWT에서_Kakao_사용자_정보를_추출한다() {
         final JwtDecoder decoder = mock(JwtDecoder.class);
         when(decoder.decode("id-token"))
                 .thenReturn(Jwt.withTokenValue("id-token")
                         .header("alg", "RS256")
                         .claim("iss", "https://kauth.kakao.com")
+                        .claim("email", "user@example.com")
+                        .claim("nickname", "Kakao Name")
                         .subject("kakao-subject")
                         .build());
 
-        assertThat(new KakaoIdTokenVerifierAdapter(decoder).verify("id-token"))
-                .isEqualTo("kakao-subject");
+        final var result = new KakaoIdTokenVerifierAdapter(decoder).verify("id-token");
+
+        assertThat(result.subject()).isEqualTo("kakao-subject");
+        assertThat(result.email()).isEqualTo("user@example.com");
+        assertThat(result.name()).isEqualTo("Kakao Name");
     }
 
     @Test

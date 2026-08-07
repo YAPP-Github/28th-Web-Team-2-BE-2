@@ -11,11 +11,10 @@ spring:
       port: 6379
 
 jwt:
-  secret-key: test-only-jwt-secret-key-that-is-long-enough-for-hmac-sha
+  access-secret: test-only-access-secret-key-that-is-long-enough-for-hmac-sha
+  refresh-secret: test-only-refresh-secret-key-that-is-long-enough-for-hmac-sha
   access-token-expiration: 30m
   refresh-token-expiration: 14d
-  refresh-cookie:
-    secure: true
 
 kakao:
   oauth:

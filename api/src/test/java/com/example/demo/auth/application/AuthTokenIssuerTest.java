@@ -1,12 +1,15 @@
 package com.example.demo.auth.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.example.demo.auth.application.port.RefreshTokenStore;
 import com.example.demo.auth.application.port.TokenProvider;
+import com.example.demo.auth.application.result.AccessTokenPayload;
 import com.example.demo.auth.application.result.TokenPayload;
+import com.example.demo.auth.domain.UserRole;
 import java.time.Duration;
-import java.util.Optional;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 class AuthTokenIssuerTest {
@@ -18,65 +21,65 @@ class AuthTokenIssuerTest {
         final AuthTokenIssuer issuer = new AuthTokenIssuer(
                 tokenProvider, store, new RefreshTokenHasher(), Duration.ofDays(14));
 
-        final var token = issuer.issue("kakao-subject");
+        final var token = issuer.issue(1L, UserRole.USER);
 
         assertThat(token.accessToken()).isEqualTo("access-token");
         assertThat(token.refreshToken()).isEqualTo("refresh-token");
+        assertThat(store.userId()).isEqualTo(1L);
         assertThat(store.tokenHash()).isNotEqualTo(token.refreshToken()).hasSize(64);
-        assertThat(store.subject()).isEqualTo("kakao-subject");
         assertThat(store.ttl()).isEqualTo(Duration.ofDays(14));
     }
 
     private static final class RecordingTokenProvider implements TokenProvider {
 
         @Override
-        public String createAccessToken(final String subject) {
+        public String createAccessToken(final Long userId, final UserRole role) {
             return "access-token";
         }
 
         @Override
-        public String createRefreshToken(final String subject) {
+        public String createRefreshToken(final Long userId) {
             return "refresh-token";
         }
 
         @Override
-        public TokenPayload parseAccessTokenPayload(final String token) {
-            return new TokenPayload("subject", null);
+        public AccessTokenPayload parseAccessTokenPayload(final String token) {
+            return new AccessTokenPayload(1L, UserRole.USER);
         }
 
         @Override
         public TokenPayload parseRefreshTokenPayload(final String token) {
-            return new TokenPayload("subject", null);
+            return new TokenPayload(1L, Instant.now().plusSeconds(60));
         }
     }
 
     private static final class RecordingRefreshTokenStore implements RefreshTokenStore {
 
+        private Long userId;
         private String tokenHash;
-        private String subject;
         private Duration ttl;
 
         @Override
-        public void save(final String tokenHash, final String subject, final Duration ttl) {
+        public void save(final Long userId, final String tokenHash, final Duration ttl) {
+            this.userId = userId;
             this.tokenHash = tokenHash;
-            this.subject = subject;
             this.ttl = ttl;
         }
 
         @Override
-        public boolean consume(final String tokenHash, final String subject) {
+        public boolean matches(final Long userId, final String tokenHash) {
             return false;
         }
 
         @Override
-        public void delete(final String tokenHash) {}
+        public void delete(final Long userId) {}
+
+        private Long userId() {
+            return userId;
+        }
 
         private String tokenHash() {
             return tokenHash;
-        }
-
-        private String subject() {
-            return subject;
         }
 
         private Duration ttl() {
