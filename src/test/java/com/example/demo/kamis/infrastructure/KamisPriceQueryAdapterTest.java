@@ -5,10 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.external.kamis.DailyPriceResponse;
+import com.example.demo.external.kamis.Item;
+import com.example.demo.external.kamis.Meta;
 import com.example.demo.external.kamis.feign.KamisClient;
-import com.example.demo.external.kamis.KamisDailyPriceData;
-import com.example.demo.external.kamis.KamisDailyPriceItem;
-import com.example.demo.external.kamis.KamisDailyPriceResponse;
 import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
 import com.example.demo.kamis.application.result.KamisDailyPriceResult;
 import java.time.LocalDate;
@@ -37,30 +37,7 @@ class KamisPriceQueryAdapterTest {
                     regDay,
                     convertKgYn,
                     returnType));
-            return new KamisDailyPriceResponse(new KamisDailyPriceData(
-                    "000",
-                    "Success.",
-                    List.of(new KamisDailyPriceItem(
-                            "양파",
-                            "211",
-                            "양파",
-                            "01",
-                            "상품",
-                            "1kg",
-                            "2026-08-06",
-                            "3,000",
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null,
-                            null))));
+            return response("000", "정상", List.of(item()));
         };
         final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter(client);
 
@@ -70,15 +47,23 @@ class KamisPriceQueryAdapterTest {
         assertThat(capturedArguments.get()).containsExactly(
                 "dailyPriceByCategoryList", "02", "200", "1101", "2015-10-01", "N", "json");
         assertThat(result.errorCode()).isEqualTo("000");
-        assertThat(result.items()).hasSize(1);
-        assertThat(result.items().getFirst().itemName()).isEqualTo("양파");
-        assertThat(result.items().getFirst().dpr1()).isEqualTo("3,000");
+        assertThat(result.errorMessage()).isEqualTo("정상");
+        assertThat(result.items()).singleElement().satisfies(mappedItem -> {
+            assertThat(mappedItem.itemName()).isEqualTo("양파");
+            assertThat(mappedItem.itemCode()).isEqualTo("211");
+            assertThat(mappedItem.kindName()).isEqualTo("양파");
+            assertThat(mappedItem.kindCode()).isEqualTo("010101");
+            assertThat(mappedItem.unit()).isEqualTo("1kg");
+            assertThat(mappedItem.day1()).isEqualTo("2026-08-06");
+            assertThat(mappedItem.dpr1()).isEqualTo("3,000");
+            assertThat(mappedItem.day2()).isNull();
+            assertThat(mappedItem.dpr2()).isNull();
+        });
     }
 
     @Test
     void 외부_응답이_null이면_외부_연동_예외를_던진다() {
-        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter((
-                action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) -> null);
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter(ignoredClient(null));
 
         assertThatThrownBy(() -> adapter.findDailyPrices(query()))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
@@ -89,10 +74,8 @@ class KamisPriceQueryAdapterTest {
     }
 
     @Test
-    void 외부_응답의_data가_null이면_외부_연동_예외를_던진다() {
-        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter((
-                action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) ->
-                new KamisDailyPriceResponse(null));
+    void 외부_응답의_response가_null이면_외부_연동_예외를_던진다() {
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter(ignoredClient(new DailyPriceResponse(null)));
 
         assertThatThrownBy(() -> adapter.findDailyPrices(query()))
                 .isInstanceOf(ApiException.class);
@@ -100,10 +83,8 @@ class KamisPriceQueryAdapterTest {
 
     @Test
     void HTTP_200_응답의_KAMIS_오류_코드를_외부_연동_예외로_변환한다() {
-        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter((
-                action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) ->
-                new KamisDailyPriceResponse(new KamisDailyPriceData(
-                        "100", "인증 정보가 올바르지 않습니다.", List.of())));
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter(
+                ignoredClient(response("100", "인증 정보가 올바르지 않습니다.", List.of())));
 
         assertThatThrownBy(() -> adapter.findDailyPrices(query()))
                 .isInstanceOfSatisfying(ApiException.class, exception -> {
@@ -115,13 +96,65 @@ class KamisPriceQueryAdapterTest {
 
     @Test
     void 가격_항목이_null이면_빈_목록으로_변환한다() {
-        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter((
-                action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) ->
-                new KamisDailyPriceResponse(new KamisDailyPriceData("000", "Success.", null)));
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter(
+                ignoredClient(response("000", "정상", null)));
 
         final KamisDailyPriceResult result = adapter.findDailyPrices(query());
 
         assertThat(result.items()).isEmpty();
+    }
+
+    private KamisClient ignoredClient(final DailyPriceResponse response) {
+        return (action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) -> response;
+    }
+
+    private DailyPriceResponse response(
+            final String resultCode,
+            final String resultMsg,
+            final List<Item> items) {
+        return new DailyPriceResponse(new DailyPriceResponse.Response(
+                new DailyPriceResponse.Header(resultCode, resultMsg),
+                new DailyPriceResponse.Body(
+                        new DailyPriceResponse.Items(items),
+                        new Meta("JSON", 1, 1, totalCount(items)))));
+    }
+
+    private int totalCount(final List<Item> items) {
+        if (items == null) {
+            return 0;
+        }
+        return items.size();
+    }
+
+    private Item item() {
+        return new Item(
+                "1",
+                "2026-08-06",
+                "2026-08-06",
+                "1101",
+                "서울",
+                "corp-code",
+                "법인",
+                "01",
+                "식량작물",
+                "0101",
+                "채소",
+                "010101",
+                "양파",
+                "211",
+                "양파",
+                "양파",
+                "01",
+                "국산",
+                "3,000",
+                "1",
+                "1",
+                "KG",
+                "kg",
+                "01",
+                "포장",
+                "sample",
+                "경매");
     }
 
     private KamisDailyPriceQuery query() {

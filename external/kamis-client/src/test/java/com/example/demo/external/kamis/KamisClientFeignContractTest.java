@@ -17,6 +17,14 @@ class KamisClientFeignContractTest {
     }
 
     @Test
+    void KAMIS_클라이언트는_DailyPriceResponse를_반환한다() {
+        assertThat(KamisClient.class.getDeclaredMethods())
+                .singleElement()
+                .extracting(method -> method.getReturnType())
+                .isEqualTo(DailyPriceResponse.class);
+    }
+
+    @Test
     void KAMIS_인증값을_요청_쿼리에_추가한다() {
         final RequestTemplate template = new RequestTemplate();
         final RequestInterceptor interceptor = new KamisClientConfiguration()

@@ -2,10 +2,9 @@ package com.example.demo.kamis.infrastructure;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.external.kamis.DailyPriceResponse;
+import com.example.demo.external.kamis.Item;
 import com.example.demo.external.kamis.feign.KamisClient;
-import com.example.demo.external.kamis.KamisDailyPriceItem;
-import com.example.demo.external.kamis.KamisDailyPriceData;
-import com.example.demo.external.kamis.KamisDailyPriceResponse;
 import com.example.demo.kamis.application.port.KamisPriceQueryPort;
 import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
 import com.example.demo.kamis.application.result.KamisDailyPriceItemResult;
@@ -27,7 +26,7 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
 
     @Override
     public KamisDailyPriceResult findDailyPrices(final KamisDailyPriceQuery query) {
-        final KamisDailyPriceResponse response = kamisClient.getDailyPrices(
+        final DailyPriceResponse response = kamisClient.getDailyPrices(
                 "dailyPriceByCategoryList",
                 query.productClsCode(),
                 query.itemCategoryCode(),
@@ -35,24 +34,27 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
                 toRegDay(query),
                 query.convertKgYn(),
                 "json");
-        if (response == null || response.data() == null) {
+        if (response == null || response.response() == null
+                || response.response().header() == null
+                || response.response().body() == null
+                || response.response().body().items() == null) {
             throw new ApiException(INVALID_RESPONSE_MESSAGE, ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
         }
-        final KamisDailyPriceData data = response.data();
-        if (!SUCCESS_ERROR_CODE.equals(data.errorCode())) {
-            throw new ApiException(errorMessage(data), ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
+        final DailyPriceResponse.Header header = response.response().header();
+        if (!SUCCESS_ERROR_CODE.equals(header.resultCode())) {
+            throw new ApiException(errorMessage(header), ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
         }
-        final List<KamisDailyPriceItemResult> items = data.items().stream()
+        final List<KamisDailyPriceItemResult> items = response.response().body().items().items().stream()
                 .map(this::toResult)
                 .toList();
-        return new KamisDailyPriceResult(data.errorCode(), data.errorMessage(), items);
+        return new KamisDailyPriceResult(header.resultCode(), header.resultMsg(), items);
     }
 
-    private String errorMessage(final KamisDailyPriceData data) {
-        if (data.errorMessage() == null || data.errorMessage().isBlank()) {
+    private String errorMessage(final DailyPriceResponse.Header header) {
+        if (header.resultMsg() == null || header.resultMsg().isBlank()) {
             return DEFAULT_ERROR_MESSAGE;
         }
-        return data.errorMessage();
+        return header.resultMsg();
     }
 
     private String toRegDay(final KamisDailyPriceQuery query) {
@@ -62,27 +64,37 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
         return query.regDay().toString();
     }
 
-    private KamisDailyPriceItemResult toResult(final KamisDailyPriceItem item) {
+    private KamisDailyPriceItemResult toResult(final Item item) {
         return new KamisDailyPriceItemResult(
-                item.itemName(),
-                item.itemCode(),
-                item.kindName(),
-                item.kindCode(),
-                item.rank(),
-                item.unit(),
-                item.day1(),
-                item.dpr1(),
-                item.day2(),
-                item.dpr2(),
-                item.day3(),
-                item.dpr3(),
-                item.day4(),
-                item.dpr4(),
-                item.day5(),
-                item.dpr5(),
-                item.day6(),
-                item.dpr6(),
-                item.day7(),
-                item.dpr7());
+                item.corpGdsItemNm(),
+                item.corpGdsCd(),
+                item.corpGdsVrtyNm(),
+                item.gdsSclsfCd(),
+                null,
+                unit(item),
+                item.scsbdDt(),
+                item.scsbdPrc(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    private String unit(final Item item) {
+        if (item.unitQty() == null || item.unitQty().isBlank()) {
+            return item.unitNm();
+        }
+        if (item.unitNm() == null || item.unitNm().isBlank()) {
+            return item.unitQty();
+        }
+        return item.unitQty() + item.unitNm();
     }
 }

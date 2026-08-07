@@ -1,6 +1,6 @@
 package com.example.demo.external.kamis.feign;
 
-import com.example.demo.external.kamis.KamisDailyPriceResponse;
+import com.example.demo.external.kamis.DailyPriceResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface KamisClient {
 
     @GetMapping("/xml.do")
-    KamisDailyPriceResponse getDailyPrices(
+    DailyPriceResponse getDailyPrices(
             @RequestParam("action") String action,
             @RequestParam("p_product_cls_code") String productClsCode,
             @RequestParam("p_item_category_code") String itemCategoryCode,
