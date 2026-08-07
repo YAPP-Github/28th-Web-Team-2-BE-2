@@ -45,7 +45,7 @@ public final class KamisErrorDecoder implements ErrorDecoder {
                     methodKey,
                     exception);
             return new ApiException(
-                    "KAMIS API 응답 파싱 실패",
+                    ErrorType.EXTERNAL_API_ERROR.description(),
                     ErrorType.EXTERNAL_API_ERROR,
                     HttpStatus.BAD_GATEWAY);
         }
