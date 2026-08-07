@@ -7,3 +7,20 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+  access-token-expiration: 30m
+  refresh-token-expiration: 14d
+  refresh-cookie:
+    secure: ${JWT_REFRESH_COOKIE_SECURE:true}
+
+kakao:
+  oauth:
+    client-id: ${KAKAO_CLIENT_ID:}
+    issuer: ${KAKAO_OAUTH_ISSUER:https://kauth.kakao.com}
+    jwk-set-uri: ${KAKAO_OAUTH_JWK_SET_URI:https://kauth.kakao.com/.well-known/jwks.json}

@@ -5,3 +5,20 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret-key: test-only-jwt-secret-key-that-is-long-enough-for-hmac-sha
+  access-token-expiration: 30m
+  refresh-token-expiration: 14d
+  refresh-cookie:
+    secure: true
+
+kakao:
+  oauth:
+    client-id: test-kakao-client-id
+    issuer: https://kauth.kakao.com
+    jwk-set-uri: https://kauth.kakao.com/.well-known/jwks.json
