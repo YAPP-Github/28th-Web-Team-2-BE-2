@@ -18,12 +18,12 @@ description: 백엔드 구현, DB migration, 테스트 분리, 독립 검증처�
 
 | 필요 | Agent | 소유 범위 |
 |---|---|---|
-| API·application 구현 | `api-scaffold` | `api/src/main/java`의 API·application 코드만 |
-| DB 스키마 변경 | `db-migration` | `api/src/main/resources/db/migration`만 |
-| 격리 단위 테스트 | `unit-test-writer` | `api/src/test`의 단위 테스트만 |
-| Service 통합 테스트 | `service-integration-test-writer` | `api/src/test`의 `@SpringBootTest` Service 테스트와 실제 DB 검증만 |
-| Controller slice 테스트 | `controller-test-writer` | `api/src/test`의 `@WebMvcTest`·`MockMvc` Controller 테스트만 |
-| 전체 HTTP·E2E 흐름 | `e2e-test-writer` | `api/src/test`의 여러 경계를 가로지르는 통합·E2E 테스트만 |
+| API·application 구현 | `api-scaffold` | `src/main/java`의 API·application 코드만 |
+| DB 스키마 변경 | `db-migration` | `src/main/resources/db/migration`만 |
+| 격리 단위 테스트 | `unit-test-writer` | 단위 테스트만 |
+| Service 통합 테스트 | `service-integration-test-writer` | `@SpringBootTest` Service 테스트와 실제 DB 검증만 |
+| Controller slice 테스트 | `controller-test-writer` | `@WebMvcTest`·`MockMvc` Controller 테스트만 |
+| 전체 HTTP·E2E 흐름 | `e2e-test-writer` | 여러 경계를 가로지르는 통합·E2E 테스트만 |
 | 위험 검토 | `pr-reviewer` | 읽기 전용 리뷰 |
 | 요구사항 대조 | `test-validator` | 읽기 전용 검증 |
 
