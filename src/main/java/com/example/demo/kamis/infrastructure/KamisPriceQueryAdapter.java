@@ -1,6 +1,7 @@
 package com.example.demo.kamis.infrastructure;
 
 import com.example.demo.external.kamis.feign.KamisClient;
+import com.example.demo.external.kamis.feign.KamisClientException;
 import com.example.demo.external.kamis.KamisDailyPriceItem;
 import com.example.demo.external.kamis.KamisDailyPriceData;
 import com.example.demo.external.kamis.KamisDailyPriceResponse;
@@ -9,17 +10,19 @@ import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
 import com.example.demo.kamis.application.result.KamisDailyPriceItemResult;
 import com.example.demo.kamis.application.result.KamisDailyPriceResult;
 import java.util.List;
-import java.util.Objects;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component("kamisPriceQueryPort")
+@RequiredArgsConstructor
 final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
 
-    private final KamisClient kamisClient;
+    private static final String SUCCESS_ERROR_CODE = "000";
+    private static final String DEFAULT_ERROR_MESSAGE = "KAMIS API 호출에 실패했습니다.";
+    private static final String INVALID_RESPONSE_MESSAGE = "KAMIS API 응답이 올바르지 않습니다.";
 
-    KamisPriceQueryAdapter(final KamisClient kamisClient) {
-        this.kamisClient = kamisClient;
-    }
+    private final KamisClient kamisClient;
 
     @Override
     public KamisDailyPriceResult findDailyPrices(final KamisDailyPriceQuery query) {
@@ -31,11 +34,24 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
                 toRegDay(query),
                 query.convertKgYn(),
                 "json");
-        final KamisDailyPriceData data = Objects.requireNonNull(response.data());
+        if (response == null || response.data() == null) {
+            throw new KamisClientException(HttpStatus.BAD_GATEWAY.value(), INVALID_RESPONSE_MESSAGE);
+        }
+        final KamisDailyPriceData data = response.data();
+        if (!SUCCESS_ERROR_CODE.equals(data.errorCode())) {
+            throw new KamisClientException(HttpStatus.BAD_GATEWAY.value(), errorMessage(data));
+        }
         final List<KamisDailyPriceItemResult> items = data.items().stream()
                 .map(this::toResult)
                 .toList();
         return new KamisDailyPriceResult(data.errorCode(), data.errorMessage(), items);
+    }
+
+    private String errorMessage(final KamisDailyPriceData data) {
+        if (data.errorMessage() == null || data.errorMessage().isBlank()) {
+            return DEFAULT_ERROR_MESSAGE;
+        }
+        return data.errorMessage();
     }
 
     private String toRegDay(final KamisDailyPriceQuery query) {

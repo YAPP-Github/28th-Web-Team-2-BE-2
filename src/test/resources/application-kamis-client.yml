@@ -1,0 +1,4 @@
+kamis:
+  url: https://www.kamis.or.kr/service/price
+  cert-key: test-cert-key
+  cert-id: 9220

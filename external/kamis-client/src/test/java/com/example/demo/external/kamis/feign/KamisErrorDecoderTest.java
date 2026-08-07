@@ -36,4 +36,21 @@ class KamisErrorDecoderTest {
         assertThat(kamisException.getMessage()).isEqualTo("인증 정보가 올바르지 않습니다.");
         assertThat(kamisException.status()).isEqualTo(401);
     }
+
+    @Test
+    void HTTP_오류_본문이_없어도_외부_연동_예외로_변환한다() {
+        final Response response = Response.builder()
+                .status(503)
+                .request(Request.create(
+                        Request.HttpMethod.GET, "http://kamis.test", Map.of(), (Request.Body) null, null))
+                .build();
+
+        final Exception exception = new KamisErrorDecoder(new ObjectMapper())
+                .decode("KamisClient#getDailyPrices", response);
+
+        assertThat(exception).isInstanceOfSatisfying(KamisClientException.class, kamisException -> {
+            assertThat(kamisException.status()).isEqualTo(503);
+            assertThat(kamisException.getMessage()).isEqualTo("KAMIS API 호출에 실패했습니다.");
+        });
+    }
 }

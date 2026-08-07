@@ -1,8 +1,10 @@
 package com.example.demo.kamis.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.demo.external.kamis.feign.KamisClient;
+import com.example.demo.external.kamis.feign.KamisClientException;
 import com.example.demo.external.kamis.KamisDailyPriceData;
 import com.example.demo.external.kamis.KamisDailyPriceItem;
 import com.example.demo.external.kamis.KamisDailyPriceResponse;
@@ -12,6 +14,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 class KamisPriceQueryAdapterTest {
 
@@ -69,5 +72,56 @@ class KamisPriceQueryAdapterTest {
         assertThat(result.items()).hasSize(1);
         assertThat(result.items().getFirst().itemName()).isEqualTo("양파");
         assertThat(result.items().getFirst().dpr1()).isEqualTo("3,000");
+    }
+
+    @Test
+    void 외부_응답이_null이면_외부_연동_예외를_던진다() {
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter((
+                action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) -> null);
+
+        assertThatThrownBy(() -> adapter.findDailyPrices(query()))
+                .isInstanceOfSatisfying(KamisClientException.class, exception -> {
+                    assertThat(exception.status()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
+                    assertThat(exception.getMessage()).isEqualTo("KAMIS API 응답이 올바르지 않습니다.");
+                });
+    }
+
+    @Test
+    void 외부_응답의_data가_null이면_외부_연동_예외를_던진다() {
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter((
+                action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) ->
+                new KamisDailyPriceResponse(null));
+
+        assertThatThrownBy(() -> adapter.findDailyPrices(query()))
+                .isInstanceOf(KamisClientException.class);
+    }
+
+    @Test
+    void HTTP_200_응답의_KAMIS_오류_코드를_외부_연동_예외로_변환한다() {
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter((
+                action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) ->
+                new KamisDailyPriceResponse(new KamisDailyPriceData(
+                        "100", "인증 정보가 올바르지 않습니다.", List.of())));
+
+        assertThatThrownBy(() -> adapter.findDailyPrices(query()))
+                .isInstanceOfSatisfying(KamisClientException.class, exception -> {
+                    assertThat(exception.status()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
+                    assertThat(exception.getMessage()).isEqualTo("인증 정보가 올바르지 않습니다.");
+                });
+    }
+
+    @Test
+    void 가격_항목이_null이면_빈_목록으로_변환한다() {
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter((
+                action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) ->
+                new KamisDailyPriceResponse(new KamisDailyPriceData("000", "Success.", null)));
+
+        final KamisDailyPriceResult result = adapter.findDailyPrices(query());
+
+        assertThat(result.items()).isEmpty();
+    }
+
+    private KamisDailyPriceQuery query() {
+        return new KamisDailyPriceQuery("02", "200", "1101", LocalDate.of(2015, 10, 1), "N");
     }
 }
