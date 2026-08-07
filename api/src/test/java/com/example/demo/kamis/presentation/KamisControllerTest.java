@@ -93,7 +93,7 @@ class KamisControllerTest {
     void KAMIS_외부_예외는_외부_API_오류_응답으로_변환한다() throws Exception {
         when(getKamisDailyPriceUseCase.execute(any(KamisDailyPriceQuery.class)))
                 .thenThrow(new ApiException(
-                        "KAMIS API 응답 파싱 실패",
+                        ErrorType.EXTERNAL_API_ERROR.description(),
                         ErrorType.EXTERNAL_API_ERROR,
                         HttpStatus.BAD_GATEWAY));
 
@@ -105,7 +105,7 @@ class KamisControllerTest {
                         .queryParam("convertKgYn", "N"))
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.errorType").value("EXTERNAL_API_ERROR"))
-                .andExpect(jsonPath("$.errorMessage").value("KAMIS API 응답 파싱 실패"));
+                .andExpect(jsonPath("$.errorMessage").value(ErrorType.EXTERNAL_API_ERROR.description()));
     }
 
     @TestConfiguration(proxyBeanMethods = false)
