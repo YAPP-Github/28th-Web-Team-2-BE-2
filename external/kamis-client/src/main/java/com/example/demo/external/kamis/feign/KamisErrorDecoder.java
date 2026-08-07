@@ -8,14 +8,12 @@ import feign.Response;
 import feign.codec.ErrorDecoder;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 
 @Slf4j
 public final class KamisErrorDecoder implements ErrorDecoder {
-
-    private static final String PARSING_ERROR_MESSAGE = "KAMIS API 응답 파싱 실패";
 
     private final ObjectMapper objectMapper;
 
@@ -25,7 +23,8 @@ public final class KamisErrorDecoder implements ErrorDecoder {
 
     @Override
     public Exception decode(final String methodKey, final Response response) {
-        final HttpStatus httpStatus = resolveStatus(response.status());
+        final HttpStatus httpStatus = Optional.ofNullable(HttpStatus.resolve(response.status()))
+                .orElse(HttpStatus.BAD_GATEWAY);
         if (response.body() == null) {
             return new ApiException(
                     ErrorType.EXTERNAL_API_ERROR.description(),
@@ -34,21 +33,19 @@ public final class KamisErrorDecoder implements ErrorDecoder {
         }
 
         try (InputStream body = response.body().asInputStream()) {
-            final String responseBody = new String(body.readAllBytes(), StandardCharsets.UTF_8);
-            final ErrorResponse errorResponse = objectMapper.readValue(responseBody, ErrorResponse.class);
+            final ErrorResponse errorResponse = objectMapper.readValue(body, ErrorResponse.class);
             return new ApiException(
                     readErrorMessage(errorResponse),
                     ErrorType.EXTERNAL_API_ERROR,
                     httpStatus);
-        } catch (IOException | RuntimeException exception) {
+        } catch (IOException exception) {
             log.error(
-                    "[Kamis] 응답 파싱 실패 status={} methodKey={} message={}",
+                    "[KAMIS] response parsing failed status={} methodKey={}",
                     response.status(),
                     methodKey,
-                    exception.getMessage(),
                     exception);
             return new ApiException(
-                    PARSING_ERROR_MESSAGE,
+                    "KAMIS API 응답 파싱 실패",
                     ErrorType.EXTERNAL_API_ERROR,
                     HttpStatus.BAD_GATEWAY);
         }
@@ -71,11 +68,4 @@ public final class KamisErrorDecoder implements ErrorDecoder {
         return ErrorType.EXTERNAL_API_ERROR.description();
     }
 
-    private HttpStatus resolveStatus(final int status) {
-        final HttpStatus httpStatus = HttpStatus.resolve(status);
-        if (httpStatus == null) {
-            return HttpStatus.BAD_GATEWAY;
-        }
-        return httpStatus;
-    }
 }

@@ -65,6 +65,23 @@ class KamisErrorDecoderTest {
     }
 
     @Test
+    void 알_수_없는_HTTP_상태_코드는_BAD_GATEWAY로_변환한다() {
+        final Response response = Response.builder()
+                .status(599)
+                .request(Request.create(
+                        Request.HttpMethod.GET, "http://kamis.test", Map.of(), (Request.Body) null, null))
+                .build();
+
+        final Exception exception = new KamisErrorDecoder(new ObjectMapper())
+                .decode("KamisClient#getDailyPrices", response);
+
+        assertThat(exception).isInstanceOfSatisfying(ApiException.class, apiException -> {
+            assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
+            assertThat(apiException.errorMessage()).isEqualTo("외부 API 호출 중 오류가 발생했습니다.");
+        });
+    }
+
+    @Test
     void KAMIS_오류_응답을_파싱하지_못하면_게이트웨이_오류로_변환한다() throws IOException {
         final Response.Body body = mock(Response.Body.class);
         when(body.asInputStream()).thenReturn(new ByteArrayInputStream(
