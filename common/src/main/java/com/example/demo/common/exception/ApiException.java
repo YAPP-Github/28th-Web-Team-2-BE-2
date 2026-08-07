@@ -1,7 +1,11 @@
 package com.example.demo.common.exception;
 
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import org.springframework.http.HttpStatus;
 
+@Getter
+@Accessors(fluent = true)
 public class ApiException extends RuntimeException {
 
     private final String errorMessage;
@@ -16,17 +20,5 @@ public class ApiException extends RuntimeException {
         this.errorMessage = errorMessage;
         this.errorType = errorType;
         this.httpStatus = httpStatus;
-    }
-
-    public String errorMessage() {
-        return errorMessage;
-    }
-
-    public ErrorType errorType() {
-        return errorType;
-    }
-
-    public HttpStatus httpStatus() {
-        return httpStatus;
     }
 }
