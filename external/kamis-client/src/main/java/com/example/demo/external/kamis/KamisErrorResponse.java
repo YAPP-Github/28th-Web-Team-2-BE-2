@@ -1,14 +1,15 @@
 package com.example.demo.external.kamis;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record KamisErrorResponse(KamisErrorData data) {
+public record KamisErrorResponse(
+        @JsonProperty("OpenAPI_ServiceResponse") OpenApiServiceResponse openApiServiceResponse) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record KamisErrorData(
-            @JsonProperty("error_code") String errorCode,
-            @JsonProperty("error_msg") @JsonAlias("error_message") String errorMessage) {}
+    public record OpenApiServiceResponse(CmmMsgHeader cmmMsgHeader) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CmmMsgHeader(String errMsg, String returnAuthMsg, String returnReasonCode) {}
 }

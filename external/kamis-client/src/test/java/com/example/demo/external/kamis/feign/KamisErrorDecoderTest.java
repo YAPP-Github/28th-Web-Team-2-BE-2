@@ -21,8 +21,11 @@ class KamisErrorDecoderTest {
     @Test
     void KAMIS_오류_응답의_메시지와_HTTP_상태를_보존한다() throws IOException {
         final Response.Body body = mock(Response.Body.class);
-        when(body.asInputStream()).thenReturn(new ByteArrayInputStream(
-                "{\"data\":{\"error_code\":\"1\",\"error_msg\":\"인증 정보가 올바르지 않습니다.\"}}"
+        when(body.asInputStream()).thenReturn(new ByteArrayInputStream((
+                "{\"OpenAPI_ServiceResponse\":{\"cmmMsgHeader\":{"
+                        + "\"errMsg\":\"SERVICE_KEY_IS_NOT_REGISTERED_ERROR\","
+                        + "\"returnAuthMsg\":\"등록되지 않은 서비스키\","
+                        + "\"returnReasonCode\":\"30\"}}}")
                         .getBytes(StandardCharsets.UTF_8)));
         final Response response = Response.builder()
                 .status(401)
@@ -36,7 +39,7 @@ class KamisErrorDecoderTest {
 
         assertThat(exception).isInstanceOf(ApiException.class);
         final ApiException apiException = (ApiException) exception;
-        assertThat(apiException.errorMessage()).isEqualTo("인증 정보가 올바르지 않습니다.");
+        assertThat(apiException.errorMessage()).isEqualTo("등록되지 않은 서비스키");
         assertThat(apiException.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
         assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }

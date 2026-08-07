@@ -33,12 +33,19 @@ public final class KamisErrorDecoder implements ErrorDecoder {
 
         try (InputStream body = response.body().asInputStream()) {
             final KamisErrorResponse errorResponse = objectMapper.readValue(body, KamisErrorResponse.class);
-            if (errorResponse == null || errorResponse.data() == null
-                    || errorResponse.data().errorMessage() == null
-                    || errorResponse.data().errorMessage().isBlank()) {
+            if (errorResponse == null || errorResponse.openApiServiceResponse() == null
+                    || errorResponse.openApiServiceResponse().cmmMsgHeader() == null) {
                 return ErrorType.EXTERNAL_API_ERROR.description();
             }
-            return errorResponse.data().errorMessage();
+            final KamisErrorResponse.CmmMsgHeader header =
+                    errorResponse.openApiServiceResponse().cmmMsgHeader();
+            if (header.returnAuthMsg() != null && !header.returnAuthMsg().isBlank()) {
+                return header.returnAuthMsg();
+            }
+            if (header.errMsg() != null && !header.errMsg().isBlank()) {
+                return header.errMsg();
+            }
+            return ErrorType.EXTERNAL_API_ERROR.description();
         } catch (IOException | RuntimeException exception) {
             return ErrorType.EXTERNAL_API_ERROR.description();
         }
