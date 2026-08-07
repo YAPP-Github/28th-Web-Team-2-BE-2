@@ -2,13 +2,14 @@ package com.example.demo.kamis.infrastructure;
 
 import com.example.demo.external.kamis.KamisClient;
 import com.example.demo.external.kamis.KamisDailyPriceItem;
-import com.example.demo.external.kamis.KamisDailyPriceRequest;
+import com.example.demo.external.kamis.KamisDailyPriceData;
 import com.example.demo.external.kamis.KamisDailyPriceResponse;
 import com.example.demo.kamis.application.port.KamisPriceQueryPort;
 import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
 import com.example.demo.kamis.application.result.KamisDailyPriceItemResult;
 import com.example.demo.kamis.application.result.KamisDailyPriceResult;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.stereotype.Component;
 
 @Component("kamisPriceQueryPort")
@@ -22,20 +23,26 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
 
     @Override
     public KamisDailyPriceResult findDailyPrices(final KamisDailyPriceQuery query) {
-        final KamisDailyPriceResponse response = kamisClient.getDailyPrices(toRequest(query));
-        final List<KamisDailyPriceItemResult> items = response.items().stream()
-                .map(this::toResult)
-                .toList();
-        return new KamisDailyPriceResult(response.errorCode(), response.errorMessage(), items);
-    }
-
-    private KamisDailyPriceRequest toRequest(final KamisDailyPriceQuery query) {
-        return new KamisDailyPriceRequest(
+        final KamisDailyPriceResponse response = kamisClient.getDailyPrices(
+                "dailyPriceByCategoryList",
                 query.productClsCode(),
                 query.itemCategoryCode(),
                 query.countryCode(),
-                query.regDay(),
-                query.convertKgYn());
+                toRegDay(query),
+                query.convertKgYn(),
+                "json");
+        final KamisDailyPriceData data = Objects.requireNonNull(response.data());
+        final List<KamisDailyPriceItemResult> items = data.items().stream()
+                .map(this::toResult)
+                .toList();
+        return new KamisDailyPriceResult(data.errorCode(), data.errorMessage(), items);
+    }
+
+    private String toRegDay(final KamisDailyPriceQuery query) {
+        if (query.regDay() == null) {
+            return null;
+        }
+        return query.regDay().toString();
     }
 
     private KamisDailyPriceItemResult toResult(final KamisDailyPriceItem item) {

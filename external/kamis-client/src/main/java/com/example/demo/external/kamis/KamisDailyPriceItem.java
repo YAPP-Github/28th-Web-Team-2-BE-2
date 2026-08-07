@@ -1,10 +1,14 @@
 package com.example.demo.external.kamis;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record KamisDailyPriceItem(
-        String itemName,
-        String itemCode,
-        String kindName,
-        String kindCode,
+        @JsonProperty("item_name") String itemName,
+        @JsonProperty("itemcode") String itemCode,
+        @JsonProperty("kind_name") String kindName,
+        @JsonProperty("kindcode") String kindCode,
         String rank,
         String unit,
         String day1,

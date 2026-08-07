@@ -1,6 +1,6 @@
 package com.example.demo.external.kamis;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-public record KamisDailyPriceResponse(
-        String errorCode, String errorMessage, List<KamisDailyPriceItem> items) {}
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record KamisDailyPriceResponse(KamisDailyPriceData data) {}
