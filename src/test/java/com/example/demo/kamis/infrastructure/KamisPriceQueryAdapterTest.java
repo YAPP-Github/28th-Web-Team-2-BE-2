@@ -3,8 +3,9 @@ package com.example.demo.kamis.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kamis.feign.KamisClient;
-import com.example.demo.external.kamis.feign.KamisClientException;
 import com.example.demo.external.kamis.KamisDailyPriceData;
 import com.example.demo.external.kamis.KamisDailyPriceItem;
 import com.example.demo.external.kamis.KamisDailyPriceResponse;
@@ -80,9 +81,10 @@ class KamisPriceQueryAdapterTest {
                 action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) -> null);
 
         assertThatThrownBy(() -> adapter.findDailyPrices(query()))
-                .isInstanceOfSatisfying(KamisClientException.class, exception -> {
-                    assertThat(exception.status()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
-                    assertThat(exception.getMessage()).isEqualTo("KAMIS API 응답이 올바르지 않습니다.");
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(exception.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                    assertThat(exception.errorMessage()).isEqualTo("KAMIS API 응답이 올바르지 않습니다.");
                 });
     }
 
@@ -93,7 +95,7 @@ class KamisPriceQueryAdapterTest {
                 new KamisDailyPriceResponse(null));
 
         assertThatThrownBy(() -> adapter.findDailyPrices(query()))
-                .isInstanceOf(KamisClientException.class);
+                .isInstanceOf(ApiException.class);
     }
 
     @Test
@@ -104,9 +106,10 @@ class KamisPriceQueryAdapterTest {
                         "100", "인증 정보가 올바르지 않습니다.", List.of())));
 
         assertThatThrownBy(() -> adapter.findDailyPrices(query()))
-                .isInstanceOfSatisfying(KamisClientException.class, exception -> {
-                    assertThat(exception.status()).isEqualTo(HttpStatus.BAD_GATEWAY.value());
-                    assertThat(exception.getMessage()).isEqualTo("인증 정보가 올바르지 않습니다.");
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(exception.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                    assertThat(exception.errorMessage()).isEqualTo("인증 정보가 올바르지 않습니다.");
                 });
     }
 

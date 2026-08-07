@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Request;
 import feign.Response;
@@ -12,6 +14,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 class KamisErrorDecoderTest {
 
@@ -31,10 +34,11 @@ class KamisErrorDecoderTest {
         final Exception exception = new KamisErrorDecoder(new ObjectMapper())
                 .decode("KamisClient#getDailyPrices", response);
 
-        assertThat(exception).isInstanceOf(KamisClientException.class);
-        final KamisClientException kamisException = (KamisClientException) exception;
-        assertThat(kamisException.getMessage()).isEqualTo("인증 정보가 올바르지 않습니다.");
-        assertThat(kamisException.status()).isEqualTo(401);
+        assertThat(exception).isInstanceOf(ApiException.class);
+        final ApiException apiException = (ApiException) exception;
+        assertThat(apiException.errorMessage()).isEqualTo("인증 정보가 올바르지 않습니다.");
+        assertThat(apiException.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+        assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -48,9 +52,9 @@ class KamisErrorDecoderTest {
         final Exception exception = new KamisErrorDecoder(new ObjectMapper())
                 .decode("KamisClient#getDailyPrices", response);
 
-        assertThat(exception).isInstanceOfSatisfying(KamisClientException.class, kamisException -> {
-            assertThat(kamisException.status()).isEqualTo(503);
-            assertThat(kamisException.getMessage()).isEqualTo("KAMIS API 호출에 실패했습니다.");
+        assertThat(exception).isInstanceOfSatisfying(ApiException.class, apiException -> {
+            assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+            assertThat(apiException.errorMessage()).isEqualTo("외부 API 호출 중 오류가 발생했습니다.");
         });
     }
 }

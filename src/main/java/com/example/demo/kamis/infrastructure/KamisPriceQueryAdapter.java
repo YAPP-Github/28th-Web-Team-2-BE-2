@@ -1,7 +1,8 @@
 package com.example.demo.kamis.infrastructure;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kamis.feign.KamisClient;
-import com.example.demo.external.kamis.feign.KamisClientException;
 import com.example.demo.external.kamis.KamisDailyPriceItem;
 import com.example.demo.external.kamis.KamisDailyPriceData;
 import com.example.demo.external.kamis.KamisDailyPriceResponse;
@@ -35,11 +36,11 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
                 query.convertKgYn(),
                 "json");
         if (response == null || response.data() == null) {
-            throw new KamisClientException(HttpStatus.BAD_GATEWAY.value(), INVALID_RESPONSE_MESSAGE);
+            throw new ApiException(INVALID_RESPONSE_MESSAGE, ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
         }
         final KamisDailyPriceData data = response.data();
         if (!SUCCESS_ERROR_CODE.equals(data.errorCode())) {
-            throw new KamisClientException(HttpStatus.BAD_GATEWAY.value(), errorMessage(data));
+            throw new ApiException(errorMessage(data), ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
         }
         final List<KamisDailyPriceItemResult> items = data.items().stream()
                 .map(this::toResult)
