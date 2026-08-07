@@ -166,3 +166,30 @@ Consumer UseCase -> Consumer Port <- Infrastructure Adapter -> Provider UseCase
 - 구조 변경 후 `./gradlew clean check --no-daemon`을 실행한다.
 - 이 문서와 코드가 다르면 차이를 먼저 확인하고, 문서 또는 코드를 함께 수정한다.
 - 되돌리기 어렵거나 팀 합의가 필요한 결정만 `docs/adr/`에 기록한다.
+
+## 12. 공통 예외 처리
+
+- 여러 모듈에서 사용하는 예외 계약은 `common` 모듈이 소유한다.
+- `common`의 `ApiException`은 오류 메시지, `ErrorType`, `HttpStatus`를 함께 전달하고, `ErrorType`은 오류 분류와 기본 설명을 제공한다.
+- 외부 클라이언트 모듈은 공급자별 예외를 애플리케이션 안쪽으로 직접 노출하지 않는다. Feign `ErrorDecoder`는 외부 오류 응답을 `ApiException`과 `EXTERNAL_API_ERROR`로 변환한다.
+- HTTP 상태가 성공이어도 외부 응답 본문이 실패를 나타내거나 응답 구조가 유효하지 않으면 Infrastructure Adapter가 같은 공통 예외 계약으로 변환한다.
+- 외부 응답의 파싱·공급자별 오류 코드 해석은 외부 경계에 두고, Application과 Presentation은 공통 예외 계약만 사용한다.
+- 새로운 외부 연동마다 전용 예외를 추가하지 않는다. `ApiException`으로 의미를 표현할 수 없을 때만 별도 예외 도입을 검토한다.
+
+## 13. 멀티모듈 구조
+
+Gradle 멀티모듈은 공통 코드와 외부 시스템별 기술 구현을 애플리케이션에서 분리하는 경계다.
+
+```text
+demo application
+├── common
+└── external:kamis-client
+    └── common
+```
+
+- 루트 `demo` 모듈은 Presentation·Application·Infrastructure를 소유하고 `common`과 필요한 외부 클라이언트 모듈에 의존한다.
+- `common`은 여러 모듈에서 공유하는 최소 계약과 기술을 제공한다. 현재는 `ApiException`, `ErrorType` 같은 공통 예외 계약을 둔다.
+- `external`은 외부 클라이언트 모듈을 묶는 Gradle 영역이다. 각 클라이언트는 `java-library` 모듈로 분리하고 공통 계약과 해당 공급자의 SDK·Feign 설정만 가진다.
+- `external:kamis-client`는 KAMIS Feign 선언, 인증 요청 설정, 오류 디코더, KAMIS 응답 DTO를 소유한다. KAMIS DTO는 Application이나 Presentation으로 직접 전달하지 않는다.
+- 도메인의 Infrastructure Adapter가 외부 클라이언트를 호출하고 외부 DTO를 Application `Result`로 변환한다. 모듈 분리는 계층 경계를 대체하지 않으며, 외부 기술을 Adapter 뒤에 가두는 역할을 보완한다.
+- 새로운 외부 연동은 기존 모듈에 임의로 섞지 않고 `external:<client>`로 분리할 필요가 있는지 먼저 검토한다. 외부 계약이 독립적이고 교체·테스트 경계가 필요할 때만 모듈을 추가한다.
