@@ -1,9 +1,0 @@
-spring:
-  application:
-    name: demo
-  config:
-    import:
-      - classpath:application-kamis-client.yml
-  jpa:
-    hibernate:
-      ddl-auto: create-drop

@@ -5,7 +5,7 @@ This file is the project-local operating contract for Codex. Keep it focused on 
 ## Project baseline
 
 - Java 25, Spring Boot 4.1.0, and Gradle Groovy DSL are the project baseline.
-- The current checked-in source is a sample application under `src/main/java/com/example/demo/sample`.
+- The current checked-in source is under `api/src/main/java/com/example/demo`.
 - Keep the current base package as `com.example.demo`; do not restore the legacy package naming.
 - Use the checked-in source, configuration, and tests as the current implementation truth. Do not treat a design note as an implemented feature without verifying it.
 - Use JUnit Jupiter, AssertJ, Mockito, and MockMvc. Do not add Kotlin, Kotest, MockK, RestAssured, PostgreSQL/PostGIS, Firebase, or Redis distributed locks as active technologies.
@@ -72,7 +72,13 @@ Run the smallest relevant check during iteration. Before handing off a non-trivi
 
 ```bash
 ./gradlew clean check --no-daemon
-python3 /Users/connor/.codex/plugins/cache/personal/codex-harness/0.1.0+codex.20260728062412/skills/harness/scripts/validate_harness.py . --strict
+harness_validator_root="${CODEX_HOME:-$HOME/.codex}/plugins/cache"
+harness_validator="$(find "$harness_validator_root" -path '*/skills/harness/scripts/validate_harness.py' -print -quit 2>/dev/null)"
+if [ -n "$harness_validator" ]; then
+  python3 "$harness_validator" . --strict
+else
+  echo "strict Harness validator unavailable; report this check as unverified."
+fi
 ```
 
 Report passed, failed, and unverified checks separately.

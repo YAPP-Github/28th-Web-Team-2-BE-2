@@ -2,6 +2,13 @@
 
 이 문서는 새 코드와 구조 변경의 기준이다. 현재 코드는 전환 중이므로 기존 구조를 한 번에 옮기지 않고, 기능을 변경할 때 아래 방향으로 정리한다. Neki의 `api`와 `infra`는 이 문서의 `presentation`과 `infrastructure`에 대응한다.
 
+## 문서 상태
+
+- **현재 상태:** 현재 저장소의 모듈·계층·의존성 방향을 설명한다. 구현 여부는 코드와 테스트로 확인한다.
+- **목표 방향:** 새 코드에 적용할 권장 경계와 전환 규칙을 설명한다.
+- **전환 예외:** 기존 호출자 보존이나 점진적 이동을 위해 허용한 예외만 구체적인 패키지·이유·제거 조건과 함께 둔다.
+- **검증:** 구조 변경 후 `./gradlew clean check --no-daemon`과 관련 ArchUnit 규칙을 실행한다.
+
 ## 1. 핵심 원칙
 
 - 의존성은 바깥 계층에서 안쪽 계층으로 향한다.
@@ -161,7 +168,7 @@ Consumer UseCase -> Consumer Port <- Infrastructure Adapter -> Provider UseCase
 
 ## 11. 검증과 변경 절차
 
-- 계층 의존성은 `src/test/java/com/example/demo/architecture/LayerDependencyTest.java`의 ArchUnit 규칙으로 검증한다. 현재는 Domain의 바깥 계층 의존과 Presentation의 Infrastructure 직접 의존을 검사한다.
+- 계층 의존성은 [`api/src/test/java/com/example/demo/architecture/LayerDependencyTest.java`](../api/src/test/java/com/example/demo/architecture/LayerDependencyTest.java)의 ArchUnit 규칙으로 검증한다. 현재 규칙은 Domain의 바깥 계층 의존과 Application·Presentation의 Infrastructure 직접 의존을 금지한다.
 - 관련 영역을 포트 구조로 전환할 때 Application의 Infrastructure 의존 금지, DTO 배치, Controller와 Adapter 배치 규칙도 함께 추가한다.
 - 구조 변경 후 `./gradlew clean check --no-daemon`을 실행한다.
 - 이 문서와 코드가 다르면 차이를 먼저 확인하고, 문서 또는 코드를 함께 수정한다.
