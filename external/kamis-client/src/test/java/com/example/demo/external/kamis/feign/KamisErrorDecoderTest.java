@@ -2,6 +2,8 @@ package com.example.demo.external.kamis.feign;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
@@ -42,6 +44,7 @@ class KamisErrorDecoderTest {
         assertThat(apiException.errorMessage()).isEqualTo("등록되지 않은 서비스키");
         assertThat(apiException.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
         assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verify(body, times(1)).asInputStream();
     }
 
     @Test
@@ -58,6 +61,27 @@ class KamisErrorDecoderTest {
         assertThat(exception).isInstanceOfSatisfying(ApiException.class, apiException -> {
             assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
             assertThat(apiException.errorMessage()).isEqualTo("외부 API 호출 중 오류가 발생했습니다.");
+        });
+    }
+
+    @Test
+    void KAMIS_오류_응답을_파싱하지_못하면_게이트웨이_오류로_변환한다() throws IOException {
+        final Response.Body body = mock(Response.Body.class);
+        when(body.asInputStream()).thenReturn(new ByteArrayInputStream(
+                "{".getBytes(StandardCharsets.UTF_8)));
+        final Response response = Response.builder()
+                .status(401)
+                .request(Request.create(
+                        Request.HttpMethod.GET, "http://kamis.test", Map.of(), (Request.Body) null, null))
+                .body(body)
+                .build();
+
+        final Exception exception = new KamisErrorDecoder(new ObjectMapper())
+                .decode("KamisClient#getDailyPrices", response);
+
+        assertThat(exception).isInstanceOfSatisfying(ApiException.class, apiException -> {
+            assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
+            assertThat(apiException.errorMessage()).isEqualTo("KAMIS API 응답 파싱 실패");
         });
     }
 }
