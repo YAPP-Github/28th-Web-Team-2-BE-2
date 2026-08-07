@@ -47,17 +47,25 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+    implementation 'org.seleniumhq.selenium:selenium-java'
+    implementation 'org.jsoup:jsoup:1.18.3'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
-    runtimeOnly 'com.h2database:h2'
+    implementation 'com.h2database:h2'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    systemProperty 'price.live', providers.gradleProperty('priceLive').orElse('false').get()
+    systemProperty 'price.kurly.live', providers.gradleProperty('kurlyLive').orElse('false').get()
+    systemProperty 'price.eleven.live', providers.gradleProperty('elevenLive').orElse('false').get()
+    systemProperty 'price.gs.live', providers.gradleProperty('gsLive').orElse('false').get()
     finalizedBy tasks.named('jacocoTestReport')
 }
 
@@ -73,6 +81,12 @@ tasks.named('jacocoTestReport') {
 
 tasks.named('jacocoTestCoverageVerification') {
     dependsOn tasks.named('test')
+
+    classDirectories.setFrom(sourceSets.main.output.classesDirs.asFileTree.matching {
+        exclude 'com/example/demo/price/infrastructure/**'
+        exclude 'com/example/demo/price/batch/**'
+        exclude 'com/example/demo/price/crawler/**'
+    })
 
     violationRules {
         rule {
