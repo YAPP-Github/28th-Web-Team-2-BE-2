@@ -2,7 +2,7 @@ package com.example.demo.external.kamis.feign;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
-import com.example.demo.external.kamis.KamisDailyPriceResponse;
+import com.example.demo.external.kamis.KamisErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Response;
 import feign.codec.ErrorDecoder;
@@ -32,7 +32,7 @@ public final class KamisErrorDecoder implements ErrorDecoder {
         }
 
         try (InputStream body = response.body().asInputStream()) {
-            final KamisDailyPriceResponse errorResponse = objectMapper.readValue(body, KamisDailyPriceResponse.class);
+            final KamisErrorResponse errorResponse = objectMapper.readValue(body, KamisErrorResponse.class);
             if (errorResponse == null || errorResponse.data() == null
                     || errorResponse.data().errorMessage() == null
                     || errorResponse.data().errorMessage().isBlank()) {
