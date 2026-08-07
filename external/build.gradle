@@ -1,0 +1,25 @@
+subprojects {
+    apply plugin: 'java-library'
+
+    jar.enabled = true
+
+    dependencies {
+        implementation project(':common')
+        api 'org.springframework.cloud:spring-cloud-starter-openfeign'
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+    }
+
+    group = rootProject.group
+    version = rootProject.version
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+}
