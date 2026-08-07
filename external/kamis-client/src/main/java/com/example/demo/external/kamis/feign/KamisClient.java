@@ -1,5 +1,6 @@
-package com.example.demo.external.kamis;
+package com.example.demo.external.kamis.feign;
 
+import com.example.demo.external.kamis.KamisDailyPriceResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;

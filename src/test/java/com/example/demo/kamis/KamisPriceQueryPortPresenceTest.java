@@ -21,7 +21,7 @@ class KamisPriceQueryPortPresenceTest {
 
     @Test
     void 외부_클라이언트_모듈의_공개_계약을_제공한다() {
-        assertThatCode(() -> Class.forName("com.example.demo.external.kamis.KamisClient"))
+        assertThatCode(() -> Class.forName("com.example.demo.external.kamis.feign.KamisClient"))
                 .doesNotThrowAnyException();
     }
 }

@@ -2,7 +2,7 @@ package com.example.demo.kamis.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.example.demo.external.kamis.KamisClient;
+import com.example.demo.external.kamis.feign.KamisClient;
 import com.example.demo.external.kamis.KamisDailyPriceData;
 import com.example.demo.external.kamis.KamisDailyPriceItem;
 import com.example.demo.external.kamis.KamisDailyPriceResponse;

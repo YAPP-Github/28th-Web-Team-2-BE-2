@@ -2,6 +2,8 @@ package com.example.demo.external.kamis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.demo.external.kamis.feign.KamisClient;
+import com.example.demo.external.kamis.feign.KamisClientConfiguration;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import org.junit.jupiter.api.Test;

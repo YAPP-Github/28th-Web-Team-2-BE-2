@@ -1,6 +1,6 @@
 package com.example.demo;
 
-import com.example.demo.external.kamis.KamisClient;
+import com.example.demo.external.kamis.feign.KamisClient;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;

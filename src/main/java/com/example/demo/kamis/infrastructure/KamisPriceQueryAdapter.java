@@ -1,6 +1,6 @@
 package com.example.demo.kamis.infrastructure;
 
-import com.example.demo.external.kamis.KamisClient;
+import com.example.demo.external.kamis.feign.KamisClient;
 import com.example.demo.external.kamis.KamisDailyPriceItem;
 import com.example.demo.external.kamis.KamisDailyPriceData;
 import com.example.demo.external.kamis.KamisDailyPriceResponse;
