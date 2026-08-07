@@ -1,5 +1,6 @@
 rootProject.name = 'demo'
 
+include 'api'
 include 'external'
 include 'external:kamis-client'
 include 'common'

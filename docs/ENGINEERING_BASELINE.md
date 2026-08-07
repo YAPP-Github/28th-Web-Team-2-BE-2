@@ -7,8 +7,8 @@
 | 작업 | 먼저 읽을 문서                                                                                  |
 | --- |-------------------------------------------------------------------------------------------------|
 | 구조·도메인 경계 변경 | `docs/ARCHITECTURE.md`                                                                          |
-| 비밀값·운영 설정 변경 | 이 문서, `src/main/resources/application*.yaml`                                                 |
-| 테스트·검증 기준 변경 | 이 문서, `build.gradle`, `src/test/java/com/example/demo/architecture/LayerDependencyTest.java` |
+| 비밀값·운영 설정 변경 | 이 문서, `api/src/main/resources/application*.yaml`, `external/kamis-client/src/main/resources/*.yml` |
+| 테스트·검증 기준 변경 | 이 문서, `api/build.gradle`, 각 모듈의 `src/test/java/`; 계층 ArchUnit 규칙은 현재 checkout에서 확인되지 않음 |
 | 복합 구현을 AI 작업으로 나눔 | `AGENTS.md`, `.agents/skills/backend-orchestrator/`, `.codex/agents/`                           |
 
 ## 2. 현재 적용 상태
@@ -16,8 +16,8 @@
 | 영역 | 적용 상태 | 핵심 구현 | 검증 또는 제한 |
 | --- | --- | --- | --- |
 | 입력 검증 | 적용 | Jakarta Validation과 `GlobalExceptionHandler` | Controller 통합 테스트에서 HTTP 오류 계약 확인 |
-| 계층 검증 | 적용 | ArchUnit `LayerDependencyTest` | Domain의 Presentation/Infrastructure 의존, Presentation의 Infrastructure 직접 의존, User Application의 User Infrastructure 의존을 금지 |
-| 테스트 품질 | 적용 | JUnit, AssertJ, MockMvc, JaCoCo | `check`는 도메인 범위 line coverage 80% 이상을 요구 |
+| 계층 검증 | 미확인 | 현재 checkout에서 ArchUnit `LayerDependencyTest` 없음 | 구조 변경 시 ArchUnit 규칙과 테스트를 함께 추가·검증 |
+| 테스트 품질 | 적용 | JUnit, AssertJ, MockMvc, JaCoCo | `api` 모듈 `check`는 line coverage 90% 이상을 요구 |
 | 실환경 통합 검증 | 적용 | Testcontainers MySQL·MinIO | Docker가 없으면 관련 테스트는 실행할 수 없음 |
 | 포맷 검증 | 적용 | Spotless + `origin/main` ratchet | `spotlessCheck`로 검사하며, 자동 수정은 승인 후 `spotlessApply` |
 | 비밀값 설정 암호화 | 적용 | Jasypt `ENC(...)`, AES-256 기반 PBE, 랜덤 Salt·IV | 암호화 비밀번호는 환경변수로만 주입, 암호문 자체가 비밀값을 대체하지는 않음 |
@@ -31,8 +31,8 @@
 | CI·이미지 빌드 | 적용 | Gradle check, JaCoCo 리포트, ARM64 Docker build, Terraform 조건부 검증 | main push만 ECR publish 및 승인된 배포 조건을 평가 |
 | 배포·인프라 안전성 | 적용 | GitHub OIDC, ECR, SSM, Terraform 원격 state·lock, 권한 경계, 암호화 EBS·snapshot | 기존 EC2와 MySQL volume을 Terraform이 임의로 교체하지 않음 |
 | 운영 관측성 | 적용 | Actuator/Prometheus, JSON 로그, Grafana Alloy, dashboard·swap alert | Prometheus는 private Docker network에서만 scrape하며 공개 경로는 차단 |
-| AI 작업 검증 | 적용 | 역할 분리 agent, read-only PR Reviewer·Test Validator, push 전 hook | 로컬 설정이며 Git ignore 대상 |
-| MDC 요청 추적 | 결정만 존재 | `docs/DECISION.md` 011 | 현재 `RequestMdcFilter`, `AuthMdcFilter`, `X-Request-ID` 구현은 없음 |
+| AI 작업 검증 | 적용 | 역할 분리 agent, read-only PR Reviewer·Test Validator, push 전 hook | 설정은 저장소에 추적되며 hook 실행은 Codex 로컬 환경에 한정 |
+| MDC 요청 추적 | 미구현·결정 기록 미확인 | 현재 개별 ADR 본문 없음 | 현재 `RequestMdcFilter`, `AuthMdcFilter`, `X-Request-ID` 구현은 없음 |
 
 ## 3. 보안 기준
 
@@ -66,7 +66,7 @@
 ./gradlew spotlessCheck
 ```
 
-- `check`는 테스트와 JaCoCo 도메인 line coverage 80% 검증을 포함한다.
+- `api` 모듈의 `check`는 테스트와 JaCoCo line coverage 90% 검증을 포함한다.
 - Spotless는 `origin/main` 이후 변경된 Java 파일만 검사한다. 자동 포맷은 사용자가 요청하거나 안전한 포맷 변경임을 확인한 경우에만 실행한다.
 - Testcontainers를 사용하는 MySQL·MinIO 통합 테스트는 Docker가 필요하다. Docker가 없어서 실패하면 전체 검증 성공으로 표현하지 않고, 통과한 비Docker 테스트와 미검증 항목을 분리해 보고한다.
 
@@ -79,7 +79,7 @@
 
 ## 5. 로컬 AI 작업 도구
 
-`.agents/`, `.codex/`, `AGENTS.md`, `docs/`는 현재 로컬 작업 기준이며 Git ignore 대상이다. 새 clone이나 worktree에는 자동으로 복제되지 않는다.
+`.agents/`, `.codex/`, `AGENTS.md`, `docs/`는 현재 저장소에서 추적되는 프로젝트 작업 기준이다. 새 clone이나 worktree에도 복제된다. 개인 환경 파일과 OS/editor 산출물만 `.gitignore` 정책을 따른다.
 
 | 도구 | 역할 | 제한 |
 | --- | --- | --- |
@@ -87,20 +87,20 @@
 | `pr-reviewer` | 회귀·보안·계약 위험을 읽기 전용으로 검토 | 근거 없는 스타일 의견 제외 |
 | `test-validator` | 요구사항과 실행 결과를 독립 대조 | 실행하지 않은 검증을 통과로 취급하지 않음 |
 | pre-session hook | 세션에 backend 작업 규칙을 주입 | 로컬 Codex 환경에서만 동작 |
-| pre-push hook | `git push` 시 diff 공백과 Gradle check 실행 | push 이전에만 동작하며 커밋 자체를 막지는 않음 |
+| pre-push hook | `git push` 시 diff 공백과 Gradle check 실행 | Codex 로컬 환경에서만 동작하며 커밋 자체를 막지는 않음 |
 
 ## 6. 배포·운영 원본 문서
 
-이 문서는 기준을 요약한다. 배포 절차·장애 대응·Terraform 변경은 아래 원본 문서를 중복 작성하지 않고 따른다.
+이 문서는 기준을 요약한다. 실제로 존재하는 배포·운영 문서만 원본으로 연결하고, 아직 없는 운영 영역은 구현·문서가 생길 때 추가한다.
 
 | 대상 | 원본 문서 |
 | --- | --- |
 | GitHub CI와 ARM64 이미지 검증·배포 | `.github/workflows/ci.yml` |
-| EC2, Docker Compose, Nginx, TLS, MySQL 복구 | `infra/deploy/README.md` |
-| Terraform state, IAM 권한 경계, ECR, S3, EBS | `infra/terraform/README.md` |
-| Grafana Alloy, 대시보드, 알림 대응 | `infra/deploy/observability/OPERATIONS.md` |
-| 이미지 업로드 흐름 | `.agents/skills/image-upload-flow/` 및 `image` 도메인 코드 |
-| DB 변경 이력 | `src/main/resources/db/migration/` |
+| Skill 검증 | `.github/workflows/validate-skills.yml` |
+| Terraform harness와 안전한 검증 | `infra/AGENTS.md`, `infra/docs/terraform-harness-design.md` |
+| PostgreSQL·Redis Compose 운영 | `ops/data-services/README.md`, `ops/data-services/compose.yaml` |
+| 이미지 업로드 흐름 | `.agents/skills/image-upload-flow/` 및 `api` 모듈의 image 도메인 코드 |
+| KAMIS 외부 클라이언트 | `external/kamis-client/` |
 
 ## 7. Team-Neki에서 참고한 것과 구분
 
@@ -109,7 +109,7 @@
 | Presentation Converter와 행동별 UseCase 경계 | Neki 구조를 참고해 backend에 적용 | 구현 완료. User/Auth 가이드가 기준 |
 | 인증 전·후 MDC 분리 | Team-Neki 설계를 참고해 결정 기록 | 아직 구현하지 않음 |
 | Jasypt, JaCoCo, Testcontainers, Spotless | Neki 구조의 직접 이식이 아닌 backend 품질·운영 장치 | 구현·설정 완료 |
-| Codex Harness와 Agent 역할 분리 | backend 로컬 작업 환경 | 구현 완료, Git ignore 상태 |
+| Codex Harness와 Agent 역할 분리 | backend 작업 환경 | 저장소에 정의되어 있으며 Codex 로컬 환경에서만 실행 |
 
 Neki를 참고했다는 이유만으로 모든 패턴을 가져오지 않는다. 각 항목은 현재 backend의 계약, 운영 환경, 검증 가능성에 맞을 때만 유지한다.
 

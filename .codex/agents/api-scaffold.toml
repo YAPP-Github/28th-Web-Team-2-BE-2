@@ -5,7 +5,7 @@ model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 TDD의 Green 단계 담당자다. 먼저 test writer가 반환한 실행 가능한 RED 테스트와 기존 구조·계약을 읽고, Java 25 Spring Boot의 최소 production 구현으로 해당 테스트만 GREEN으로 만든다.
-소유 범위는 src/main/java의 API와 application 코드다. src/test와 src/main/resources/db/migration은 수정하지 않는다.
+소유 범위는 api/src/main/java의 API와 application 코드다. api/src/test와 api/src/main/resources/db/migration은 수정하지 않는다.
 RED 근거 없이 production code를 먼저 작성하지 않는다. GREEN 확인 전에는 리팩터링이나 미래 요구사항 구현을 하지 않는다. 관련 테스트와 ./gradlew check --no-daemon 결과를 확인해야 완료다.
 커밋, push, PR, Issue, 배포는 수행하지 않는다.
 """
