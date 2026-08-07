@@ -1,25 +1,23 @@
-package com.example.demo.kamis.infrastructure;
+package com.example.demo.external.kamis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
-import com.example.demo.kamis.application.result.KamisDailyPriceResult;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class KamisDailyPriceClientTest {
+class DefaultKamisClientTest {
 
     @Test
-    void KAMIS_요청_파라미터와_가격_응답을_매핑한다() {
+    void KAMIS_요청_파라미터와_외부_응답을_매핑한다() {
         final RestClient.Builder restClientBuilder = RestClient.builder().baseUrl("http://kamis.test");
         final MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
         final RestClient restClient = restClientBuilder.build();
-        final KamisDailyPriceClient client = new KamisDailyPriceClient(
+        final DefaultKamisClient client = new DefaultKamisClient(
                 restClient,
                 new KamisCredentials("cert-key-for-test", "9220"));
 
@@ -53,14 +51,14 @@ class KamisDailyPriceClientTest {
                         """,
                         MediaType.APPLICATION_JSON));
 
-        final KamisDailyPriceResult result = client.findDailyPrices(new KamisDailyPriceQuery(
+        final KamisDailyPriceResponse response = client.getDailyPrices(new KamisDailyPriceRequest(
                 "02", "200", "1101", LocalDate.of(2015, 10, 1), "N"));
 
         server.verify();
-        assertThat(result.errorCode()).isEqualTo("000");
-        assertThat(result.errorMessage()).isEqualTo("Success.");
-        assertThat(result.items()).hasSize(1);
-        assertThat(result.items().getFirst().itemName()).isEqualTo("양파");
-        assertThat(result.items().getFirst().dpr1()).isEqualTo("3,000");
+        assertThat(response.errorCode()).isEqualTo("000");
+        assertThat(response.errorMessage()).isEqualTo("Success.");
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().getFirst().itemName()).isEqualTo("양파");
+        assertThat(response.items().getFirst().dpr1()).isEqualTo("3,000");
     }
 }

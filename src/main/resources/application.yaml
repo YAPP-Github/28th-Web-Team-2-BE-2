@@ -1,11 +1,9 @@
 spring:
   application:
     name: demo
+  config:
+    import:
+      - classpath:application-kamis-client.yml
   jpa:
     hibernate:
       ddl-auto: create-drop
-
-kamis:
-  url: ${KAMIS_URL:https://www.kamis.or.kr/service/price}
-  cert-key: ${KAMIS_CERT_KEY:}
-  cert-id: 9220

@@ -1,0 +1,16 @@
+subprojects {
+    apply plugin: 'java-library'
+
+    group = rootProject.group
+    version = rootProject.version
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+}

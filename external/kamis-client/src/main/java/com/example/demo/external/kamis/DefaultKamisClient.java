@@ -1,51 +1,48 @@
-package com.example.demo.kamis.infrastructure;
+package com.example.demo.external.kamis;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.example.demo.kamis.application.port.KamisPriceQueryPort;
-import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
-import com.example.demo.kamis.application.result.KamisDailyPriceItemResult;
-import com.example.demo.kamis.application.result.KamisDailyPriceResult;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriBuilder;
 
-final class KamisDailyPriceClient implements KamisPriceQueryPort {
+final class DefaultKamisClient implements KamisClient {
 
     private final RestClient restClient;
     private final KamisCredentials credentials;
 
-    KamisDailyPriceClient(final RestClient restClient, final KamisCredentials credentials) {
+    DefaultKamisClient(final RestClient restClient, final KamisCredentials credentials) {
         this.restClient = restClient;
         this.credentials = credentials;
     }
 
     @Override
-    public KamisDailyPriceResult findDailyPrices(final KamisDailyPriceQuery query) {
+    public KamisDailyPriceResponse getDailyPrices(final KamisDailyPriceRequest request) {
         validateCredentials();
-        final KamisApiResponse response = Objects.requireNonNull(request(query), "KAMIS response is empty");
-        final KamisApiData data = Objects.requireNonNull(response.data(), "KAMIS response data is empty");
-        return new KamisDailyPriceResult(
+        final KamisApiResponse response = Objects.requireNonNull(request(request));
+        final KamisApiData data = Objects.requireNonNull(response.data());
+        return new KamisDailyPriceResponse(
                 data.errorCode(),
                 data.errorMessage(),
-                data.items().stream().map(this::toResult).toList());
+                data.items().stream().map(this::toItem).toList());
     }
 
-    private KamisApiResponse request(final KamisDailyPriceQuery query) {
+    private KamisApiResponse request(final KamisDailyPriceRequest request) {
         return restClient.get()
                 .uri(uriBuilder -> {
                     uriBuilder
                             .path("/xml.do")
                             .queryParam("action", "dailyPriceByCategoryList")
-                            .queryParam("p_product_cls_code", query.productClsCode())
-                            .queryParam("p_item_category_code", query.itemCategoryCode())
+                            .queryParam("p_product_cls_code", request.productClsCode())
+                            .queryParam("p_item_category_code", request.itemCategoryCode())
                             .queryParam("p_cert_key", credentials.certKey())
                             .queryParam("p_cert_id", credentials.certId())
                             .queryParam("p_returntype", "json")
-                            .queryParam("p_convert_kg_yn", query.convertKgYn());
-                    addOptionalParameter(uriBuilder, "p_country_code", query.countryCode());
-                    addOptionalParameter(uriBuilder, "p_regday", query.regDay());
+                            .queryParam("p_convert_kg_yn", request.convertKgYn());
+                    addOptionalParameter(uriBuilder, "p_country_code", request.countryCode());
+                    addOptionalParameter(uriBuilder, "p_regday", request.regDay());
                     return uriBuilder.build();
                 })
                 .retrieve()
@@ -53,16 +50,14 @@ final class KamisDailyPriceClient implements KamisPriceQueryPort {
     }
 
     private void addOptionalParameter(
-            final org.springframework.web.util.UriBuilder uriBuilder,
-            final String name,
-            final Object value) {
+            final UriBuilder uriBuilder, final String name, final Object value) {
         if (value != null) {
             uriBuilder.queryParam(name, value);
         }
     }
 
-    private KamisDailyPriceItemResult toResult(final KamisApiItem item) {
-        return new KamisDailyPriceItemResult(
+    private KamisDailyPriceItem toItem(final KamisApiItem item) {
+        return new KamisDailyPriceItem(
                 item.itemName(),
                 item.itemCode(),
                 item.kindName(),
@@ -101,9 +96,7 @@ record KamisApiResponse(KamisApiData data) {}
 @JsonIgnoreProperties(ignoreUnknown = true)
 record KamisApiData(
         @JsonProperty("error_code") String errorCode,
-        @JsonProperty("error_msg")
-                @JsonAlias("error_message")
-                String errorMessage,
+        @JsonProperty("error_msg") @JsonAlias("error_message") String errorMessage,
         List<KamisApiItem> item) {
 
     List<KamisApiItem> items() {

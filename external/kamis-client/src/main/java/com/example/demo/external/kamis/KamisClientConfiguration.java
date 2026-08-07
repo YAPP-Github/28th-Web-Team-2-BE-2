@@ -1,6 +1,5 @@
-package com.example.demo.kamis.infrastructure;
+package com.example.demo.external.kamis;
 
-import com.example.demo.kamis.application.port.KamisPriceQueryPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,16 +14,11 @@ public class KamisClientConfiguration {
     }
 
     @Bean
-    KamisCredentials kamisCredentials(
+    KamisClient kamisClient(
+            final RestClient kamisRestClient,
             @Value("${kamis.cert-key}") final String certKey,
             @Value("${kamis.cert-id}") final String certId) {
-        return new KamisCredentials(certKey, certId);
-    }
-
-    @Bean(name = "kamisPriceQueryPort")
-    KamisPriceQueryPort kamisPriceQueryPort(
-            final RestClient kamisRestClient, final KamisCredentials kamisCredentials) {
-        return new KamisDailyPriceClient(kamisRestClient, kamisCredentials);
+        return new DefaultKamisClient(kamisRestClient, new KamisCredentials(certKey, certId));
     }
 }
 
