@@ -46,7 +46,12 @@ class DemoApplicationTests {
                 .andExpect(jsonPath("$.paths['/api/samples'].get.summary")
                         .value("샘플 메시지를 조회한다"))
                 .andExpect(jsonPath("$.paths['/api/samples'].get.responses['200'].description")
-                        .value("샘플 메시지 조회 성공"));
+                        .value("샘플 메시지 조회 성공"))
+                .andExpect(jsonPath("$.paths['/api/kamis/daily-prices'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/kamis/daily-prices'].get.summary")
+                        .value("KAMIS 일별 부류별 가격을 조회한다"))
+                .andExpect(jsonPath("$.paths['/api/kamis/daily-prices'].get.responses['200'].description")
+                        .value("가격 조회 성공"));
 
         mockMvc.perform(get("/v3/api-docs/general"))
                 .andExpect(status().isOk())

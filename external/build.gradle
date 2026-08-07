@@ -1,0 +1,22 @@
+subprojects {
+    apply plugin: 'java-library'
+
+    jar.enabled = true
+
+    dependencies {
+        api 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    }
+
+    group = rootProject.group
+    version = rootProject.version
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+}
