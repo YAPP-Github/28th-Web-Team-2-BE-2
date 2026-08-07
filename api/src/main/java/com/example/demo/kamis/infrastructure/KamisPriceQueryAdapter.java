@@ -66,29 +66,32 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
 
     private KamisDailyPriceItemResult toResult(final Item item) {
         return new KamisDailyPriceItemResult(
-                item.corpGdsItemNm(),
-                item.corpGdsCd(),
-                item.corpGdsVrtyNm(),
-                item.gdsSclsfCd(),
-                null,
+                firstNonBlank(item.itemName(), item.corpGdsItemNm()),
+                firstNonBlank(item.itemCode(), item.corpGdsCd()),
+                firstNonBlank(item.kindName(), item.corpGdsVrtyNm()),
+                firstNonBlank(item.kindCode(), item.gdsSclsfCd()),
+                item.rank(),
                 unit(item),
-                item.scsbdDt(),
-                item.scsbdPrc(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null);
+                firstNonBlank(item.day1(), item.scsbdDt()),
+                firstNonBlank(item.dpr1(), item.scsbdPrc()),
+                item.day2(),
+                item.dpr2(),
+                item.day3(),
+                item.dpr3(),
+                item.day4(),
+                item.dpr4(),
+                item.day5(),
+                item.dpr5(),
+                item.day6(),
+                item.dpr6(),
+                item.day7(),
+                item.dpr7());
     }
 
     private String unit(final Item item) {
+        if (item.unit() != null && !item.unit().isBlank()) {
+            return item.unit();
+        }
         if (item.unitQty() == null || item.unitQty().isBlank()) {
             return item.unitNm();
         }
@@ -96,5 +99,12 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
             return item.unitQty();
         }
         return item.unitQty() + item.unitNm();
+    }
+
+    private String firstNonBlank(final String preferred, final String fallback) {
+        if (preferred != null && !preferred.isBlank()) {
+            return preferred;
+        }
+        return fallback;
     }
 }

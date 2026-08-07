@@ -8,6 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
+import com.example.demo.common.exception.GlobalExceptionHandler;
 import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
 import com.example.demo.kamis.application.result.KamisDailyPriceItemResult;
 import com.example.demo.kamis.application.result.KamisDailyPriceResult;
@@ -21,11 +24,12 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(KamisController.class)
-@Import({KamisDailyPriceConverter.class, KamisControllerTest.MockBeans.class})
+@Import({KamisDailyPriceConverter.class, GlobalExceptionHandler.class, KamisControllerTest.MockBeans.class})
 class KamisControllerTest {
 
     @Autowired
@@ -83,6 +87,25 @@ class KamisControllerTest {
         mockMvc.perform(get("/api/kamis/daily-prices")
                         .queryParam("productClsCode", "03"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void KAMIS_외부_예외는_외부_API_오류_응답으로_변환한다() throws Exception {
+        when(getKamisDailyPriceUseCase.execute(any(KamisDailyPriceQuery.class)))
+                .thenThrow(new ApiException(
+                        "KAMIS API 응답 파싱 실패",
+                        ErrorType.EXTERNAL_API_ERROR,
+                        HttpStatus.BAD_GATEWAY));
+
+        mockMvc.perform(get("/api/kamis/daily-prices")
+                        .queryParam("productClsCode", "02")
+                        .queryParam("itemCategoryCode", "200")
+                        .queryParam("countryCode", "1101")
+                        .queryParam("regDay", "2015-10-01")
+                        .queryParam("convertKgYn", "N"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.errorType").value("EXTERNAL_API_ERROR"))
+                .andExpect(jsonPath("$.errorMessage").value("KAMIS API 응답 파싱 실패"));
     }
 
     @TestConfiguration(proxyBeanMethods = false)

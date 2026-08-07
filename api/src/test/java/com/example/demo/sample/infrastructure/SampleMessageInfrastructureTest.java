@@ -13,14 +13,21 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class SampleMessageInfrastructureTest {
 
-    @Autowired
-    private SampleMessageJpaRepository sampleMessageJpaRepository;
+    private final SampleMessageJpaRepository sampleMessageJpaRepository;
+
+    private final SampleMessageCommandPort sampleMessageCommandPort;
+
+    private final SampleMessageQueryPort sampleMessageQueryPort;
 
     @Autowired
-    private SampleMessageCommandPort sampleMessageCommandPort;
-
-    @Autowired
-    private SampleMessageQueryPort sampleMessageQueryPort;
+    SampleMessageInfrastructureTest(
+            final SampleMessageJpaRepository sampleMessageJpaRepository,
+            final SampleMessageCommandPort sampleMessageCommandPort,
+            final SampleMessageQueryPort sampleMessageQueryPort) {
+        this.sampleMessageJpaRepository = sampleMessageJpaRepository;
+        this.sampleMessageCommandPort = sampleMessageCommandPort;
+        this.sampleMessageQueryPort = sampleMessageQueryPort;
+    }
 
     @BeforeEach
     void setUp() {

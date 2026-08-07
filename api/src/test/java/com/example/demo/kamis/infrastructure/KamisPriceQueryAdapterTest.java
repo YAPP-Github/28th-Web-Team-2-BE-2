@@ -56,8 +56,10 @@ class KamisPriceQueryAdapterTest {
             assertThat(mappedItem.unit()).isEqualTo("1kg");
             assertThat(mappedItem.day1()).isEqualTo("2026-08-06");
             assertThat(mappedItem.dpr1()).isEqualTo("3,000");
-            assertThat(mappedItem.day2()).isNull();
-            assertThat(mappedItem.dpr2()).isNull();
+            assertThat(mappedItem.day2()).isEqualTo("2026-08-05");
+            assertThat(mappedItem.dpr2()).isEqualTo("2,900");
+            assertThat(mappedItem.day7()).isEqualTo("2021-08-06");
+            assertThat(mappedItem.dpr7()).isEqualTo("2,400");
         });
     }
 
@@ -154,7 +156,27 @@ class KamisPriceQueryAdapterTest {
                 "01",
                 "포장",
                 "sample",
-                "경매");
+                "경매",
+                "양파",
+                "211",
+                "양파",
+                "010101",
+                "상품",
+                "1kg",
+                "2026-08-06",
+                "3,000",
+                "2026-08-05",
+                "2,900",
+                "2026-07-30",
+                "2,800",
+                "2026-07-23",
+                "2,700",
+                "2026-07-06",
+                "2,600",
+                "2025-08-06",
+                "2,500",
+                "2021-08-06",
+                "2,400");
     }
 
     private KamisDailyPriceQuery query() {

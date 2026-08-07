@@ -13,11 +13,17 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class GetSampleMessageUseCaseIntegrationTest {
 
-    @Autowired
-    private GetSampleMessageUseCase getSampleMessageUseCase;
+    private final GetSampleMessageUseCase getSampleMessageUseCase;
+
+    private final SampleMessageJpaRepository sampleMessageJpaRepository;
 
     @Autowired
-    private SampleMessageJpaRepository sampleMessageJpaRepository;
+    GetSampleMessageUseCaseIntegrationTest(
+            final GetSampleMessageUseCase getSampleMessageUseCase,
+            final SampleMessageJpaRepository sampleMessageJpaRepository) {
+        this.getSampleMessageUseCase = getSampleMessageUseCase;
+        this.sampleMessageJpaRepository = sampleMessageJpaRepository;
+    }
 
     @BeforeEach
     void setUp() {

@@ -18,6 +18,8 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 public class SampleMessage {
 
+    private static final int MAX_MESSAGE_LENGTH = 200;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,6 +30,9 @@ public class SampleMessage {
     public SampleMessage(final String message) {
         if (message == null || message.isBlank()) {
             throw new IllegalArgumentException("sample message must not be blank");
+        }
+        if (message.length() > MAX_MESSAGE_LENGTH) {
+            throw new IllegalArgumentException("sample message must not exceed 200 characters");
         }
         this.message = message;
     }

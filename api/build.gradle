@@ -20,6 +20,7 @@ dependencies {
     implementation project(':common')
     implementation project(':external:kamis-client')
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -29,6 +30,8 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.2'
+    testRuntimeOnly 'com.tngtech.archunit:archunit-junit5-engine:1.4.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

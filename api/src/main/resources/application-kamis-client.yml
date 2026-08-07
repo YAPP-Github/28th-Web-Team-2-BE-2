@@ -1,4 +1,4 @@
 kamis:
   url: ${KAMIS_URL:https://www.kamis.or.kr/service/price}
   cert-key: ${KAMIS_CERT_KEY}
-  cert-id: 9220
+  cert-id: ${KAMIS_CERT_ID:9220}

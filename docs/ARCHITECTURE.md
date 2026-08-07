@@ -168,7 +168,7 @@ Consumer UseCase -> Consumer Port <- Infrastructure Adapter -> Provider UseCase
 
 ## 11. 검증과 변경 절차
 
-- 계층 의존성은 관련 모듈의 ArchUnit 규칙으로 검증한다. 현재 checkout에서는 `LayerDependencyTest`가 확인되지 않으므로, 계층 경계를 변경할 때 규칙과 테스트를 함께 추가한다.
+- 계층 의존성은 [`api/src/test/java/com/example/demo/architecture/LayerDependencyTest.java`](../api/src/test/java/com/example/demo/architecture/LayerDependencyTest.java)의 ArchUnit 규칙으로 검증한다. 현재 규칙은 Domain의 바깥 계층 의존과 Application·Presentation의 Infrastructure 직접 의존을 금지한다.
 - 관련 영역을 포트 구조로 전환할 때 Application의 Infrastructure 의존 금지, DTO 배치, Controller와 Adapter 배치 규칙도 함께 추가한다.
 - 구조 변경 후 `./gradlew clean check --no-daemon`을 실행한다.
 - 이 문서와 코드가 다르면 차이를 먼저 확인하고, 문서 또는 코드를 함께 수정한다.

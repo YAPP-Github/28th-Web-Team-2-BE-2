@@ -7,8 +7,8 @@
 | 작업 | 먼저 읽을 문서                                                                                  |
 | --- |-------------------------------------------------------------------------------------------------|
 | 구조·도메인 경계 변경 | `docs/ARCHITECTURE.md`                                                                          |
-| 비밀값·운영 설정 변경 | 이 문서, `api/src/main/resources/application*.yaml`, `external/kamis-client/src/main/resources/*.yml` |
-| 테스트·검증 기준 변경 | 이 문서, `api/build.gradle`, 각 모듈의 `src/test/java/`; 계층 ArchUnit 규칙은 현재 checkout에서 확인되지 않음 |
+| 비밀값·운영 설정 변경 | 이 문서, `api/src/main/resources/application*.yaml`, `api/src/main/resources/application-kamis-client.yml` |
+| 테스트·검증 기준 변경 | 이 문서, `api/build.gradle`, 각 모듈의 `src/test/java/`, `api/src/test/java/com/example/demo/architecture/LayerDependencyTest.java` |
 | 복합 구현을 AI 작업으로 나눔 | `AGENTS.md`, `.agents/skills/backend-orchestrator/`, `.codex/agents/`                           |
 
 ## 2. 현재 적용 상태
@@ -16,7 +16,7 @@
 | 영역 | 적용 상태 | 핵심 구현 | 검증 또는 제한 |
 | --- | --- | --- | --- |
 | 입력 검증 | 적용 | Jakarta Validation과 `GlobalExceptionHandler` | Controller 통합 테스트에서 HTTP 오류 계약 확인 |
-| 계층 검증 | 미확인 | 현재 checkout에서 ArchUnit `LayerDependencyTest` 없음 | 구조 변경 시 ArchUnit 규칙과 테스트를 함께 추가·검증 |
+| 계층 검증 | 적용 | `api` 모듈의 ArchUnit `LayerDependencyTest` | Domain의 바깥 계층 의존과 Application·Presentation의 Infrastructure 직접 의존을 `check`에서 검증 |
 | 테스트 품질 | 적용 | JUnit, AssertJ, MockMvc, JaCoCo | `api` 모듈 `check`는 line coverage 90% 이상을 요구 |
 | 실환경 통합 검증 | 적용 | Testcontainers MySQL·MinIO | Docker가 없으면 관련 테스트는 실행할 수 없음 |
 | 포맷 검증 | 적용 | Spotless + `origin/main` ratchet | `spotlessCheck`로 검사하며, 자동 수정은 승인 후 `spotlessApply` |
