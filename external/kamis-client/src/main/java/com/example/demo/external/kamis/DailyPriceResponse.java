@@ -6,7 +6,24 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record DailyPriceResponse(Response response) {
+public record DailyPriceResponse(Data data, Response response) {
+
+    public DailyPriceResponse(final Response response) {
+        this(null, response);
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Data(
+            @JsonProperty("error_code") String errorCode,
+            @JsonProperty("item") List<Item> item) {
+
+        public List<Item> items() {
+            if (item == null) {
+                return List.of();
+            }
+            return item;
+        }
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Response(Header header, Body body) {}

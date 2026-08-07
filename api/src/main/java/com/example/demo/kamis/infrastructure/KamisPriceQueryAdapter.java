@@ -34,20 +34,35 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
                 toRegDay(query),
                 query.convertKgYn(),
                 "json");
-        if (response == null || response.response() == null
-                || response.response().header() == null
-                || response.response().body() == null
-                || response.response().body().items() == null) {
+        if (response == null) {
+            throw new ApiException(INVALID_RESPONSE_MESSAGE, ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
+        }
+        if (response.data() != null) {
+            return toResult(response.data());
+        }
+        if (response.response() == null || response.response().header() == null
+                || response.response().body() == null || response.response().body().items() == null) {
             throw new ApiException(INVALID_RESPONSE_MESSAGE, ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
         }
         final DailyPriceResponse.Header header = response.response().header();
         if (!SUCCESS_ERROR_CODE.equals(header.resultCode())) {
             throw new ApiException(errorMessage(header), ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
         }
-        final List<KamisDailyPriceItemResult> items = response.response().body().items().items().stream()
+        final List<KamisDailyPriceItemResult> items = toItems(response.response().body().items().items());
+        return new KamisDailyPriceResult(header.resultCode(), header.resultMsg(), items);
+    }
+
+    private KamisDailyPriceResult toResult(final DailyPriceResponse.Data data) {
+        if (!SUCCESS_ERROR_CODE.equals(data.errorCode())) {
+            throw new ApiException(DEFAULT_ERROR_MESSAGE, ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
+        }
+        return new KamisDailyPriceResult(data.errorCode(), null, toItems(data.items()));
+    }
+
+    private List<KamisDailyPriceItemResult> toItems(final List<Item> items) {
+        return items.stream()
                 .map(this::toResult)
                 .toList();
-        return new KamisDailyPriceResult(header.resultCode(), header.resultMsg(), items);
     }
 
     private String errorMessage(final DailyPriceResponse.Header header) {
