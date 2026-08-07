@@ -2,18 +2,26 @@ package com.example.demo.kamis.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kamis.DailyPriceResponse;
 import com.example.demo.external.kamis.Item;
 import com.example.demo.external.kamis.feign.KamisClient;
+import com.example.demo.external.kamis.feign.KamisResponseDecoder;
 import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
 import com.example.demo.kamis.application.result.KamisDailyPriceResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.Request;
+import feign.Response;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -72,6 +80,41 @@ class KamisPriceQueryAdapterTest {
             assertThat(item.dpr6()).isEqualTo("5,817");
             assertThat(item.day7()).isEqualTo("일평년");
             assertThat(item.dpr7()).isEqualTo("8,751");
+        });
+    }
+
+    @Test
+    void 기존_KAMIS_response_body_응답도_일별가격_결과로_변환한다() throws Exception {
+        final DailyPriceResponse response = decode("""
+                {
+                  "response": {
+                    "header": {"resultCode": "000"},
+                    "body": {
+                      "items": {"item": [{
+                        "item_name": "배추",
+                        "item_code": "211",
+                        "kind_code": "02",
+                        "unit": "10kg",
+                        "day1": "당일 (10/01)",
+                        "dpr1": "5,500"
+                      }]},
+                      "dataType": "JSON",
+                      "numOfRows": 1,
+                      "pageNo": 1,
+                      "totalCount": 1
+                    }
+                  }
+                }
+                """);
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter(ignoredClient(response));
+
+        final KamisDailyPriceResult result = adapter.findDailyPrices(query());
+
+        assertThat(result.errorCode()).isEqualTo("000");
+        assertThat(result.items()).singleElement().satisfies(item -> {
+            assertThat(item.itemName()).isEqualTo("배추");
+            assertThat(item.itemCode()).isEqualTo("211");
+            assertThat(item.dpr1()).isEqualTo("5,500");
         });
     }
 
@@ -169,6 +212,19 @@ class KamisPriceQueryAdapterTest {
 
     private KamisClient ignoredClient(final DailyPriceResponse response) {
         return (action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) -> response;
+    }
+
+    private DailyPriceResponse decode(final String json) throws IOException {
+        final Response.Body body = mock(Response.Body.class);
+        when(body.asInputStream()).thenReturn(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
+        final Response response = Response.builder()
+                .status(200)
+                .request(Request.create(
+                        Request.HttpMethod.GET, "http://kamis.test", Map.of(), (Request.Body) null, null))
+                .body(body)
+                .build();
+        return (DailyPriceResponse) new KamisResponseDecoder(new ObjectMapper())
+                .decode(response, DailyPriceResponse.class);
     }
 
     private DailyPriceResponse response(

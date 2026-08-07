@@ -43,7 +43,8 @@ class KamisResponseDecoderTest {
     void 기존_response_body_래퍼도_flat_response로_변환한다() throws Exception {
         final Response.Body body = mock(Response.Body.class);
         when(body.asInputStream()).thenReturn(new ByteArrayInputStream(
-                ("{\"response\":{\"body\":{\"items\":{\"item\":[{"
+                ("{\"response\":{\"header\":{\"resultCode\":\"000\"},"
+                        + "\"body\":{\"items\":{\"item\":[{"
                         + "\"corp_gds_item_nm\":\"양파\"}]},\"dataType\":\"JSON\","
                         + "\"numOfRows\":1,\"pageNo\":1,\"totalCount\":1}}}")
                         .getBytes(StandardCharsets.UTF_8)));
@@ -57,6 +58,7 @@ class KamisResponseDecoderTest {
         final DailyPriceResponse decoded = (DailyPriceResponse) new KamisResponseDecoder(new ObjectMapper())
                 .decode(response, DailyPriceResponse.class);
 
+        assertThat(decoded.errorCode()).isEqualTo("000");
         assertThat(decoded.items()).singleElement()
                 .satisfies(item -> assertThat(item.corpGdsItemNm()).isEqualTo("양파"));
         assertThat(decoded.meta().dataType()).isEqualTo("JSON");

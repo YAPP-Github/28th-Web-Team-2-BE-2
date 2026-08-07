@@ -14,9 +14,12 @@ public final class KamisResponseDecoder implements Decoder {
 
     private static final String DATA = "data";
     private static final String RESPONSE = "response";
+    private static final String HEADER = "header";
     private static final String BODY = "body";
     private static final String ITEM = "item";
     private static final String ITEMS = "items";
+    private static final String ERROR_CODE = "error_code";
+    private static final String RESULT_CODE = "resultCode";
     private static final String META = "meta";
     private static final String DATA_TYPE = "dataType";
     private static final String NUM_OF_ROWS = "numOfRows";
@@ -46,7 +49,8 @@ public final class KamisResponseDecoder implements Decoder {
         if (root.has(DATA)) {
             source = root.get(DATA);
         }
-        if (root.has(RESPONSE)) {
+        final boolean legacyResponse = root.has(RESPONSE);
+        if (legacyResponse) {
             source = root.path(RESPONSE).path(BODY);
         }
         if (!source.has(ITEMS)) {
@@ -61,7 +65,17 @@ public final class KamisResponseDecoder implements Decoder {
         }
         normalized.remove(ITEMS);
         copyMetaFields(source, normalized);
+        if (legacyResponse) {
+            copyResultCode(root, normalized);
+        }
         return normalized;
+    }
+
+    private void copyResultCode(final JsonNode root, final ObjectNode normalized) {
+        final JsonNode resultCode = root.path(RESPONSE).path(HEADER).path(RESULT_CODE);
+        if (resultCode.isTextual()) {
+            normalized.set(ERROR_CODE, resultCode);
+        }
     }
 
     private void copyMetaFields(final JsonNode source, final ObjectNode normalized) {
