@@ -6,6 +6,8 @@ subprojects {
     dependencies {
         implementation project(':common')
         api 'org.springframework.cloud:spring-cloud-starter-openfeign'
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
     }
 
     group = rootProject.group

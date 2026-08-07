@@ -2,20 +2,20 @@ package com.example.demo.external.kamis.feign;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
-import com.example.demo.external.kamis.KamisErrorResponse;
+import com.example.demo.external.kamis.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Response;
 import feign.codec.ErrorDecoder;
 import java.io.IOException;
 import java.io.InputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.nio.charset.StandardCharsets;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 
+@Slf4j
 public final class KamisErrorDecoder implements ErrorDecoder {
 
     private static final String PARSING_ERROR_MESSAGE = "KAMIS API 응답 파싱 실패";
-    private static final Logger LOGGER = LoggerFactory.getLogger(KamisErrorDecoder.class);
 
     private final ObjectMapper objectMapper;
 
@@ -34,13 +34,14 @@ public final class KamisErrorDecoder implements ErrorDecoder {
         }
 
         try (InputStream body = response.body().asInputStream()) {
-            final KamisErrorResponse errorResponse = objectMapper.readValue(body, KamisErrorResponse.class);
+            final String responseBody = new String(body.readAllBytes(), StandardCharsets.UTF_8);
+            final ErrorResponse errorResponse = objectMapper.readValue(responseBody, ErrorResponse.class);
             return new ApiException(
                     readErrorMessage(errorResponse),
                     ErrorType.EXTERNAL_API_ERROR,
                     httpStatus);
         } catch (IOException | RuntimeException exception) {
-            LOGGER.error(
+            log.error(
                     "[Kamis] 응답 파싱 실패 status={} methodKey={} message={}",
                     response.status(),
                     methodKey,
@@ -53,13 +54,13 @@ public final class KamisErrorDecoder implements ErrorDecoder {
         }
     }
 
-    private String readErrorMessage(final KamisErrorResponse errorResponse) {
+    private String readErrorMessage(final ErrorResponse errorResponse) {
         if (errorResponse == null || errorResponse.openApiServiceResponse() == null
                 || errorResponse.openApiServiceResponse().cmmMsgHeader() == null) {
             return ErrorType.EXTERNAL_API_ERROR.description();
         }
 
-        final KamisErrorResponse.CmmMsgHeader header =
+        final ErrorResponse.CmmMsgHeader header =
                 errorResponse.openApiServiceResponse().cmmMsgHeader();
         if (header.returnAuthMsg() != null && !header.returnAuthMsg().isBlank()) {
             return header.returnAuthMsg();

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record KamisErrorResponse(
+public record ErrorResponse(
         @JsonProperty("OpenAPI_ServiceResponse") OpenApiServiceResponse openApiServiceResponse) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)

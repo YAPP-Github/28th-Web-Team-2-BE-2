@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record KamisItem(
+public record Item(
         @JsonProperty("auctn_seq") String auctnSeq,
         @JsonProperty("scsbd_dt") String scsbdDt,
         @JsonProperty("trd_clcln_ymd") String trdClclnYmd,
