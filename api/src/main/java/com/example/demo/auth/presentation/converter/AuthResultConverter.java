@@ -8,6 +8,6 @@ import org.springframework.stereotype.Component;
 public class AuthResultConverter {
 
     public TokenResponse toTokenResponse(final AuthToken token) {
-        return new TokenResponse(token.accessToken());
+        return new TokenResponse(token.accessToken(), token.refreshToken());
     }
 }

@@ -52,11 +52,12 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/auth/kakao/login",
-                                "/api/auth/reissue",
-                                "/api/auth/logout")
+                                "/api/auth/reissue")
                         .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout")
+                        .authenticated()
                         .anyRequest()
-                        .authenticated())
+                        .permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

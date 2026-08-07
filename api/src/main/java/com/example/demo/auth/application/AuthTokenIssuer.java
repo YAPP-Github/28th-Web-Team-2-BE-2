@@ -3,6 +3,7 @@ package com.example.demo.auth.application;
 import com.example.demo.auth.application.port.RefreshTokenStore;
 import com.example.demo.auth.application.port.TokenProvider;
 import com.example.demo.auth.application.result.AuthToken;
+import com.example.demo.auth.domain.UserRole;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,10 +27,10 @@ public class AuthTokenIssuer {
         this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
-    public AuthToken issue(final String subject) {
-        final String accessToken = tokenProvider.createAccessToken(subject);
-        final String refreshToken = tokenProvider.createRefreshToken(subject);
-        refreshTokenStore.save(refreshTokenHasher.hash(refreshToken), subject, refreshTokenExpiration);
+    public AuthToken issue(final Long userId, final UserRole role) {
+        final String accessToken = tokenProvider.createAccessToken(userId, role);
+        final String refreshToken = tokenProvider.createRefreshToken(userId);
+        refreshTokenStore.save(userId, refreshTokenHasher.hash(refreshToken), refreshTokenExpiration);
         return new AuthToken(accessToken, refreshToken);
     }
 }

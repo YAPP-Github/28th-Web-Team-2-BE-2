@@ -10,14 +10,15 @@ import com.example.demo.auth.application.usecase.ReissueTokenUseCase;
 import com.example.demo.auth.presentation.converter.AuthCommandConverter;
 import com.example.demo.auth.presentation.converter.AuthResultConverter;
 import com.example.demo.auth.presentation.dto.KakaoLoginRequest;
+import com.example.demo.auth.presentation.dto.RefreshTokenRequest;
 import com.example.demo.auth.presentation.dto.TokenResponse;
+import com.example.demo.common.security.AuthPrincipal;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,7 +35,6 @@ public class AuthController {
     private final LogoutUseCase logoutUseCase;
     private final AuthCommandConverter commandConverter;
     private final AuthResultConverter resultConverter;
-    private final RefreshTokenCookie refreshTokenCookie;
 
     @PostMapping("/kakao/login")
     @Operation(summary = "Kakao idToken으로 로그인한다")
@@ -45,28 +45,23 @@ public class AuthController {
     }
 
     @PostMapping("/reissue")
-    @Operation(summary = "Refresh Token cookie로 Access Token을 재발급한다")
+    @Operation(summary = "Refresh Token으로 Access Token을 재발급한다")
     public ResponseEntity<TokenResponse> reissue(
-            @CookieValue(name = RefreshTokenCookie.NAME, required = false) final String refreshToken) {
-        final RefreshTokenCommand command = commandConverter.toRefreshTokenCommand(refreshToken);
+            @Valid @RequestBody final RefreshTokenRequest request) {
+        final RefreshTokenCommand command = commandConverter.toRefreshTokenCommand(request);
         final AuthToken token = reissueTokenUseCase.execute(command);
         return tokenResponse(token);
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Refresh Token을 폐기하고 로그아웃한다")
-    public ResponseEntity<Void> logout(
-            @CookieValue(name = RefreshTokenCookie.NAME, required = false) final String refreshToken) {
-        final LogoutCommand command = commandConverter.toLogoutCommand(refreshToken);
+    @Operation(summary = "현재 사용자의 Refresh Token을 폐기하고 로그아웃한다")
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal final AuthPrincipal principal) {
+        final LogoutCommand command = commandConverter.toLogoutCommand(principal.userId());
         logoutUseCase.execute(command);
-        return ResponseEntity.noContent()
-                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.delete().toString())
-                .build();
+        return ResponseEntity.noContent().build();
     }
 
     private ResponseEntity<TokenResponse> tokenResponse(final AuthToken token) {
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.create(token.refreshToken()).toString())
-                .body(resultConverter.toTokenResponse(token));
+        return ResponseEntity.ok().body(resultConverter.toTokenResponse(token));
     }
 }

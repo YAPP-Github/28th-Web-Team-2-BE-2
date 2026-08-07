@@ -13,11 +13,10 @@ spring:
       port: ${REDIS_PORT:6379}
 
 jwt:
-  secret-key: ${JWT_SECRET_KEY}
+  access-secret: ${JWT_ACCESS_SECRET}
+  refresh-secret: ${JWT_REFRESH_SECRET}
   access-token-expiration: 30m
   refresh-token-expiration: 14d
-  refresh-cookie:
-    secure: ${JWT_REFRESH_COOKIE_SECURE:true}
 
 kakao:
   oauth:
