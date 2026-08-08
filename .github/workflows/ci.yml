@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,8 +31,42 @@ jobs:
       - name: Grant Gradle wrapper execute permission
         run: chmod +x gradlew
 
-      - name: Run Gradle check
-        run: ./gradlew clean check --no-daemon
+      - name: Run Gradle check and package application
+        run: ./gradlew clean check :api:bootJar --no-daemon
+
+      - name: Prepare application JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar_path="$(find api/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' -print -quit)"
+          test -n "$jar_path"
+          if [[ "$jar_path" != "api/build/libs/app.jar" ]]; then
+            cp "$jar_path" api/build/libs/app.jar
+          fi
+
+      - name: Upload application JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-jar
+          path: api/build/libs/app.jar
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ARM64 Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: false
+          tags: demo:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Publish JaCoCo report to PR
         if: ${{ always() && github.event_name == 'pull_request' }}
