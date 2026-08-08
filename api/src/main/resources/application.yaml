@@ -7,3 +7,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+item:
+  price:
+    collection:
+      selenium:
+        headless: false
+        page-load-timeout: 30s
+        wait-timeout: 10s
