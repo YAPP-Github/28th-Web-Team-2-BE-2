@@ -98,7 +98,7 @@ class KamisErrorDecoderTest {
 
         assertThat(exception).isInstanceOfSatisfying(ApiException.class, apiException -> {
             assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
-            assertThat(apiException.errorMessage()).isEqualTo("KAMIS API 응답 파싱 실패");
+            assertThat(apiException.errorMessage()).isEqualTo(ErrorType.EXTERNAL_API_ERROR.description());
         });
     }
 }

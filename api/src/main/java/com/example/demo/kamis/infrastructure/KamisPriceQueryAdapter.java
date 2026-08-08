@@ -11,50 +11,52 @@ import com.example.demo.kamis.application.result.KamisDailyPriceItemResult;
 import com.example.demo.kamis.application.result.KamisDailyPriceResult;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component("kamisPriceQueryPort")
 @RequiredArgsConstructor
 final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
 
+    private static final String DAILY_PRICE_BY_CATEGORY_LIST_ACTION = "dailyPriceByCategoryList";
+    private static final String JSON_RETURN_TYPE = "json";
     private static final String SUCCESS_ERROR_CODE = "000";
-    private static final String DEFAULT_ERROR_MESSAGE = "KAMIS API 호출에 실패했습니다.";
-    private static final String INVALID_RESPONSE_MESSAGE = "KAMIS API 응답이 올바르지 않습니다.";
 
     private final KamisClient kamisClient;
 
     @Override
     public KamisDailyPriceResult findDailyPrices(final KamisDailyPriceQuery query) {
-        final DailyPriceResponse response = kamisClient.getDailyPrices(
-                "dailyPriceByCategoryList",
-                query.productClsCode(),
-                query.itemCategoryCode(),
-                query.countryCode(),
-                toRegDay(query),
-                query.convertKgYn(),
-                "json");
-        if (response == null || response.response() == null
-                || response.response().header() == null
-                || response.response().body() == null
-                || response.response().body().items() == null) {
-            throw new ApiException(INVALID_RESPONSE_MESSAGE, ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
+        try {
+            final DailyPriceResponse response = kamisClient.getDailyPrices(
+                            DAILY_PRICE_BY_CATEGORY_LIST_ACTION,
+                            query.productClsCode(),
+                            query.itemCategoryCode(),
+                            query.countryCode(),
+                            toRegDay(query),
+                            query.convertKgYn(),
+                            JSON_RETURN_TYPE);
+            if (!SUCCESS_ERROR_CODE.equals(response.errorCode())) {
+                throw new IllegalStateException("KAMIS returned an unsuccessful result code");
+            }
+            return new KamisDailyPriceResult(response.errorCode(), null, toItems(response.items()));
+        } catch (final RuntimeException exception) {
+            log.error("[KAMIS] response mapping failed errorMessage={}", exception.getMessage(), exception);
+            if (exception instanceof ApiException apiException) {
+                throw apiException;
+            }
+            throw new ApiException(
+                    ErrorType.EXTERNAL_API_ERROR.description(),
+                    ErrorType.EXTERNAL_API_ERROR,
+                    HttpStatus.BAD_GATEWAY);
         }
-        final DailyPriceResponse.Header header = response.response().header();
-        if (!SUCCESS_ERROR_CODE.equals(header.resultCode())) {
-            throw new ApiException(errorMessage(header), ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_GATEWAY);
-        }
-        final List<KamisDailyPriceItemResult> items = response.response().body().items().items().stream()
-                .map(this::toResult)
-                .toList();
-        return new KamisDailyPriceResult(header.resultCode(), header.resultMsg(), items);
     }
 
-    private String errorMessage(final DailyPriceResponse.Header header) {
-        if (header.resultMsg() == null || header.resultMsg().isBlank()) {
-            return DEFAULT_ERROR_MESSAGE;
-        }
-        return header.resultMsg();
+    private List<KamisDailyPriceItemResult> toItems(final List<Item> items) {
+        return items.stream()
+                .map(this::toResult)
+                .toList();
     }
 
     private String toRegDay(final KamisDailyPriceQuery query) {
