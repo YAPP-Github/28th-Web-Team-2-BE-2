@@ -1,7 +1,9 @@
 package com.example.demo.auth.infrastructure.token;
 
 import com.example.demo.auth.application.port.TokenProvider;
+import com.example.demo.auth.application.result.AccessTokenPayload;
 import com.example.demo.auth.application.result.TokenPayload;
+import com.example.demo.auth.domain.UserRole;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import io.jsonwebtoken.Claims;
@@ -25,65 +27,90 @@ public class JwtTokenProvider implements TokenProvider {
     private static final String REFRESH_TOKEN_TYPE = "refresh";
     private static final String TOKEN_TYPE_CLAIM = "type";
 
-    private final SecretKey secretKey;
+    private static final String ROLE_CLAIM = "role";
+
+    private final SecretKey accessSecretKey;
+    private final SecretKey refreshSecretKey;
     private final Duration accessTokenExpiration;
     private final Duration refreshTokenExpiration;
 
     public JwtTokenProvider(
-            @Value("${jwt.secret-key}") final String secret,
+            @Value("${jwt.access-secret}") final String accessSecret,
+            @Value("${jwt.refresh-secret}") final String refreshSecret,
             @Value("${jwt.access-token-expiration}") final Duration accessTokenExpiration,
             @Value("${jwt.refresh-token-expiration}") final Duration refreshTokenExpiration) {
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.accessSecretKey = Keys.hmacShaKeyFor(accessSecret.getBytes(StandardCharsets.UTF_8));
+        this.refreshSecretKey = Keys.hmacShaKeyFor(refreshSecret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiration = accessTokenExpiration;
         this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
     @Override
-    public String createAccessToken(final String subject) {
-        return createToken(subject, ACCESS_TOKEN_TYPE, accessTokenExpiration);
+    public String createAccessToken(final Long userId, final UserRole role) {
+        return createToken(userId, ACCESS_TOKEN_TYPE, accessTokenExpiration, accessSecretKey, role);
     }
 
     @Override
-    public String createRefreshToken(final String subject) {
-        return createToken(subject, REFRESH_TOKEN_TYPE, refreshTokenExpiration);
+    public String createRefreshToken(final Long userId) {
+        return createToken(userId, REFRESH_TOKEN_TYPE, refreshTokenExpiration, refreshSecretKey, null);
     }
 
     @Override
-    public TokenPayload parseAccessTokenPayload(final String token) {
-        return parseTokenPayload(token, ACCESS_TOKEN_TYPE);
+    public AccessTokenPayload parseAccessTokenPayload(final String token) {
+        final Claims claims = parseToken(token, accessSecretKey);
+        validateTokenType(claims, ACCESS_TOKEN_TYPE);
+        try {
+            final Long userId = Long.valueOf(claims.getSubject());
+            final UserRole role = UserRole.valueOf(claims.get(ROLE_CLAIM, String.class));
+            return new AccessTokenPayload(userId, role);
+        } catch (final RuntimeException exception) {
+            throw invalidToken();
+        }
     }
 
     @Override
     public TokenPayload parseRefreshTokenPayload(final String token) {
-        return parseTokenPayload(token, REFRESH_TOKEN_TYPE);
+        final Claims claims = parseToken(token, refreshSecretKey);
+        validateTokenType(claims, REFRESH_TOKEN_TYPE);
+        try {
+            return new TokenPayload(Long.valueOf(claims.getSubject()), claims.getExpiration().toInstant());
+        } catch (final RuntimeException exception) {
+            throw invalidToken();
+        }
     }
 
-    private String createToken(final String subject, final String tokenType, final Duration expiration) {
+    private String createToken(
+            final Long userId,
+            final String tokenType,
+            final Duration expiration,
+            final SecretKey secretKey,
+            final UserRole role) {
         final Instant now = Instant.now();
-        return Jwts.builder()
-                .subject(subject)
+        final var builder = Jwts.builder()
+                .subject(userId.toString())
                 .id(UUID.randomUUID().toString())
                 .claim(TOKEN_TYPE_CLAIM, tokenType)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(expiration)))
-                .signWith(secretKey)
-                .compact();
+                .signWith(secretKey);
+        if (role != null) {
+            builder.claim(ROLE_CLAIM, role.name());
+        }
+        return builder.compact();
     }
 
-    private TokenPayload parseTokenPayload(final String token, final String expectedTokenType) {
+    private Claims parseToken(final String token, final SecretKey secretKey) {
         try {
-            final Claims claims = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
-            final String subject = claims.getSubject();
-            final Date expiration = claims.getExpiration();
-            if (!StringUtils.hasText(subject)
-                    || expiration == null
-                    || !expectedTokenType.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))) {
-                throw invalidToken();
-            }
-            return new TokenPayload(subject, expiration.toInstant());
-        } catch (final ApiException exception) {
-            throw exception;
+            return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
         } catch (final JwtException | IllegalArgumentException exception) {
+            throw invalidToken();
+        }
+    }
+
+    private void validateTokenType(final Claims claims, final String expectedTokenType) {
+        if (!StringUtils.hasText(claims.getSubject())
+                || claims.getExpiration() == null
+                || !expectedTokenType.equals(claims.get(TOKEN_TYPE_CLAIM, String.class))) {
             throw invalidToken();
         }
     }

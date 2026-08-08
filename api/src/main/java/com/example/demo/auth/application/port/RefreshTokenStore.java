@@ -4,9 +4,9 @@ import java.time.Duration;
 
 public interface RefreshTokenStore {
 
-    void save(String tokenHash, String subject, Duration ttl);
+    void save(Long userId, String tokenHash, Duration ttl);
 
-    boolean consume(String tokenHash, String subject);
+    boolean matches(Long userId, String tokenHash);
 
-    void delete(String tokenHash);
+    void delete(Long userId);
 }
