@@ -16,5 +16,13 @@ public record SeleniumProperties(
         if (waitTimeout == null) {
             waitTimeout = Duration.ofSeconds(10);
         }
+        validateNonNegative("pageLoadTimeout", pageLoadTimeout);
+        validateNonNegative("waitTimeout", waitTimeout);
+    }
+
+    private static void validateNonNegative(final String propertyName, final Duration timeout) {
+        if (timeout.isNegative()) {
+            throw new IllegalArgumentException(propertyName + " must not be negative");
+        }
     }
 }

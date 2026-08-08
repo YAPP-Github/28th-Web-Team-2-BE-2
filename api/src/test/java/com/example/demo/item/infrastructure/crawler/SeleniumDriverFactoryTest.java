@@ -6,7 +6,10 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 class SeleniumDriverFactoryTest {
 
@@ -21,6 +24,18 @@ class SeleniumDriverFactoryTest {
         @SuppressWarnings("unchecked")
         final List<String> arguments = (List<String>) chromeOptions.get("args");
 
-        assertThat(arguments).contains("--headless=new", "--no-sandbox", "--disable-dev-shm-usage");
+        assertThat(arguments).contains("--headless=new", "--disable-dev-shm-usage");
+        assertThat(arguments).doesNotContain("--no-sandbox");
+    }
+
+    @Test
+    void createsExplicitWait() {
+        final SeleniumDriverFactory factory = new SeleniumDriverFactory(
+                new SeleniumProperties(false, Duration.ofSeconds(30), Duration.ofSeconds(10)));
+        final WebDriver driver = Mockito.mock(WebDriver.class);
+
+        final WebDriverWait wait = factory.createWait(driver);
+
+        assertThat(wait).isNotNull();
     }
 }
