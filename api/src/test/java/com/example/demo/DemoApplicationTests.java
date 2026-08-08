@@ -57,6 +57,10 @@ class DemoApplicationTests {
                         .value("OAuth provider의 idToken으로 로그인한다"))
                 .andExpect(jsonPath("$.paths['/api/auth/reissue'].post.summary")
                         .value("Refresh Token으로 Access Token을 재발급한다"))
+                .andExpect(jsonPath("$.paths['/api/auth/reissue'].post.parameters[0].name")
+                        .value("refreshToken"))
+                .andExpect(jsonPath("$.paths['/api/auth/reissue'].post.parameters[0].in")
+                        .value("cookie"))
                 .andExpect(jsonPath("$.paths['/api/auth/logout'].post.summary")
                         .value("현재 사용자의 Refresh Token을 폐기하고 로그아웃한다"));
 

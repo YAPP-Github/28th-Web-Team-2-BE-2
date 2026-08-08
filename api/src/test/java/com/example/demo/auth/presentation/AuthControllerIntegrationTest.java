@@ -43,6 +43,12 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    void refresh_cookie가_없으면_재발급은_401을_응답한다() throws Exception {
+        mockMvc.perform(post("/api/auth/reissue"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void 기존_API는_인증이_없어도_공개로_응답한다() throws Exception {
         mockMvc.perform(get("/api/samples"))
                 .andExpect(status().isOk())

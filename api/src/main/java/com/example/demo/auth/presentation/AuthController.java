@@ -10,14 +10,15 @@ import com.example.demo.auth.application.usecase.ReissueTokenUseCase;
 import com.example.demo.auth.presentation.converter.AuthCommandConverter;
 import com.example.demo.auth.presentation.converter.AuthResultConverter;
 import com.example.demo.auth.presentation.dto.LoginRequest;
-import com.example.demo.auth.presentation.dto.RefreshTokenRequest;
 import com.example.demo.auth.presentation.dto.TokenResponse;
 import com.example.demo.auth.presentation.spec.AuthControllerSpec;
 import com.example.demo.common.security.AuthPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,6 +35,7 @@ public class AuthController implements AuthControllerSpec {
     private final LogoutUseCase logoutUseCase;
     private final AuthCommandConverter commandConverter;
     private final AuthResultConverter resultConverter;
+    private final RefreshTokenCookie refreshTokenCookie;
 
     @PostMapping("/{providerType}/login")
     @Override
@@ -48,8 +50,8 @@ public class AuthController implements AuthControllerSpec {
     @PostMapping("/reissue")
     @Override
     public ResponseEntity<TokenResponse> reissue(
-            @Valid @RequestBody final RefreshTokenRequest request) {
-        final RefreshTokenCommand command = commandConverter.toRefreshTokenCommand(request);
+            @CookieValue(name = RefreshTokenCookie.NAME, required = false) final String refreshToken) {
+        final RefreshTokenCommand command = commandConverter.toRefreshTokenCommand(refreshToken);
         final AuthToken token = reissueTokenUseCase.execute(command);
         return tokenResponse(token);
     }
@@ -59,10 +61,14 @@ public class AuthController implements AuthControllerSpec {
     public ResponseEntity<Void> logout(@AuthenticationPrincipal final AuthPrincipal principal) {
         final LogoutCommand command = commandConverter.toLogoutCommand(principal.userId());
         logoutUseCase.execute(command);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.delete().toString())
+                .build();
     }
 
     private ResponseEntity<TokenResponse> tokenResponse(final AuthToken token) {
-        return ResponseEntity.ok().body(resultConverter.toTokenResponse(token));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.create(token.refreshToken()).toString())
+                .body(resultConverter.toTokenResponse(token));
     }
 }

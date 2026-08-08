@@ -5,7 +5,6 @@ import com.example.demo.auth.application.command.LogoutCommand;
 import com.example.demo.auth.application.command.RefreshTokenCommand;
 import com.example.demo.auth.domain.ProviderType;
 import com.example.demo.auth.presentation.dto.LoginRequest;
-import com.example.demo.auth.presentation.dto.RefreshTokenRequest;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import java.util.Locale;
@@ -20,8 +19,8 @@ public class AuthCommandConverter {
         return new LoginCommand(toProviderType(providerType), request.idToken());
     }
 
-    public RefreshTokenCommand toRefreshTokenCommand(final RefreshTokenRequest request) {
-        return new RefreshTokenCommand(request.refreshToken());
+    public RefreshTokenCommand toRefreshTokenCommand(final String refreshToken) {
+        return new RefreshTokenCommand(refreshToken);
     }
 
     public LogoutCommand toLogoutCommand(final Long userId) {
