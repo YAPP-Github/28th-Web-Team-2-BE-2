@@ -3,6 +3,7 @@ package com.example.demo.auth.infrastructure.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.example.demo.auth.domain.ProviderType;
 import com.example.demo.auth.domain.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,7 @@ class UserInfrastructureTest {
     @Test
     void Kakao_사용자는_영속화된다() {
         final User saved = userJpaRepository.saveAndFlush(
-                User.kakao("kakao-subject", "user@example.com", "Kakao User"));
+                User.oauth(ProviderType.KAKAO, "kakao-subject", "user@example.com", "Kakao User"));
 
         final User found = userJpaRepository.findById(saved.id()).orElseThrow();
 
@@ -40,10 +41,10 @@ class UserInfrastructureTest {
 
     @Test
     void 같은_provider와_subject는_중복_저장할_수_없다() {
-        userJpaRepository.saveAndFlush(User.kakao("same-subject", null, "Kakao User"));
+        userJpaRepository.saveAndFlush(User.oauth(ProviderType.KAKAO, "same-subject", null, "Kakao User"));
 
         assertThatThrownBy(() -> userJpaRepository.saveAndFlush(
-                        User.kakao("same-subject", null, "Another User")))
+                        User.oauth(ProviderType.KAKAO, "same-subject", null, "Another User")))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 }

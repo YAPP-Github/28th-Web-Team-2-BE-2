@@ -1,5 +1,5 @@
 package com.example.demo.auth.domain;
 
-public enum UserProvider {
+public enum ProviderType {
     KAKAO
 }

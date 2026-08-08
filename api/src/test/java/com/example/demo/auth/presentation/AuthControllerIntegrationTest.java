@@ -34,6 +34,15 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    void 지원하지_않는_provider는_400을_응답한다() throws Exception {
+        mockMvc.perform(post("/api/auth/apple/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"idToken\":\"id-token\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorType").value("INVALID_PARAMETER_ERROR"));
+    }
+
+    @Test
     void 기존_API는_인증이_없어도_공개로_응답한다() throws Exception {
         mockMvc.perform(get("/api/samples"))
                 .andExpect(status().isOk())

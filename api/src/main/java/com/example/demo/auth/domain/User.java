@@ -31,7 +31,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private UserProvider provider;
+    private ProviderType provider;
 
     @Column(name = "provider_subject", nullable = false, length = 100)
     private String providerSubject;
@@ -47,7 +47,7 @@ public class User {
     private UserRole role;
 
     private User(
-            final UserProvider provider,
+            final ProviderType provider,
             final String providerSubject,
             final String email,
             final String name,
@@ -59,8 +59,9 @@ public class User {
         this.role = role;
     }
 
-    public static User kakao(final String providerSubject, final String email, final String name) {
-        return new User(UserProvider.KAKAO, providerSubject, email, name, UserRole.USER);
+    public static User oauth(
+            final ProviderType provider, final String providerSubject, final String email, final String name) {
+        return new User(provider, providerSubject, email, name, UserRole.USER);
     }
 
     public Long id() {

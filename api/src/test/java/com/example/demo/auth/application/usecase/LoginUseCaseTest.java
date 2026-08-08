@@ -10,13 +10,14 @@ import static org.mockito.Mockito.when;
 
 import com.example.demo.auth.application.AuthTokenIssuer;
 import com.example.demo.auth.application.RefreshTokenHasher;
-import com.example.demo.auth.application.command.KakaoLoginCommand;
+import com.example.demo.auth.application.command.LoginCommand;
 import com.example.demo.auth.application.port.RefreshTokenStore;
 import com.example.demo.auth.application.port.TokenProvider;
 import com.example.demo.auth.application.port.UserRepository;
 import com.example.demo.auth.application.result.AccessTokenPayload;
 import com.example.demo.auth.application.result.OAuthUserInfo;
 import com.example.demo.auth.application.result.TokenPayload;
+import com.example.demo.auth.domain.ProviderType;
 import com.example.demo.auth.domain.User;
 import com.example.demo.auth.domain.UserRole;
 import com.example.demo.common.exception.ApiException;
@@ -27,7 +28,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-class KakaoLoginUseCaseTest {
+class LoginUseCaseTest {
 
     @Test
     void 신규_Kakao_사용자를_생성하고_내부_user_id로_토큰을_발급한다() {
@@ -35,12 +36,12 @@ class KakaoLoginUseCaseTest {
         final User user = user(1L);
         when(userRepository.findByProviderAndProviderSubject(any(), any())).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenReturn(user);
-        final KakaoLoginUseCase useCase = new KakaoLoginUseCase(
+        final LoginUseCase useCase = new LoginUseCase(
                 idToken -> new OAuthUserInfo("kakao-subject", "user@example.com", "Kakao Name"),
                 issuer(),
                 userRepository);
 
-        final var result = useCase.execute(new KakaoLoginCommand("id-token"));
+        final var result = useCase.execute(new LoginCommand(ProviderType.KAKAO, "id-token"));
 
         assertThat(result.accessToken()).isEqualTo("access-token");
         verify(userRepository).save(any(User.class));
@@ -56,12 +57,12 @@ class KakaoLoginUseCaseTest {
         final UserRepository userRepository = mock(UserRepository.class);
         final User user = user(1L);
         when(userRepository.findByProviderAndProviderSubject(any(), any())).thenReturn(Optional.of(user));
-        final KakaoLoginUseCase useCase = new KakaoLoginUseCase(
+        final LoginUseCase useCase = new LoginUseCase(
                 idToken -> new OAuthUserInfo("kakao-subject", "new@example.com", "New Name"),
                 issuer(),
                 userRepository);
 
-        useCase.execute(new KakaoLoginCommand("id-token"));
+        useCase.execute(new LoginCommand(ProviderType.KAKAO, "id-token"));
 
         verify(userRepository, never()).save(any(User.class));
     }
@@ -72,12 +73,12 @@ class KakaoLoginUseCaseTest {
         final User user = user(1L);
         when(userRepository.findByProviderAndProviderSubject(any(), any())).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenReturn(user);
-        final KakaoLoginUseCase useCase = new KakaoLoginUseCase(
+        final LoginUseCase useCase = new LoginUseCase(
                 idToken -> new OAuthUserInfo("kakao-subject", null, null),
                 issuer(),
                 userRepository);
 
-        useCase.execute(new KakaoLoginCommand("id-token"));
+        useCase.execute(new LoginCommand(ProviderType.KAKAO, "id-token"));
 
         final ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
@@ -87,12 +88,12 @@ class KakaoLoginUseCaseTest {
 
     @Test
     void 빈_idToken은_Kakao_검증을_호출하지_않고_401을_던진다() {
-        final KakaoLoginUseCase useCase = new KakaoLoginUseCase(
+        final LoginUseCase useCase = new LoginUseCase(
                 idToken -> { throw new AssertionError("검증하면 안 됩니다."); },
                 issuer(),
                 mock(UserRepository.class));
 
-        assertThatThrownBy(() -> useCase.execute(new KakaoLoginCommand(" ")))
+        assertThatThrownBy(() -> useCase.execute(new LoginCommand(ProviderType.KAKAO, " ")))
                 .isInstanceOfSatisfying(ApiException.class,
                         exception -> assertThat(exception.errorType()).isEqualTo(ErrorType.KAKAO_TOKEN_INVALID));
     }

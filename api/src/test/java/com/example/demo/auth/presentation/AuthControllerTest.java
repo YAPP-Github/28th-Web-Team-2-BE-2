@@ -7,12 +7,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.demo.auth.application.command.KakaoLoginCommand;
+import com.example.demo.auth.application.command.LoginCommand;
 import com.example.demo.auth.application.command.RefreshTokenCommand;
 import com.example.demo.auth.application.result.AuthToken;
-import com.example.demo.auth.application.usecase.KakaoLoginUseCase;
+import com.example.demo.auth.application.usecase.LoginUseCase;
 import com.example.demo.auth.application.usecase.LogoutUseCase;
 import com.example.demo.auth.application.usecase.ReissueTokenUseCase;
+import com.example.demo.auth.domain.ProviderType;
 import com.example.demo.auth.presentation.converter.AuthCommandConverter;
 import com.example.demo.auth.presentation.converter.AuthResultConverter;
 import java.nio.charset.StandardCharsets;
@@ -24,14 +25,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class AuthControllerTest {
 
-    private final KakaoLoginUseCase kakaoLoginUseCase = mock(KakaoLoginUseCase.class);
+    private final LoginUseCase loginUseCase = mock(LoginUseCase.class);
     private final ReissueTokenUseCase reissueTokenUseCase = mock(ReissueTokenUseCase.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(
-                        kakaoLoginUseCase,
+                        loginUseCase,
                         reissueTokenUseCase,
                         mock(LogoutUseCase.class),
                         new AuthCommandConverter(),
@@ -42,7 +43,7 @@ class AuthControllerTest {
     @Test
     void Kakao_로그인은_Access_Token과_Refresh_Token을_JSON으로_내린다()
             throws Exception {
-        when(kakaoLoginUseCase.execute(new KakaoLoginCommand("id-token")))
+        when(loginUseCase.execute(new LoginCommand(ProviderType.KAKAO, "id-token")))
                 .thenReturn(new AuthToken("access-token", "refresh-token"));
 
         mockMvc.perform(post("/api/auth/kakao/login")

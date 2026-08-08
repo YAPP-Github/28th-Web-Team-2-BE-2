@@ -2,7 +2,7 @@ package com.example.demo.auth.infrastructure.persistence;
 
 import com.example.demo.auth.application.port.UserRepository;
 import com.example.demo.auth.domain.User;
-import com.example.demo.auth.domain.UserProvider;
+import com.example.demo.auth.domain.ProviderType;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -25,7 +25,7 @@ public class UserRepositoryAdapter implements UserRepository {
 
     @Override
     public Optional<User> findByProviderAndProviderSubject(
-            final UserProvider provider, final String providerSubject) {
+            final ProviderType provider, final String providerSubject) {
         return userJpaRepository.findByProviderAndProviderSubject(provider, providerSubject);
     }
 }

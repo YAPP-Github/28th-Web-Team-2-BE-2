@@ -51,7 +51,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/auth/kakao/login",
+                                "/api/auth/*/login",
                                 "/api/auth/reissue")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout")
