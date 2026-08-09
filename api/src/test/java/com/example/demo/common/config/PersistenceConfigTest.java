@@ -15,8 +15,9 @@ class PersistenceConfigTest {
     private ApplicationContext applicationContext;
 
     @Test
-    void JPA_감사와_Redis_문자열_template을_등록한다() {
+    void JPA_감사와_Redis_문자열_template과_Querydsl_factory를_등록한다() {
         assertThat(applicationContext.getBeansOfType(AuditingHandler.class)).isNotEmpty();
         assertThat(applicationContext.getBean("stringRedisTemplate")).isNotNull();
+        assertThat(applicationContext.containsBean("jpaQueryFactory")).isTrue();
     }
 }
