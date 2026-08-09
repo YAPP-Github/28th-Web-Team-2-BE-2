@@ -1,4 +1,4 @@
-package com.example.demo.item.infrastructure.crawler;
+package com.example.demo.external.selenium;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,7 +16,7 @@ class SeleniumDriverFactoryTest {
     @Test
     void configuresHeadlessChromeOptions() {
         final SeleniumDriverFactory factory = new SeleniumDriverFactory(
-                new SeleniumProperties(true, Duration.ofSeconds(30), Duration.ofSeconds(10)));
+                new SeleniumOptions(true, Duration.ofSeconds(30), Duration.ofSeconds(10)));
 
         final ChromeOptions options = factory.createOptions();
 
@@ -31,7 +31,7 @@ class SeleniumDriverFactoryTest {
     @Test
     void createsExplicitWait() {
         final SeleniumDriverFactory factory = new SeleniumDriverFactory(
-                new SeleniumProperties(false, Duration.ofSeconds(30), Duration.ofSeconds(10)));
+                new SeleniumOptions(false, Duration.ofSeconds(30), Duration.ofSeconds(10)));
         final WebDriver driver = Mockito.mock(WebDriver.class);
 
         final WebDriverWait wait = factory.createWait(driver);

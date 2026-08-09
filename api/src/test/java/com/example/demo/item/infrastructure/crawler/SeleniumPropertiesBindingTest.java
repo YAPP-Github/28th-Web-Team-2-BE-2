@@ -3,6 +3,7 @@ package com.example.demo.item.infrastructure.crawler;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+import com.example.demo.external.selenium.SeleniumDriverFactory;
 import com.example.demo.item.infrastructure.config.CrawlerConfiguration;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;

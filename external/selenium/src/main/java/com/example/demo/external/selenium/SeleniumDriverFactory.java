@@ -1,4 +1,4 @@
-package com.example.demo.item.infrastructure.crawler;
+package com.example.demo.external.selenium;
 
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
@@ -10,25 +10,25 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 @RequiredArgsConstructor
 public class SeleniumDriverFactory {
 
-    private final SeleniumProperties properties;
+    private final SeleniumOptions options;
 
     public WebDriver create() {
         final WebDriver driver = new ChromeDriver(createOptions());
-        driver.manage().timeouts().pageLoadTimeout(properties.pageLoadTimeout());
+        driver.manage().timeouts().pageLoadTimeout(options.pageLoadTimeout());
         driver.manage().timeouts().implicitlyWait(Duration.ZERO);
         return driver;
     }
 
     public WebDriverWait createWait(final WebDriver driver) {
-        return new WebDriverWait(driver, properties.waitTimeout());
+        return new WebDriverWait(driver, options.waitTimeout());
     }
 
     ChromeOptions createOptions() {
-        final ChromeOptions options = new ChromeOptions();
-        if (properties.headless()) {
-            options.addArguments("--headless=new");
+        final ChromeOptions chromeOptions = new ChromeOptions();
+        if (options.headless()) {
+            chromeOptions.addArguments("--headless=new");
         }
-        options.addArguments("--disable-dev-shm-usage");
-        return options;
+        chromeOptions.addArguments("--disable-dev-shm-usage");
+        return chromeOptions;
     }
 }
