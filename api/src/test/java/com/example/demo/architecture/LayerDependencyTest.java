@@ -29,6 +29,14 @@ class LayerDependencyTest {
             .resideInAnyPackage("..infrastructure..");
 
     @ArchTest
+    static final ArchRule core_does_not_depend_on_selenium = noClasses()
+            .that()
+            .resideInAnyPackage("..application..", "..domain..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("org.openqa.selenium..");
+
+    @ArchTest
     static final ArchRule presentation_does_not_depend_on_infrastructure = noClasses()
             .that()
             .resideInAnyPackage("..presentation..")
