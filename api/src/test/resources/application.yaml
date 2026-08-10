@@ -14,7 +14,3 @@ spring:
     open-in-view: false
   flyway:
     enabled: false
-management:
-  health:
-    redis:
-      enabled: false
