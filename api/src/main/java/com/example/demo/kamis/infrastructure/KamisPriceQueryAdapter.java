@@ -38,7 +38,7 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
                             query.convertKgYn(),
                             JSON_RETURN_TYPE);
             if (!SUCCESS_ERROR_CODE.equals(response.errorCode())) {
-                throw new IllegalStateException("KAMIS returned an unsuccessful result code");
+                throw externalApiException();
             }
             return new KamisDailyPriceResult(response.errorCode(), null, toItems(response.items()));
         } catch (final RuntimeException exception) {
@@ -46,11 +46,15 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
             if (exception instanceof ApiException apiException) {
                 throw apiException;
             }
-            throw new ApiException(
-                    ErrorType.EXTERNAL_API_ERROR.description(),
-                    ErrorType.EXTERNAL_API_ERROR,
-                    HttpStatus.BAD_GATEWAY);
+            throw externalApiException();
         }
+    }
+
+    private ApiException externalApiException() {
+        return new ApiException(
+                ErrorType.EXTERNAL_API_ERROR.description(),
+                ErrorType.EXTERNAL_API_ERROR,
+                HttpStatus.BAD_GATEWAY);
     }
 
     private List<KamisDailyPriceItemResult> toItems(final List<Item> items) {
