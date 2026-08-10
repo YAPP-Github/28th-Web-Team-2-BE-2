@@ -30,11 +30,18 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+    implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
+    implementation 'org.flywaydb:flyway-database-postgresql'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'com.querydsl:querydsl-apt:5.1.0:jakarta'
+    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
     runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.postgresql:postgresql'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.2'
     testRuntimeOnly 'com.tngtech.archunit:archunit-junit5-engine:1.4.2'
@@ -46,8 +53,13 @@ tasks.named('test') {
     finalizedBy tasks.named('jacocoTestReport')
 }
 
+def coverageClassDirectories = files(sourceSets.main.output).asFileTree.matching {
+    exclude '**/Q*.class'
+}
+
 tasks.named('jacocoTestReport') {
     dependsOn tasks.named('test')
+    classDirectories.setFrom(coverageClassDirectories)
 
     reports {
         xml.required = true
@@ -58,6 +70,7 @@ tasks.named('jacocoTestReport') {
 
 tasks.named('jacocoTestCoverageVerification') {
     dependsOn tasks.named('test')
+    classDirectories.setFrom(coverageClassDirectories)
 
     violationRules {
         rule {

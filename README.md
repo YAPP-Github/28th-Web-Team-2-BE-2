@@ -31,4 +31,4 @@ Docker가 필요한 통합 검증의 제한과 상세 검증 기준은 [`docs/EN
 - [`docs/DECISION.md`](docs/DECISION.md): 구조적 결정 index
 - [`CONTEXT.md`](CONTEXT.md): 안정된 도메인 용어가 생길 때 관리하는 glossary
 
-Terraform 작업은 [`infra/AGENTS.md`](infra/AGENTS.md)의 범위를 따르고, PostgreSQL·Redis Compose 운영은 [`ops/data-services/README.md`](ops/data-services/README.md)를 따릅니다.
+Terraform 작업은 [`.infra/AGENTS.md`](.infra/AGENTS.md)의 범위를 따르고, PostgreSQL·Redis Compose 운영은 [`ops/data-services/README.md`](ops/data-services/README.md)를 따릅니다.
