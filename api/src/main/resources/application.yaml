@@ -4,6 +4,11 @@ spring:
   config:
     import:
       - classpath:application-kamis-client.yml
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:app}
+    username: ${POSTGRES_USER:app}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
@@ -14,3 +19,12 @@ item:
         headless: false
         page-load-timeout: 30s
         wait-timeout: 10s
+    open-in-view: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
