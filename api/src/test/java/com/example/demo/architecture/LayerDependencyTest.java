@@ -1,7 +1,10 @@
 package com.example.demo.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import com.example.demo.auth.presentation.AuthController;
+import com.example.demo.auth.presentation.spec.AuthControllerSpec;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -35,4 +38,11 @@ class LayerDependencyTest {
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("..infrastructure..");
+
+    @ArchTest
+    static final ArchRule auth_controller_implements_spec = classes()
+            .that()
+            .haveSimpleName(AuthController.class.getSimpleName())
+            .should()
+            .implement(AuthControllerSpec.class);
 }
