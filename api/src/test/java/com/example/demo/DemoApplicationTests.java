@@ -24,6 +24,13 @@ class DemoApplicationTests {
     }
 
     @Test
+    void actuator_health를_제공한다() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"));
+    }
+
+    @Test
     void swagger_ui와_openapi_문서를_설정된_메타데이터와_함께_제공한다() throws Exception {
         mockMvc.perform(get("/swagger-ui/index.html"))
                 .andExpect(status().isOk())
