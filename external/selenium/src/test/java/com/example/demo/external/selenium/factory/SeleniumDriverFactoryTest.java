@@ -1,7 +1,8 @@
-package com.example.demo.external.selenium;
+package com.example.demo.external.selenium.factory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.demo.external.selenium.config.SeleniumOptions;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;

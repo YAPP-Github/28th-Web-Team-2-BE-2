@@ -1,6 +1,8 @@
-package com.example.demo.external.selenium;
+package com.example.demo.external.selenium.factory;
 
 import java.time.Duration;
+
+import com.example.demo.external.selenium.config.SeleniumOptions;
 import lombok.RequiredArgsConstructor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;

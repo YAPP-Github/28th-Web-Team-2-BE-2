@@ -1,4 +1,4 @@
-package com.example.demo.external.selenium;
+package com.example.demo.external.selenium.config;
 
 import java.time.Duration;
 

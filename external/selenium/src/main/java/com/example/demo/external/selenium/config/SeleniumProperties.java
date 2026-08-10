@@ -1,7 +1,10 @@
-package com.example.demo.item.infrastructure.crawler;
+package com.example.demo.external.selenium.config;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.http.HttpStatus;
 
 @ConfigurationProperties(prefix = "item.price.collection.selenium")
 public record SeleniumProperties(
@@ -22,7 +25,10 @@ public record SeleniumProperties(
 
     private static void validateNonNegative(final String propertyName, final Duration timeout) {
         if (timeout.isNegative()) {
-            throw new IllegalArgumentException(propertyName + " must not be negative");
+            throw new ApiException(
+                    ErrorType.CONFIGURATION_ERROR.description(),
+                    ErrorType.CONFIGURATION_ERROR,
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
