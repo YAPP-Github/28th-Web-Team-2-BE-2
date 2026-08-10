@@ -97,7 +97,7 @@
 | --- | --- |
 | GitHub CI와 ARM64 이미지 검증·배포 | `.github/workflows/ci.yml` |
 | Skill 검증 | `.github/workflows/validate-skills.yml` |
-| Terraform harness와 안전한 검증 | `infra/AGENTS.md`, `infra/docs/terraform-harness-design.md` |
+| Terraform harness와 안전한 검증 | `.infra/AGENTS.md`, `.infra/docs/terraform-harness-design.md` |
 | PostgreSQL·Redis Compose 운영 | `ops/data-services/README.md`, `ops/data-services/compose.yaml` |
 | 이미지 업로드 흐름 | `.agents/skills/image-upload-flow/` 및 `api` 모듈의 image 도메인 코드 |
 | KAMIS 외부 클라이언트 | `external/kamis-client/` |
