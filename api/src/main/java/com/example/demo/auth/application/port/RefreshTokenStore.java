@@ -6,7 +6,7 @@ public interface RefreshTokenStore {
 
     void save(Long userId, String tokenHash, Duration ttl);
 
-    boolean matches(Long userId, String tokenHash);
+    boolean consume(Long userId, String tokenHash);
 
     void delete(Long userId);
 }

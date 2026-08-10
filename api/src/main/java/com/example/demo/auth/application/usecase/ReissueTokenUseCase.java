@@ -44,9 +44,9 @@ public class ReissueTokenUseCase {
 
         final String refreshToken = command.refreshToken();
         final TokenPayload payload = tokenProvider.parseRefreshTokenPayload(refreshToken);
-        final boolean matches = refreshTokenStore.matches(
+        final boolean consumed = refreshTokenStore.consume(
                 payload.userId(), refreshTokenHasher.hash(refreshToken));
-        if (!matches) {
+        if (!consumed) {
             throw invalidToken();
         }
         final User user = userRepository.findById(payload.userId()).orElseThrow(this::invalidToken);

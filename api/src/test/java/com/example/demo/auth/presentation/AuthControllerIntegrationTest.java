@@ -49,10 +49,10 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    void 기존_API는_인증이_없어도_공개로_응답한다() throws Exception {
+    void 인증_토큰이_없으면_기본_보호_API는_401을_응답한다() throws Exception {
         mockMvc.perform(get("/api/samples"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").isNotEmpty());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorType").value("UNAUTHORIZED"));
     }
 
     @Test
@@ -65,10 +65,10 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    void 잘못된_Access_Token은_공개_API를_막지_않는다() throws Exception {
+    void 잘못된_Access_Token은_보호_API에서_401을_응답한다() throws Exception {
         mockMvc.perform(get("/api/samples").header(HttpHeaders.AUTHORIZATION, "Bearer invalid"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").isNotEmpty());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errorType").value("INVALID_TOKEN"));
     }
 
     @Test

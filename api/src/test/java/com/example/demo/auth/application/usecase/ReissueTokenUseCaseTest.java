@@ -37,7 +37,7 @@ class ReissueTokenUseCaseTest {
         final User user = mock(User.class);
         when(tokenProvider.parseRefreshTokenPayload("refresh-token"))
                 .thenReturn(new TokenPayload(1L, Instant.now().plusSeconds(60)));
-        when(store.matches(eq(1L), eq(hasher.hash("refresh-token")))).thenReturn(true);
+        when(store.consume(eq(1L), eq(hasher.hash("refresh-token")))).thenReturn(true);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(user.id()).thenReturn(1L);
         when(user.role()).thenReturn(UserRole.USER);
@@ -59,7 +59,7 @@ class ReissueTokenUseCaseTest {
         final RefreshTokenHasher hasher = new RefreshTokenHasher();
         when(tokenProvider.parseRefreshTokenPayload("refresh-token"))
                 .thenReturn(new TokenPayload(1L, Instant.now().plusSeconds(60)));
-        when(store.matches(eq(1L), eq(hasher.hash("refresh-token")))).thenReturn(false);
+        when(store.consume(eq(1L), eq(hasher.hash("refresh-token")))).thenReturn(false);
         final ReissueTokenUseCase useCase = new ReissueTokenUseCase(
                 tokenProvider, store, hasher, mock(AuthTokenIssuer.class), userRepository);
 

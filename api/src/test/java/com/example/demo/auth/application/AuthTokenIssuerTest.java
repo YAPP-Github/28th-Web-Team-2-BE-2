@@ -67,7 +67,7 @@ class AuthTokenIssuerTest {
         }
 
         @Override
-        public boolean matches(final Long userId, final String tokenHash) {
+        public boolean consume(final Long userId, final String tokenHash) {
             return false;
         }
 

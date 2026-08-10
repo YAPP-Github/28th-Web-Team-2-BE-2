@@ -139,7 +139,7 @@ class LoginUseCaseTest {
         public void save(final Long userId, final String tokenHash, final Duration ttl) {}
 
         @Override
-        public boolean matches(final Long userId, final String tokenHash) {
+        public boolean consume(final Long userId, final String tokenHash) {
             return false;
         }
 

@@ -10,10 +10,11 @@ import com.example.demo.auth.domain.ProviderType;
 import com.example.demo.auth.domain.User;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
@@ -24,7 +25,6 @@ public class LoginUseCase {
     private final AuthTokenIssuer authTokenIssuer;
     private final UserRepository userRepository;
 
-    @Transactional
     public AuthToken execute(final LoginCommand command) {
         if (ProviderType.KAKAO != command.providerType()) {
             throw unsupportedProvider();
@@ -33,14 +33,30 @@ public class LoginUseCase {
             throw invalidKakaoToken();
         }
         final OAuthUserInfo userInfo = identityVerifier.verify(command.idToken());
-        final User user = userRepository.findByProviderAndProviderSubject(
-                        command.providerType(), userInfo.subject())
-                .orElseGet(() -> userRepository.save(User.oauth(
-                        command.providerType(),
-                        userInfo.subject(),
-                        optionalText(userInfo.email()),
-                        defaultName(userInfo.name()))));
+        final User user = findOrCreateUser(command.providerType(), userInfo);
         return authTokenIssuer.issue(user.id(), user.role());
+    }
+
+    private User findOrCreateUser(final ProviderType provider, final OAuthUserInfo userInfo) {
+        final Optional<User> existingUser = userRepository.findByProviderAndProviderSubject(
+                provider, userInfo.subject());
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        }
+        return saveOrFindUser(provider, userInfo);
+    }
+
+    private User saveOrFindUser(final ProviderType provider, final OAuthUserInfo userInfo) {
+        try {
+            return userRepository.save(User.oauth(
+                    provider,
+                    userInfo.subject(),
+                    optionalText(userInfo.email()),
+                    defaultName(userInfo.name())));
+        } catch (final DataIntegrityViolationException exception) {
+            return userRepository.findByProviderAndProviderSubject(provider, userInfo.subject())
+                    .orElseThrow(() -> exception);
+        }
     }
 
     private String optionalText(final String value) {
