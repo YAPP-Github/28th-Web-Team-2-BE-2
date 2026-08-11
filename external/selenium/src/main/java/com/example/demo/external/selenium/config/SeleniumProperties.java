@@ -12,23 +12,28 @@ public record SeleniumProperties(
         Duration pageLoadTimeout,
         Duration waitTimeout) {
 
+    private static final Duration DEFAULT_PAGE_LOAD_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration DEFAULT_WAIT_TIMEOUT = Duration.ofSeconds(10);
+
     public SeleniumProperties {
-        if (pageLoadTimeout == null) {
-            pageLoadTimeout = Duration.ofSeconds(30);
-        }
-        if (waitTimeout == null) {
-            waitTimeout = Duration.ofSeconds(10);
-        }
+        pageLoadTimeout = defaultIfNull(pageLoadTimeout, DEFAULT_PAGE_LOAD_TIMEOUT);
+        waitTimeout = defaultIfNull(waitTimeout, DEFAULT_WAIT_TIMEOUT);
+
         validateNonNegative("pageLoadTimeout", pageLoadTimeout);
         validateNonNegative("waitTimeout", waitTimeout);
     }
 
-    private static void validateNonNegative(final String propertyName, final Duration timeout) {
+    private static Duration defaultIfNull(Duration timeout, Duration defaultValue) {
+        return timeout != null ? timeout : defaultValue;
+    }
+
+    private static void validateNonNegative(String propertyName, Duration timeout) {
         if (timeout.isNegative()) {
             throw new ApiException(
                     ErrorType.CONFIGURATION_ERROR.description(),
                     ErrorType.CONFIGURATION_ERROR,
-                    HttpStatus.INTERNAL_SERVER_ERROR);
+                    HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
     }
 }
