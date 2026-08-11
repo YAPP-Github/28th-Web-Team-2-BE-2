@@ -28,6 +28,24 @@ class OnlineItemCrawlerPortContractTest {
     }
 
     @Test
+    void rejectsUnsupportedScheme() {
+        assertThatThrownBy(() -> new CrawlOnlineItemCommand(URI.create("ftp://example.com/items")))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
+                    assertThat(exception.httpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                });
+    }
+
+    @Test
+    void rejectsUriWithoutHost() {
+        assertThatThrownBy(() -> new CrawlOnlineItemCommand(URI.create("https:/items")))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
+                    assertThat(exception.httpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+                });
+    }
+
+    @Test
     void createsSuccessfulCrawlOnlineItemResult() {
         final CrawlOnlineItemResult result = CrawlOnlineItemResult.success(
                 TARGET_URL, "<html>items</html>", COLLECTED_AT);
