@@ -32,5 +32,9 @@ jwt:
 kakao:
   oauth:
     client-id: test-kakao-client-id
+    client-secret: test-kakao-client-secret
+    test-redirect-uri: http://localhost:8080/api/auth/test/kakao/redirect
+    test-endpoint:
+      enabled: false
     issuer: https://kauth.kakao.com
     jwk-set-uri: https://kauth.kakao.com/.well-known/jwks.json
