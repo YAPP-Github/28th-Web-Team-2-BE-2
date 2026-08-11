@@ -12,14 +12,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-item:
-  price:
-    collection:
-      selenium:
-        headless: false
-        page-load-timeout: 30s
-        wait-timeout: 10s
-    open-in-view: false
+  open-in-view: false
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -28,6 +21,13 @@ item:
   flyway:
     enabled: true
     locations: classpath:db/migration
+item:
+  price:
+    collection:
+      selenium:
+        headless: false
+        page-load-timeout: 30s
+        wait-timeout: 10s
 management:
   endpoints:
     web:
