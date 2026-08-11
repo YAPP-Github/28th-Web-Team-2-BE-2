@@ -19,6 +19,16 @@ Team naming and Issue·Branch·PR lifecycle rules live in [`docs/GIT_CONVENTION.
 
 Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
 
+## Issue form field guide
+
+이슈를 만들 때 선택한 Issue Form의 기존 필드를 빠짐없이 채우고, 다음 새 필드도 요청과 저장소에서 확인할 수 있는 구체적인 내용으로 채운다:
+
+- **Agent prompt**: 구현 에이전트에게 주는 실행 지시다. 변경 대상, 관련 경로 또는 계약, 제약, 최소 검증 방법을 적는다. 설명을 그대로 복사하지 말고 실제로 수행할 수 있는 지시를 쓴다.
+- **Acceptance criteria**: 이슈 완료를 증명할 수 있는 관찰 가능한 조건이다. 체크리스트 한 항목마다 조건 하나를 쓰고, 구현 단계가 아니라 동작·응답·저장 상태·문서 결과를 적는다.
+- **Out of scope**: 이번 이슈에서 명시적으로 제외하는 작업이다. 관련 없는 리팩토링, 배포, 후속 기능 등을 적고, 의미 있는 제외 항목이 없으면 `없음`이라고 쓴다.
+
+없는 요구사항을 지어내지 않는다. 요청이나 저장소에서 근거를 찾을 수 없는 필드는 불확실성을 드러내고, 이슈를 만들기 전에 확인한다.
+
 ## Repository templates and labels
 
 Before drafting an issue, inspect the repository's actual configuration:
