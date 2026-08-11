@@ -18,6 +18,10 @@ spring:
       port: 6379
   flyway:
     enabled: false
+management:
+  health:
+    redis:
+      enabled: false
 
 jwt:
   access-secret: test-only-access-secret-key-that-is-long-enough-for-hmac-sha

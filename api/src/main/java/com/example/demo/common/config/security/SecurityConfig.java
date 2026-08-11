@@ -44,6 +44,7 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
+                                "/actuator/health",
                                 "/api/kamis/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
