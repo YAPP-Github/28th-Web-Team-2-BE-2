@@ -1,0 +1,14 @@
+.git
+.github
+.gradle
+.idea
+.codex
+.agents
+research
+.env
+**/.env
+**/build/*
+!api/build/
+!api/build/libs/
+api/build/libs/*
+!api/build/libs/app.jar
