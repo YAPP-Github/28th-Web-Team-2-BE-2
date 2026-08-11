@@ -72,6 +72,12 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    void Kakao_test_redirect가_비활성화되면_endpoint를_등록하지_않는다() throws Exception {
+        mockMvc.perform(get("/api/auth/test/kakao/redirect").param("code", "authorization-code"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void 로그아웃은_Access_Token이_없으면_401을_응답한다() throws Exception {
         mockMvc.perform(post("/api/auth/logout"))
                 .andExpect(status().isUnauthorized())
