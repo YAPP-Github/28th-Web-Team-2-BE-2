@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 @Accessors(fluent = true)
-public class ApiException extends RuntimeException {
+public class  ApiException extends RuntimeException {
 
     private final String errorMessage;
     private final ErrorType errorType;
@@ -20,5 +20,12 @@ public class ApiException extends RuntimeException {
         this.errorMessage = errorMessage;
         this.errorType = errorType;
         this.httpStatus = httpStatus;
+    }
+
+    public static ApiException invalidParameter() {
+        return new ApiException(
+                ErrorType.INVALID_PARAMETER_ERROR.description(),
+                ErrorType.INVALID_PARAMETER_ERROR,
+                HttpStatus.BAD_REQUEST);
     }
 }

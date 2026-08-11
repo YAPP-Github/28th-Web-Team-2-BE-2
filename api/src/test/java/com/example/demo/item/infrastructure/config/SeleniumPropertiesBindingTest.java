@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
-import com.example.demo.external.selenium.config.SeleniumConfiguration;
-import com.example.demo.external.selenium.config.SeleniumProperties;
 import com.example.demo.external.selenium.factory.SeleniumDriverFactory;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;

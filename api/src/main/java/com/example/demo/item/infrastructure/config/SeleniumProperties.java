@@ -1,4 +1,4 @@
-package com.example.demo.external.selenium.config;
+package com.example.demo.item.infrastructure.config;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
@@ -16,24 +16,22 @@ public record SeleniumProperties(
     private static final Duration DEFAULT_WAIT_TIMEOUT = Duration.ofSeconds(10);
 
     public SeleniumProperties {
-        pageLoadTimeout = defaultIfNull(pageLoadTimeout, DEFAULT_PAGE_LOAD_TIMEOUT);
-        waitTimeout = defaultIfNull(waitTimeout, DEFAULT_WAIT_TIMEOUT);
-
-        validateNonNegative("pageLoadTimeout", pageLoadTimeout);
-        validateNonNegative("waitTimeout", waitTimeout);
+        if (pageLoadTimeout == null) {
+            pageLoadTimeout = DEFAULT_PAGE_LOAD_TIMEOUT;
+        }
+        if (waitTimeout == null) {
+            waitTimeout = DEFAULT_WAIT_TIMEOUT;
+        }
+        validateNonNegative(pageLoadTimeout);
+        validateNonNegative(waitTimeout);
     }
 
-    private static Duration defaultIfNull(Duration timeout, Duration defaultValue) {
-        return timeout != null ? timeout : defaultValue;
-    }
-
-    private static void validateNonNegative(String propertyName, Duration timeout) {
+    private static void validateNonNegative(final Duration timeout) {
         if (timeout.isNegative()) {
             throw new ApiException(
                     ErrorType.CONFIGURATION_ERROR.description(),
                     ErrorType.CONFIGURATION_ERROR,
-                    HttpStatus.INTERNAL_SERVER_ERROR
-            );
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
