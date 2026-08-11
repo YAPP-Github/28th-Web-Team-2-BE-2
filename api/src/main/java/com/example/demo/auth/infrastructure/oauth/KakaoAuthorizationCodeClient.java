@@ -4,10 +4,13 @@ import com.example.demo.auth.application.port.KakaoTokenClient;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.springframework.beans.factory.annotation.Value;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -19,6 +22,8 @@ public class KakaoAuthorizationCodeClient implements KakaoTokenClient {
 
     private static final String TOKEN_URI = "https://kauth.kakao.com/oauth/token";
     private static final String GRANT_TYPE = "authorization_code";
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(3);
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(5);
 
     private final RestClient restClient;
     private final String clientId;
@@ -30,7 +35,7 @@ public class KakaoAuthorizationCodeClient implements KakaoTokenClient {
             @Value("${kakao.oauth.client-id}") final String clientId,
             @Value("${kakao.oauth.client-secret:}") final String clientSecret,
             @Value("${kakao.oauth.test-redirect-uri}") final String redirectUri) {
-        this(RestClient.builder(), clientId, clientSecret, redirectUri);
+        this(RestClient.builder().requestFactory(kakaoRequestFactory()), clientId, clientSecret, redirectUri);
     }
 
     KakaoAuthorizationCodeClient(
@@ -42,6 +47,13 @@ public class KakaoAuthorizationCodeClient implements KakaoTokenClient {
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.redirectUri = redirectUri;
+    }
+
+    private static ClientHttpRequestFactory kakaoRequestFactory() {
+        final SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
+        requestFactory.setReadTimeout(READ_TIMEOUT);
+        return requestFactory;
     }
 
     @Override

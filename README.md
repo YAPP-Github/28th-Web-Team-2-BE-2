@@ -21,6 +21,25 @@ Java 25와 Spring Boot 4.1.0 기반의 Gradle 멀티모듈 backend입니다.
 
 Docker가 필요한 통합 검증의 제한과 상세 검증 기준은 [`docs/ENGINEERING_BASELINE.md`](docs/ENGINEERING_BASELINE.md)를 확인합니다.
 
+## Local Kakao test login
+
+로컬에서 authorization code를 `idToken`으로 교환하려면 Kakao Developers의 Web Redirect URI에 아래 값을 등록합니다.
+
+```text
+http://localhost:8080/api/auth/test/kakao/redirect
+```
+
+실행 환경에는 다음 값을 주입합니다. 실제 client secret은 저장소나 문서에 넣지 않습니다.
+
+| 변수 | 기본값 | 용도 |
+| --- | --- | --- |
+| `KAKAO_TEST_ENDPOINT_ENABLED` | `false` | test redirect endpoint 활성화 여부 |
+| `KAKAO_TEST_REDIRECT_URI` | `http://localhost:8080/api/auth/test/kakao/redirect` | Kakao에 등록한 Redirect URI |
+| `KAKAO_CLIENT_ID` | 빈 값 | Kakao REST API key |
+| `KAKAO_CLIENT_SECRET` | 빈 값 | Client Secret이 켜진 경우 주입 |
+
+`KAKAO_TEST_ENDPOINT_ENABLED=true`일 때 `GET /api/auth/test/kakao/redirect?code=...`를 사용할 수 있습니다. authorization code는 일회성이므로 교환 후 재사용할 수 없습니다.
+
 ## Documentation
 
 - [`AGENTS.md`](AGENTS.md): Codex 작업 계약과 문서 읽기 순서

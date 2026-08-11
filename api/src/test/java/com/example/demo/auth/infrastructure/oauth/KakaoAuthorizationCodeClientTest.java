@@ -2,8 +2,10 @@ package com.example.demo.auth.infrastructure.oauth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -13,10 +15,16 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import java.io.ByteArrayOutputStream;
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.ResourceAccessException;
 
 class KakaoAuthorizationCodeClientTest {
 
@@ -29,12 +37,12 @@ class KakaoAuthorizationCodeClientTest {
         server.expect(requestTo("https://kauth.kakao.com/oauth/token"))
                 .andExpect(method(POST))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(content().string(allOf(
-                        containsString("grant_type=authorization_code"),
-                        containsString("client_id=client-id"),
-                        containsString("code=authorization-code"),
-                        containsString("client_secret=client-secret"),
-                        containsString("redirect_uri="))))
+                .andExpect(request -> {
+                    final String encodedBody = ((ByteArrayOutputStream) request.getBody())
+                            .toString(StandardCharsets.UTF_8);
+                    final String decodedBody = URLDecoder.decode(encodedBody, StandardCharsets.UTF_8);
+                    assertThat(decodedBody).contains("redirect_uri=" + REDIRECT_URI);
+                })
                 .andRespond(withSuccess(
                         "{\"id_token\":\"id-token\",\"access_token\":\"provider-access-token\","
                                 + "\"refresh_token\":\"provider-refresh-token\"}",
@@ -63,5 +71,21 @@ class KakaoAuthorizationCodeClientTest {
                 .isInstanceOfSatisfying(ApiException.class,
                         exception -> assertThat(exception.errorType()).isEqualTo(ErrorType.KAKAO_TOKEN_INVALID));
         server.verify();
+    }
+
+    @Test
+    void Kakao_token_endpoint_timeout은_Kakao_토큰_오류로_변환한다() throws Exception {
+        final ClientHttpRequestFactory requestFactory = mock(ClientHttpRequestFactory.class);
+        when(requestFactory.createRequest(any(URI.class), eq(POST)))
+                .thenThrow(new ResourceAccessException("Kakao token request timed out"));
+        final KakaoAuthorizationCodeClient client = new KakaoAuthorizationCodeClient(
+                RestClient.builder().requestFactory(requestFactory),
+                "client-id",
+                "client-secret",
+                REDIRECT_URI);
+
+        assertThatThrownBy(() -> client.exchangeIdToken("authorization-code"))
+                .isInstanceOfSatisfying(ApiException.class,
+                        exception -> assertThat(exception.errorType()).isEqualTo(ErrorType.KAKAO_TOKEN_INVALID));
     }
 }
