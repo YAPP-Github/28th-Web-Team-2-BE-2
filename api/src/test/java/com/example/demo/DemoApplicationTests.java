@@ -31,6 +31,12 @@ class DemoApplicationTests {
     }
 
     @Test
+    void actuator_root는_인증없이_접근할수없다() throws Exception {
+        mockMvc.perform(get("/actuator"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void swagger_ui와_openapi_문서를_설정된_메타데이터와_함께_제공한다() throws Exception {
         mockMvc.perform(get("/swagger-ui/index.html"))
                 .andExpect(status().isOk())
