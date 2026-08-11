@@ -14,6 +14,7 @@ import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.selenium.SeleniumPage;
 import com.example.demo.external.selenium.config.SeleniumOptions;
+import java.net.InetAddress;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -58,8 +59,8 @@ class SeleniumDriverFactoryTest {
                 new SeleniumOptions(true, Duration.ofSeconds(30), Duration.ofSeconds(10))));
         final WebDriver driver = mock(WebDriver.class);
         final WebDriverWait wait = mock(WebDriverWait.class);
-        final URI requestedUrl = URI.create("https://example.com/items");
-        final URI redirectedUrl = URI.create("https://example.com/items?loaded=true");
+        final URI requestedUrl = URI.create("https://1.1.1.1/items");
+        final URI redirectedUrl = URI.create("https://1.1.1.1/items?loaded=true");
         doReturn(driver).when(factory).create();
         doReturn(wait).when(factory).createWait(driver);
         doReturn(true).when(wait).until(any());
@@ -81,11 +82,89 @@ class SeleniumDriverFactoryTest {
         final WebDriver driver = mock(WebDriver.class);
         doReturn(driver).when(factory).create();
         doThrow(new WebDriverException("connection refused"))
-                .when(driver).get("https://example.com/items");
+                .when(driver).get("https://1.1.1.1/items");
 
-        assertThatThrownBy(() -> factory.loadPage(URI.create("https://example.com/items")))
+        assertThatThrownBy(() -> factory.loadPage(URI.create("https://1.1.1.1/items")))
                 .isInstanceOfSatisfying(ApiException.class, exception ->
                         assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR));
+
+        verify(driver).quit();
+    }
+
+    @Test
+    void preservesLoadingFailureAndSuppressesCleanupFailure() {
+        final SeleniumDriverFactory factory = spy(new SeleniumDriverFactory(
+                new SeleniumOptions(true, Duration.ofSeconds(30), Duration.ofSeconds(10))));
+        final WebDriver driver = mock(WebDriver.class);
+        final WebDriverException cleanupFailure = new WebDriverException("quit failed");
+        doReturn(driver).when(factory).create();
+        doThrow(new WebDriverException("connection refused"))
+                .when(driver).get("https://1.1.1.1/items");
+        doThrow(cleanupFailure).when(driver).quit();
+
+        assertThatThrownBy(() -> factory.loadPage(URI.create("https://1.1.1.1/items")))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(exception.getSuppressed()).containsExactly(cleanupFailure);
+                });
+    }
+
+    @Test
+    void propagatesCleanupFailureWhenPageLoadingSucceeds() {
+        final SeleniumDriverFactory factory = spy(new SeleniumDriverFactory(
+                new SeleniumOptions(true, Duration.ofSeconds(30), Duration.ofSeconds(10))));
+        final WebDriver driver = mock(WebDriver.class);
+        final WebDriverWait wait = mock(WebDriverWait.class);
+        final WebDriverException cleanupFailure = new WebDriverException("quit failed");
+        doReturn(driver).when(factory).create();
+        doReturn(wait).when(factory).createWait(driver);
+        doReturn(true).when(wait).until(any());
+        when(driver.getCurrentUrl()).thenReturn("https://1.1.1.1/items");
+        when(driver.getPageSource()).thenReturn("<html>items</html>");
+        doThrow(cleanupFailure).when(driver).quit();
+
+        assertThatThrownBy(() -> factory.loadPage(URI.create("https://1.1.1.1/items")))
+                .isSameAs(cleanupFailure);
+    }
+
+    @Test
+    void rejectsPrivateDestinationBeforeCreatingDriver() {
+        final SeleniumDriverFactory factory = spy(new SeleniumDriverFactory(
+                new SeleniumOptions(true, Duration.ofSeconds(30), Duration.ofSeconds(10))));
+
+        assertThatThrownBy(() -> factory.loadPage(URI.create("http://127.0.0.1/items")))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.errorType()).isEqualTo(ErrorType.INVALID_PARAMETER_ERROR));
+
+        verify(factory, org.mockito.Mockito.never()).create();
+    }
+
+    @Test
+    void rejectsAnyBlockedAddressAmongDnsResults() throws Exception {
+        final InetAddress publicAddress = InetAddress.getByName("1.1.1.1");
+        final InetAddress privateAddress = InetAddress.getByName("10.0.0.1");
+
+        assertThatThrownBy(() -> SeleniumDestinationValidator.validateResolvedAddresses(
+                "rebound.example", publicAddress, privateAddress))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.errorType()).isEqualTo(ErrorType.INVALID_PARAMETER_ERROR));
+    }
+
+    @Test
+    void rejectsPrivateRedirectDestinationAndQuitsDriver() {
+        final SeleniumDriverFactory factory = spy(new SeleniumDriverFactory(
+                new SeleniumOptions(true, Duration.ofSeconds(30), Duration.ofSeconds(10))));
+        final WebDriver driver = mock(WebDriver.class);
+        final WebDriverWait wait = mock(WebDriverWait.class);
+        doReturn(driver).when(factory).create();
+        doReturn(wait).when(factory).createWait(driver);
+        doReturn(true).when(wait).until(any());
+        when(driver.getCurrentUrl()).thenReturn("http://127.0.0.1/items");
+        when(driver.getPageSource()).thenReturn("<html>items</html>");
+
+        assertThatThrownBy(() -> factory.loadPage(URI.create("https://1.1.1.1/items")))
+                .isInstanceOfSatisfying(ApiException.class, exception ->
+                        assertThat(exception.errorType()).isEqualTo(ErrorType.INVALID_PARAMETER_ERROR));
 
         verify(driver).quit();
     }

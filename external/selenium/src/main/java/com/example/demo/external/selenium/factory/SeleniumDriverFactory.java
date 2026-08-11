@@ -2,7 +2,6 @@ package com.example.demo.external.selenium.factory;
 
 import java.net.URI;
 import java.time.Duration;
-import java.util.Objects;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
@@ -35,22 +34,43 @@ public class SeleniumDriverFactory {
     }
 
     public SeleniumPage loadPage(final URI targetUrl) {
-        Objects.requireNonNull(targetUrl, "targetUrl must not be null");
+        SeleniumDestinationValidator.validate(targetUrl);
         WebDriver driver = null;
+        RuntimeException primaryException = null;
         try {
             driver = create();
             driver.get(targetUrl.toString());
             createWait(driver).until(currentDriver -> !currentDriver.getPageSource().isBlank());
-            return new SeleniumPage(URI.create(driver.getCurrentUrl()), driver.getPageSource());
+            final URI finalUrl = URI.create(driver.getCurrentUrl());
+            SeleniumDestinationValidator.validate(finalUrl);
+            return new SeleniumPage(finalUrl, driver.getPageSource());
         } catch (WebDriverException exception) {
-            throw new ApiException(
+            primaryException = new ApiException(
                     PAGE_LOAD_FAILURE_MESSAGE,
                     ErrorType.EXTERNAL_API_ERROR,
                     HttpStatus.BAD_GATEWAY);
+            throw primaryException;
+        } catch (RuntimeException exception) {
+            primaryException = exception;
+            throw exception;
         } finally {
-            if (driver != null) {
-                driver.quit();
+            quitDriver(driver, primaryException);
+        }
+    }
+
+    private static void quitDriver(final WebDriver driver, final RuntimeException primaryException) {
+        if (driver == null) {
+            return;
+        }
+
+        try {
+            driver.quit();
+        } catch (WebDriverException cleanupFailure) {
+            if (primaryException != null) {
+                primaryException.addSuppressed(cleanupFailure);
+                return;
             }
+            throw cleanupFailure;
         }
     }
 
