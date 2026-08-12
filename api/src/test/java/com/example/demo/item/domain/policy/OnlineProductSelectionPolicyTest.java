@@ -15,6 +15,12 @@ class OnlineProductSelectionPolicyTest {
     }
 
     @Test
+    void excludesProductsWhenItemOrProductNameContainsWhitespaceVariants() {
+        assertThat(policy.isTargetProduct("감자 ", "감자 칩")).isFalse();
+        assertThat(policy.isTargetProduct(" 감자", "감자 스프")).isFalse();
+    }
+
+    @Test
     void keepsProductsForItemsWithoutConfiguredExclusions() {
         assertThat(policy.isTargetProduct("양파", "양파즙")).isTrue();
     }

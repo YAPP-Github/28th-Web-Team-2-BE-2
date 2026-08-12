@@ -86,7 +86,11 @@ class SeleniumDriverFactoryTest {
 
         assertThatThrownBy(() -> factory.loadPage(URI.create("https://1.1.1.1/items")))
                 .isInstanceOfSatisfying(ApiException.class, exception ->
-                        assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR));
+                        assertThat(exception)
+                                .satisfies(apiException -> {
+                                    assertThat(apiException.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                                    assertThat(apiException.getCause()).isInstanceOf(WebDriverException.class);
+                                }));
 
         verify(driver).quit();
     }
@@ -124,7 +128,10 @@ class SeleniumDriverFactoryTest {
         doThrow(cleanupFailure).when(driver).quit();
 
         assertThatThrownBy(() -> factory.loadPage(URI.create("https://1.1.1.1/items")))
-                .isSameAs(cleanupFailure);
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(exception.getCause()).isSameAs(cleanupFailure);
+                });
     }
 
     @Test
@@ -167,5 +174,41 @@ class SeleniumDriverFactoryTest {
                         assertThat(exception.errorType()).isEqualTo(ErrorType.INVALID_PARAMETER_ERROR));
 
         verify(driver).quit();
+    }
+
+    @Test
+    void convertsNullCurrentUrlToCommonApiException() {
+        final SeleniumDriverFactory factory = spy(new SeleniumDriverFactory(
+                new SeleniumOptions(true, Duration.ofSeconds(30), Duration.ofSeconds(10))));
+        final WebDriver driver = mock(WebDriver.class);
+        final WebDriverWait wait = mock(WebDriverWait.class);
+        doReturn(driver).when(factory).create();
+        doReturn(wait).when(factory).createWait(driver);
+        doReturn(true).when(wait).until(any());
+        when(driver.getCurrentUrl()).thenReturn(null);
+
+        assertThatThrownBy(() -> factory.loadPage(URI.create("https://1.1.1.1/items")))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class);
+                });
+    }
+
+    @Test
+    void convertsMalformedCurrentUrlToCommonApiException() {
+        final SeleniumDriverFactory factory = spy(new SeleniumDriverFactory(
+                new SeleniumOptions(true, Duration.ofSeconds(30), Duration.ofSeconds(10))));
+        final WebDriver driver = mock(WebDriver.class);
+        final WebDriverWait wait = mock(WebDriverWait.class);
+        doReturn(driver).when(factory).create();
+        doReturn(wait).when(factory).createWait(driver);
+        doReturn(true).when(wait).until(any());
+        when(driver.getCurrentUrl()).thenReturn("https://[invalid");
+
+        assertThatThrownBy(() -> factory.loadPage(URI.create("https://1.1.1.1/items")))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(exception.getCause()).isInstanceOf(IllegalArgumentException.class);
+                });
     }
 }

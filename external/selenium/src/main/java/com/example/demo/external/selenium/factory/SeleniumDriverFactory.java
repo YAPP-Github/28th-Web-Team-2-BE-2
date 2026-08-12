@@ -46,21 +46,41 @@ public class SeleniumDriverFactory {
             driver = create();
             driver.get(targetUrl.toString());
             createWait(driver).until(currentDriver -> pageReady.test(currentDriver.getPageSource()));
-            final URI finalUrl = URI.create(driver.getCurrentUrl());
+            final URI finalUrl = finalUrl(driver);
             SeleniumDestinationValidator.validate(finalUrl);
             return new SeleniumPage(finalUrl, driver.getPageSource());
         } catch (WebDriverException exception) {
-            primaryException = new ApiException(
-                    PAGE_LOAD_FAILURE_MESSAGE,
-                    ErrorType.EXTERNAL_API_ERROR,
-                    HttpStatus.BAD_GATEWAY);
+            primaryException = pageLoadException(exception);
             throw primaryException;
-        } catch (RuntimeException exception) {
+        } catch (ApiException exception) {
             primaryException = exception;
             throw exception;
+        } catch (RuntimeException exception) {
+            primaryException = pageLoadException(exception);
+            throw primaryException;
         } finally {
             quitDriver(driver, primaryException);
         }
+    }
+
+    private static URI finalUrl(final WebDriver driver) {
+        final String currentUrl = driver.getCurrentUrl();
+        if (currentUrl == null) {
+            throw pageLoadException(new IllegalStateException("Selenium returned a null current URL."));
+        }
+        try {
+            return URI.create(currentUrl);
+        } catch (IllegalArgumentException exception) {
+            throw pageLoadException(exception);
+        }
+    }
+
+    private static ApiException pageLoadException(final Throwable cause) {
+        return new ApiException(
+                PAGE_LOAD_FAILURE_MESSAGE,
+                ErrorType.EXTERNAL_API_ERROR,
+                HttpStatus.BAD_GATEWAY,
+                cause);
     }
 
     private static void quitDriver(final WebDriver driver, final RuntimeException primaryException) {
@@ -75,7 +95,7 @@ public class SeleniumDriverFactory {
                 primaryException.addSuppressed(cleanupFailure);
                 return;
             }
-            throw cleanupFailure;
+            throw pageLoadException(cleanupFailure);
         }
     }
 

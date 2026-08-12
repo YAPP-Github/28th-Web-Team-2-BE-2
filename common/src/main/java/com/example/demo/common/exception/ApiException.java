@@ -22,6 +22,17 @@ public class  ApiException extends RuntimeException {
         this.httpStatus = httpStatus;
     }
 
+    public ApiException(
+            final String errorMessage,
+            final ErrorType errorType,
+            final HttpStatus httpStatus,
+            final Throwable cause) {
+        super(errorMessage, cause);
+        this.errorMessage = errorMessage;
+        this.errorType = errorType;
+        this.httpStatus = httpStatus;
+    }
+
     public static ApiException invalidParameter() {
         return new ApiException(
                 ErrorType.INVALID_PARAMETER_ERROR.description(),
