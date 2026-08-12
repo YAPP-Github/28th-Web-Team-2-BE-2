@@ -2,6 +2,7 @@ package com.example.demo.external.selenium.factory;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.function.Predicate;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
@@ -34,13 +35,17 @@ public class SeleniumDriverFactory {
     }
 
     public SeleniumPage loadPage(final URI targetUrl) {
+        return loadPage(targetUrl, pageSource -> !pageSource.isBlank());
+    }
+
+    public SeleniumPage loadPage(final URI targetUrl, final Predicate<String> pageReady) {
         SeleniumDestinationValidator.validate(targetUrl);
         WebDriver driver = null;
         RuntimeException primaryException = null;
         try {
             driver = create();
             driver.get(targetUrl.toString());
-            createWait(driver).until(currentDriver -> !currentDriver.getPageSource().isBlank());
+            createWait(driver).until(currentDriver -> pageReady.test(currentDriver.getPageSource()));
             final URI finalUrl = URI.create(driver.getCurrentUrl());
             SeleniumDestinationValidator.validate(finalUrl);
             return new SeleniumPage(finalUrl, driver.getPageSource());
