@@ -54,6 +54,7 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
     systemProperty 'kurly.live', System.getProperty('kurly.live', 'false')
+    systemProperty 'elevenst.live', System.getProperty('elevenst.live', 'false')
     finalizedBy tasks.named('jacocoTestReport')
 }
 
