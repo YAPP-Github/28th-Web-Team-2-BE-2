@@ -23,6 +23,18 @@ class OasisProductDetailParserTest {
     }
 
     @Test
+    void convertsKilogramPriceToOneHundredGramPrice() {
+        final BigDecimal price = parser.parsePricePer100g("""
+                <div class="product_option">
+                  <span class="opt_name">1kg x 1개</span>
+                  <span class="opt_unit">1kg당 2,900원</span>
+                </div>
+                """);
+
+        assertThat(price).isEqualByComparingTo("290");
+    }
+
+    @Test
     void extractsDeliveryNote() {
         assertThat(parser.parseDeliveryNote("<span class=\"badge_deliveryOasis\">오아시스배송</span>"))
                 .isEqualTo("오아시스배송");

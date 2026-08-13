@@ -37,7 +37,10 @@ public class OasisSearchPageParser {
         if (!idMatcher.find()) {
             return null;
         }
-        final URI productUrl = URI.create(link.absUrl("href"));
+        final URI productUrl = productUrl(link);
+        if (productUrl == null) {
+            return null;
+        }
         final BigDecimal price = parsePrice(sellingPrice.text());
         if (productUrl.getHost() == null || price == null) {
             return null;
@@ -49,6 +52,14 @@ public class OasisSearchPageParser {
                 price,
                 parsePrice(text(card, ".price_original b")))
                 .withDeliveryNote(parseDeliveryNote(card));
+    }
+
+    private URI productUrl(final Element link) {
+        try {
+            return URI.create(link.absUrl("href"));
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 
     private String text(final Element element, final String selector) {

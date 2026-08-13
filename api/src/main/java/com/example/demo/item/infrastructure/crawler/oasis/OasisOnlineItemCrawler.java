@@ -40,8 +40,13 @@ public class OasisOnlineItemCrawler {
 
     private OasisProduct loadUnitPrice(final OasisProduct product) {
         final SeleniumPage detailPage = driverFactory.loadPage(product.productUrl(), OasisOnlineItemCrawler::hasUnitPrice);
-        return product.withPricePer100g(detailParser.parsePricePer100g(detailPage.html()))
-                .withDeliveryNote(detailParser.parseDeliveryNote(detailPage.html()));
+        final String deliveryNote = detailParser.parseDeliveryNote(detailPage.html());
+        final OasisProduct priceUpdatedProduct = product.withPricePer100g(
+                detailParser.parsePricePer100g(detailPage.html()));
+        if (deliveryNote == null) {
+            return priceUpdatedProduct;
+        }
+        return priceUpdatedProduct.withDeliveryNote(deliveryNote);
     }
 
     private static boolean hasProductLinks(final String pageSource) {

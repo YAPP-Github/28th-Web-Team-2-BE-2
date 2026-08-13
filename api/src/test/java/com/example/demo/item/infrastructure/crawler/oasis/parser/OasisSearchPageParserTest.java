@@ -30,6 +30,16 @@ class OasisSearchPageParserTest {
         assertThat(parser.parse(" ")).isEmpty();
     }
 
+    @Test
+    void excludesCardWithInvalidProductUrl() {
+        assertThat(parser.parse("""
+                <div class="wrapBox">
+                  <a href="http://[invalid"><span class="listTit">감자</span></a>
+                  <span class="price_discount"><b>2,900</b>원</span>
+                </div>
+                """)).isEmpty();
+    }
+
     private String searchHtml() {
         return """
                 <div class="wrapBox">

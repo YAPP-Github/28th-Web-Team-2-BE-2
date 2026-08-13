@@ -60,6 +60,29 @@ class OasisOnlineItemCrawlerTest {
         assertThat(crawler.crawl("감자")).extracting(OasisProduct::externalProductId).containsExactly("2");
     }
 
+    @Test
+    void preservesSearchDeliveryNoteWhenDetailDeliveryNoteIsMissing() {
+        final SeleniumDriverFactory driverFactory = mock(SeleniumDriverFactory.class);
+        final OasisSearchPageParser parser = mock(OasisSearchPageParser.class);
+        final OasisProductDetailParser detailParser = mock(OasisProductDetailParser.class);
+        final URI searchUrl = URI.create(
+                "https://www.oasis.co.kr/product/search?keyword=%EA%B0%90%EC%9E%90&page=1&sort=priority");
+        final OasisProduct product = product("1", "감자 1kg", 100).withDeliveryNote("오아시스배송");
+        when(driverFactory.loadPage(any(URI.class), any())).thenReturn(new SeleniumPage(searchUrl, "detail"));
+        when(driverFactory.loadPage(eq(searchUrl), any())).thenReturn(new SeleniumPage(searchUrl, "items"));
+        when(driverFactory.loadPage(eq(product.productUrl()), any()))
+                .thenReturn(new SeleniumPage(product.productUrl(), "detail"));
+        when(parser.parse("items")).thenReturn(List.of(product));
+        when(detailParser.parsePricePer100g("detail")).thenReturn(BigDecimal.valueOf(399));
+
+        final OasisOnlineItemCrawler crawler = new OasisOnlineItemCrawler(
+                driverFactory, parser, detailParser, new OnlineProductSelectionPolicy());
+
+        assertThat(crawler.crawl("감자")).singleElement()
+                .extracting(OasisProduct::deliveryNote)
+                .isEqualTo("오아시스배송");
+    }
+
     private OasisProduct product(final String id, final String name, final int price) {
         return new OasisProduct(
                 id, name, URI.create("https://www.oasis.co.kr/product/detail/" + id), BigDecimal.valueOf(price), null);
