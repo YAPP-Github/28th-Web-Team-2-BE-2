@@ -8,6 +8,15 @@ import org.springframework.http.HttpStatus;
 class ApiExceptionTest {
 
     @Test
+    void invalidParameterFactoryCreatesBadRequestException() {
+        final ApiException exception = ApiException.invalidParameter();
+
+        assertThat(exception.errorMessage()).isEqualTo(ErrorType.INVALID_PARAMETER_ERROR.description());
+        assertThat(exception.errorType()).isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
+        assertThat(exception.httpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void 공통_예외는_메시지_유형_HTTP_상태를_보유한다() {
         final ApiException exception = new ApiException(
                 ErrorType.EXTERNAL_API_ERROR.description(),
