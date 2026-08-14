@@ -10,6 +10,13 @@ This file is the project-local operating contract for Codex. Keep it focused on 
 - Use the checked-in source, configuration, and tests as the current implementation truth. Do not treat a design note as an implemented feature without verifying it.
 - Use JUnit Jupiter, AssertJ, Mockito, and MockMvc. Do not add Kotlin, Kotest, MockK, RestAssured, PostgreSQL/PostGIS, Firebase, or Redis distributed locks as active technologies.
 
+## Reference sources
+
+- [Figma — 장보고 Design](https://www.figma.com/design/d5j7K9BNpSXxVUu3fmZfY4/%EC%9E%A5%EB%B3%B4%EA%B3%A0-Design?node-id=364-6742&t=NCzuDyaIjLaElzxs-4): 확정 GUI와 화면 흐름을 확인한다. 품목 목록 화면의 기준은 `F02_야채시세` 프레임(`node-id=364:6743`)이다.
+- [ERD — 장보고 서비스 DB Schema](https://app.notion.com/p/3b978859ace980acb95fe56cc50d17bf?pvs=204): 테이블·컬럼·관계를 확인한다.
+- [API 명세서](https://app.notion.com/p/6e478859ace9822f9892012951246c43?pvs=204): HTTP method/path, request, response, validation, error contract를 확인한다.
+- 위 문서는 설계·요구사항의 참고 자료다. 구현 여부와 현재 계약은 반드시 checked-in source, configuration, tests로 검증하고, 문서와 코드가 다르면 차이를 보고한다.
+
 ## Routing and delegation
 
 - Use the prompt-routing skill once for complex, multi-step work or delegated work. Skip it for a simple question, one-line edit, or focused read-only check.
