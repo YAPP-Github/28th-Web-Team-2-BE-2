@@ -10,6 +10,7 @@ import com.example.demo.item.presentation.dto.ItemQueryRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +34,7 @@ public class ItemController {
         @ApiResponse(responseCode = "400", description = "페이지 요청값이 올바르지 않다")
     })
     public ResponseEntity<ApiV1Response<ItemPageResponse>> getItems(
-        @ParameterObject @ModelAttribute final ItemQueryRequest request) {
+            @Valid @ParameterObject @ModelAttribute final ItemQueryRequest request) {
         final ItemQueryResult result = getItemQueryUseCase.execute(
                 new ItemQuery(request.regionId(), request.page(), request.size()));
         final ItemPageResponse data = itemResultConverter.toResponse(result);
