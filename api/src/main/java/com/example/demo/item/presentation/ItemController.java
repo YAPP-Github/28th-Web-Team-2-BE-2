@@ -33,9 +33,9 @@ public class ItemController {
         @ApiResponse(responseCode = "400", description = "페이지 요청값이 올바르지 않다")
     })
     public ResponseEntity<ApiV1Response<ItemPageResponse>> getItems(
-            @ParameterObject @ModelAttribute final ItemQueryRequest request) {
+        @ParameterObject @ModelAttribute final ItemQueryRequest request) {
         final ItemQueryResult result = getItemQueryUseCase.execute(
-                new ItemQuery(request.page(), request.size()));
+                new ItemQuery(request.regionId(), request.page(), request.size()));
         final ItemPageResponse data = itemResultConverter.toResponse(result);
         return ResponseEntity.ok(new ApiV1Response<>("SUCCESS", "품목 조회 성공", data));
     }

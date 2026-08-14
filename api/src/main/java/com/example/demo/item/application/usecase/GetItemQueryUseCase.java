@@ -8,7 +8,9 @@ import com.example.demo.item.application.result.ItemQueryResult;
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.PublicPrice;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,11 +31,11 @@ public class GetItemQueryUseCase {
                 query.page(),
                 query.size(),
                 Sort.by(Sort.Direction.ASC, "id")));
-        final LocalDate baseDate = publicPriceQueryPort.findLatest()
-                .map(PublicPrice::priceDate)
-                .orElse(null);
+        final LocalDate baseDate = publicPriceQueryPort.findLatestPriceDateByRegionId(query.regionId());
+        final List<Long> itemIds = itemPage.getContent().stream().map(Item::id).toList();
+        final Map<Long, PublicPrice> pricesByItemId = findPrices(itemIds, query.regionId(), baseDate);
         final List<ItemPriceResult> items = itemPage.getContent().stream()
-                .map(item -> toResult(item, baseDate))
+                .map(item -> toResult(item, pricesByItemId.get(item.id())))
                 .toList();
         return new ItemQueryResult(
                 baseDate,
@@ -44,13 +46,18 @@ public class GetItemQueryUseCase {
                 itemPage.hasNext());
     }
 
-    private ItemPriceResult toResult(final Item item, final LocalDate baseDate) {
-        if (baseDate == null) {
-            return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), null, null);
+    private Map<Long, PublicPrice> findPrices(
+            final List<Long> itemIds, final String regionId, final LocalDate baseDate) {
+        if (baseDate == null || itemIds.isEmpty()) {
+            return Map.of();
         }
-        final PublicPrice publicPrice = publicPriceQueryPort
-                .findByItemIdAndPriceDate(item.id(), baseDate)
-                .orElse(null);
+        final Map<Long, PublicPrice> pricesByItemId = new HashMap<>();
+        publicPriceQueryPort.findByItemIdsAndRegionIdAndPriceDate(itemIds, regionId, baseDate)
+                .forEach(price -> pricesByItemId.putIfAbsent(price.itemId(), price));
+        return pricesByItemId;
+    }
+
+    private ItemPriceResult toResult(final Item item, final PublicPrice publicPrice) {
         if (publicPrice == null) {
             return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), null, null);
         }

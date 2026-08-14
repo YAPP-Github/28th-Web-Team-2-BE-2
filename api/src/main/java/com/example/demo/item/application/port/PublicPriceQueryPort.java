@@ -2,11 +2,12 @@ package com.example.demo.item.application.port;
 
 import com.example.demo.item.domain.PublicPrice;
 import java.time.LocalDate;
-import java.util.Optional;
+import java.util.List;
 
 public interface PublicPriceQueryPort {
 
-    Optional<PublicPrice> findByItemIdAndPriceDate(Long itemId, LocalDate priceDate);
+    List<PublicPrice> findByItemIdsAndRegionIdAndPriceDate(
+            List<Long> itemIds, String regionId, LocalDate priceDate);
 
-    Optional<PublicPrice> findLatest();
+    LocalDate findLatestPriceDateByRegionId(String regionId);
 }

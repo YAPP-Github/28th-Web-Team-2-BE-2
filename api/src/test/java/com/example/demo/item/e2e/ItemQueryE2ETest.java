@@ -24,14 +24,22 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class ItemQueryE2ETest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private static final String REGION_ID = "1121510100";
+    private static final String OTHER_REGION_ID = "1168010100";
+
+    private final MockMvc mockMvc;
+    private final ItemJpaRepository itemJpaRepository;
+    private final PublicPriceJpaRepository publicPriceJpaRepository;
 
     @Autowired
-    private ItemJpaRepository itemJpaRepository;
-
-    @Autowired
-    private PublicPriceJpaRepository publicPriceJpaRepository;
+    ItemQueryE2ETest(
+            final MockMvc mockMvc,
+            final ItemJpaRepository itemJpaRepository,
+            final PublicPriceJpaRepository publicPriceJpaRepository) {
+        this.mockMvc = mockMvc;
+        this.itemJpaRepository = itemJpaRepository;
+        this.publicPriceJpaRepository = publicPriceJpaRepository;
+    }
 
     @BeforeEach
     void setUp() {
@@ -41,15 +49,17 @@ class ItemQueryE2ETest {
         final Item potato = itemJpaRepository.save(new Item("감자", "1kg"));
         final Item onion = itemJpaRepository.save(new Item("양파", "1kg"));
         final Item greenOnion = itemJpaRepository.save(new Item("대파", "1단"));
-        publicPriceJpaRepository.save(new PublicPrice(potato.id(), "1121510100", 3500, LocalDate.now()));
-        publicPriceJpaRepository.save(new PublicPrice(onion.id(), "1121510100", 2800, LocalDate.now()));
+        publicPriceJpaRepository.save(new PublicPrice(potato.id(), REGION_ID, 3500, LocalDate.now()));
+        publicPriceJpaRepository.save(new PublicPrice(onion.id(), REGION_ID, 2800, LocalDate.now()));
         publicPriceJpaRepository.save(
-                new PublicPrice(greenOnion.id(), "1121510100", 2100, LocalDate.now().minusDays(1)));
+                new PublicPrice(greenOnion.id(), REGION_ID, 2100, LocalDate.now().minusDays(1)));
+        publicPriceJpaRepository.save(new PublicPrice(potato.id(), OTHER_REGION_ID, 9999, LocalDate.now()));
     }
 
     @Test
     void 공개_품목과_공공가격_목록을_조회한다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
                         .queryParam("page", "0")
                         .queryParam("size", "2"))
                 .andExpect(status().isOk())
@@ -70,7 +80,8 @@ class ItemQueryE2ETest {
 
     @Test
     void 페이지_크기를_생략하면_10개를_기본값으로_사용한다() throws Exception {
-        mockMvc.perform(get("/api/v1/items"))
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.size").value(10));
     }
@@ -78,6 +89,7 @@ class ItemQueryE2ETest {
     @Test
     void 가격이_없는_품목도_목록에서_누락하지_않는다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
                         .queryParam("page", "0")
                         .queryParam("size", "3"))
                 .andExpect(status().isOk())
@@ -89,6 +101,7 @@ class ItemQueryE2ETest {
     @Test
     void 음수_페이지는_bad_request를_응답한다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
                         .queryParam("page", "-1")
                         .queryParam("size", "2"))
                 .andExpect(status().isBadRequest())
@@ -98,6 +111,7 @@ class ItemQueryE2ETest {
     @Test
     void 크기가_0이면_bad_request를_응답한다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
                         .queryParam("page", "0")
                         .queryParam("size", "0"))
                 .andExpect(status().isBadRequest())
@@ -107,6 +121,7 @@ class ItemQueryE2ETest {
     @Test
     void 숫자가_아닌_페이지는_공통_bad_request를_응답한다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
                         .queryParam("page", "not-a-number")
                         .queryParam("size", "2"))
                 .andExpect(status().isBadRequest())
@@ -116,10 +131,55 @@ class ItemQueryE2ETest {
     }
 
     @Test
+    void 지역을_생략하면_bad_request를_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/items"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_ERROR"))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    void 빈_페이지는_성공과_빈_목록을_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("page", "1")
+                        .queryParam("size", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+
+    @Test
+    void 범위를_초과한_페이지는_성공과_빈_목록을_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("page", "10")
+                        .queryParam("size", "3"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+
+    @Test
+    void 최대_페이지_크기를_초과하면_bad_request를_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_ERROR"))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
     void 품목_조회_경로와_페이지_파라미터를_OpenAPI에_노출한다() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'regionId')]")
+                        .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'page')]")
                         .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'size')]")

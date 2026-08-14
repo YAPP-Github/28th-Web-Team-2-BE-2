@@ -18,6 +18,9 @@ CREATE TABLE public_prices (
 CREATE INDEX idx_public_prices_item_region_date
     ON public_prices (item_id, region_id, price_date);
 
+CREATE INDEX idx_public_prices_region_date_id
+    ON public_prices (region_id, price_date, public_price_id);
+
 INSERT INTO items (item_name, default_unit)
 VALUES
     ('감자', '1kg'),
