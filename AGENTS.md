@@ -10,6 +10,13 @@ This file is the project-local operating contract for Codex. Keep it focused on 
 - Use the checked-in source, configuration, and tests as the current implementation truth. Do not treat a design note as an implemented feature without verifying it.
 - Use JUnit Jupiter, AssertJ, Mockito, and MockMvc. Do not add Kotlin, Kotest, MockK, RestAssured, PostgreSQL/PostGIS, Firebase, or Redis distributed locks as active technologies.
 
+## Reference sources
+
+- [Figma — 장보고 Design](https://www.figma.com/design/d5j7K9BNpSXxVUu3fmZfY4/%EC%9E%A5%EB%B3%B4%EA%B3%A0-Design?node-id=364-6742&t=NCzuDyaIjLaElzxs-4): 확정 GUI와 화면 흐름을 확인한다. 품목 목록 화면의 기준은 `F02_야채시세` 프레임(`node-id=364:6743`)이다.
+- [ERD — 장보고 서비스 DB Schema](https://app.notion.com/p/3b978859ace980acb95fe56cc50d17bf?pvs=204): 테이블·컬럼·관계를 확인한다.
+- [API 명세서](https://app.notion.com/p/6e478859ace9822f9892012951246c43?pvs=204): HTTP method/path, request, response, validation, error contract를 확인한다.
+- 위 문서는 설계·요구사항의 참고 자료다. 구현 여부와 현재 계약은 반드시 checked-in source, configuration, tests로 검증하고, 문서와 코드가 다르면 차이를 보고한다.
+
 ## Routing and delegation
 
 - Use the prompt-routing skill once for complex, multi-step work or delegated work. Skip it for a simple question, one-line edit, or focused read-only check.
@@ -17,6 +24,13 @@ This file is the project-local operating contract for Codex. Keep it focused on 
 - For a clear backend implementation, database migration, separated test work, or independent validation, use `$backend-orchestrator`.
 - If requirements, domain terms, or a hard-to-reverse decision are unresolved, route through `$grill-with-docs` and `$domain-modeling` before implementation.
 - Keep delegated ownership disjoint. Prefer parallel agents for read-heavy exploration, test writing, triage, and validation; avoid parallel write-heavy edits to the same files.
+
+## PR push and merge review gate
+
+- When the user asks whether a PR can be pushed or merged, or asks to perform that action, run a read-only review first through the project `pr-reviewer` subagent in [`.codex/agents/pr-reviewer.toml`](.codex/agents/pr-reviewer.toml). It must use `gpt-5.6-sol` with `high` reasoning effort.
+- The review must inspect the current diff, linked Issue and reference contracts, API/security boundaries, tests and CI, unresolved review threads, required approvals, and the PR's branch/merge status. Report concrete findings with priority, path/line, evidence, impact, and the smallest safe remediation; separate findings from non-blocking suggestions.
+- Use the repository's skills and documents first. When a review skill or judgment rule needs external guidance, consult current authoritative sources such as [GitHub's pull request review guide](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests) and [Google Engineering Practices' code review guide](https://google.github.io/eng-practices/review/reviewer/). Record source links and distinguish source-backed guidance from project decisions. Treat ChatGPT-generated advice as a hypothesis to validate, not as authority.
+- Sol's review is advisory. It does not replace required human approval or the user's separate approval for commit, push, PR, merge, or deployment. If a source or check cannot be verified, report it as unverified rather than guessing.
 
 ## Required reads
 

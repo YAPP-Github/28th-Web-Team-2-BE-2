@@ -60,6 +60,14 @@
 - 클래스는 하나의 책임을 중심으로 작게 유지한다.
 - 여러 책임이 섞이면 역할별 클래스로 분리한다.
 
+### 외부 입력에 Jakarta Validation을 적극적으로 사용했는가?
+
+- Presentation DTO의 필수값·범위·길이·형식 제약은 `jakarta.validation.constraints`의 `@NotBlank`, `@NotNull`, `@Min`, `@Max`, `@Size`, `@Pattern` 등을 우선 사용한다.
+- Controller의 `@Valid` 또는 `@Validated`로 검증을 활성화하고, 기존 `GlobalExceptionHandler`의 공통 오류 응답 계약을 따른다.
+- DTO 생성자에서 동일한 단순 제약을 직접 검사해 `ApiException`을 던지는 `validate...` 메서드를 만들지 않는다.
+- null 기본값, 입력 정규화, 여러 필드 간 조건, 도메인 불변식처럼 애노테이션만으로 표현하기 어려운 규칙은 생성자·Application·Domain 계층의 책임으로 둔다.
+- 새로운 제약은 잘못된 HTTP 입력이 기대 상태 코드와 오류 응답 계약을 반환하는 테스트로 검증한다.
+
 ## 3. API 문서화
 
 - Controller나 공개 API를 추가·변경할 때 SpringDoc `@Operation`과 성공·실패 응답, 요청·응답 스키마를 실제 HTTP 계약과 함께 갱신한다.
