@@ -18,6 +18,13 @@ This file is the project-local operating contract for Codex. Keep it focused on 
 - If requirements, domain terms, or a hard-to-reverse decision are unresolved, route through `$grill-with-docs` and `$domain-modeling` before implementation.
 - Keep delegated ownership disjoint. Prefer parallel agents for read-heavy exploration, test writing, triage, and validation; avoid parallel write-heavy edits to the same files.
 
+## PR push and merge review gate
+
+- When the user asks whether a PR can be pushed or merged, or asks to perform that action, run a read-only review first through the project `pr-reviewer` subagent in [`.codex/agents/pr-reviewer.toml`](.codex/agents/pr-reviewer.toml). It must use `gpt-5.6-sol` with `high` reasoning effort.
+- The review must inspect the current diff, linked Issue and reference contracts, API/security boundaries, tests and CI, unresolved review threads, required approvals, and the PR's branch/merge status. Report concrete findings with priority, path/line, evidence, impact, and the smallest safe remediation; separate findings from non-blocking suggestions.
+- Use the repository's skills and documents first. When a review skill or judgment rule needs external guidance, consult current authoritative sources such as [GitHub's pull request review guide](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests) and [Google Engineering Practices' code review guide](https://google.github.io/eng-practices/review/reviewer/). Record source links and distinguish source-backed guidance from project decisions. Treat ChatGPT-generated advice as a hypothesis to validate, not as authority.
+- Sol's review is advisory. It does not replace required human approval or the user's separate approval for commit, push, PR, merge, or deployment. If a source or check cannot be verified, report it as unverified rather than guessing.
+
 ## Required reads
 
 | Work | Read first |
