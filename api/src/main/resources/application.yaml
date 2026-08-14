@@ -22,3 +22,29 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+jwt:
+  access-secret: ${JWT_ACCESS_SECRET}
+  refresh-secret: ${JWT_REFRESH_SECRET}
+  access-token-expiration: 30m
+  refresh-token-expiration: 14d
+  refresh-cookie:
+    secure: ${JWT_REFRESH_COOKIE_SECURE:true}
+
+kakao:
+  oauth:
+    client-id: ${KAKAO_CLIENT_ID:}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+    test-redirect-uri: ${KAKAO_TEST_REDIRECT_URI:http://localhost:8080/api/auth/test/kakao/redirect}
+    test-endpoint:
+      enabled: ${KAKAO_TEST_ENDPOINT_ENABLED:false}
+    issuer: ${KAKAO_OAUTH_ISSUER:https://kauth.kakao.com}
+    jwk-set-uri: ${KAKAO_OAUTH_JWK_SET_URI:https://kauth.kakao.com/.well-known/jwks.json}

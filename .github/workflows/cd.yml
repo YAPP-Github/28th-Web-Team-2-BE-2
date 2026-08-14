@@ -1,0 +1,191 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    branches:
+      - main
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || 'demo-backend' }}
+  SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+
+jobs:
+  publish:
+    name: Publish ARM64 image to ECR
+    if: >-
+      vars.CD_ENABLED == 'true' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+
+    steps:
+      - name: Check out source commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+
+      - name: Configure short-lived AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2
+
+      - name: Set image name
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        shell: bash
+        run: echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Download application JAR
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: demo-jar
+          path: api/build/libs
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Verify application JAR
+        run: test -s api/build/libs/app.jar
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build and publish ARM64 image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.image.outputs.image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to existing EC2
+    if: vars.EC2_DEPLOY_ENABLED == 'true'
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: marketgo-production
+      cancel-in-progress: false
+    env:
+      EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+      IMAGE: ${{ needs.publish.outputs.image }}
+
+    steps:
+      - name: Configure short-lived AWS credentials
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy with SSM and verify health
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -n "$EC2_INSTANCE_ID"
+
+          current_main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+          if [ "$current_main_sha" != "$SOURCE_SHA" ]; then
+            echo "Skipping stale deployment for $SOURCE_SHA; main is $current_main_sha."
+            exit 0
+          fi
+
+          python3 - <<'PY' > /tmp/marketgo-ssm-parameters.json
+          import json
+          import os
+
+          print(json.dumps({"Image": [os.environ["IMAGE"]]}))
+          PY
+
+          command_id="$(
+            aws ssm send-command \
+              --region "$AWS_REGION" \
+              --instance-ids "$EC2_INSTANCE_ID" \
+              --document-name marketgo-deploy-backend \
+              --comment "Deploy ${SOURCE_SHA}" \
+              --parameters file:///tmp/marketgo-ssm-parameters.json \
+              --query 'Command.CommandId' \
+              --output text
+          )"
+          rm -f /tmp/marketgo-ssm-parameters.json
+
+          complete=false
+          cancel_on_exit() {
+            if [ "$complete" != "true" ]; then
+              aws ssm cancel-command \
+                --region "$AWS_REGION" \
+                --command-id "$command_id" >/dev/null 2>&1 || true
+            fi
+          }
+          trap cancel_on_exit EXIT
+
+          status=""
+          for _ in $(seq 1 360); do
+            status="$(
+              aws ssm get-command-invocation \
+                --region "$AWS_REGION" \
+                --command-id "$command_id" \
+                --instance-id "$EC2_INSTANCE_ID" \
+                --query Status \
+                --output text 2>/dev/null || true
+            )"
+            case "$status" in
+              Success|Cancelled|TimedOut|Failed) break ;;
+              *) sleep 5 ;;
+            esac
+          done
+
+          case "$status" in
+            Success|Cancelled|TimedOut|Failed)
+              complete=true
+              ;;
+            *)
+              aws ssm cancel-command \
+                --region "$AWS_REGION" \
+                --command-id "$command_id" >/dev/null
+              complete=true
+              echo "Cancelled SSM command after waiting 30 minutes." >&2
+              exit 1
+              ;;
+          esac
+
+          if [ "$status" != "Success" ]; then
+            aws ssm get-command-invocation \
+              --region "$AWS_REGION" \
+              --command-id "$command_id" \
+              --instance-id "$EC2_INSTANCE_ID" \
+              --query '{Status:Status,Error:StandardErrorContent}'
+            exit 1
+          fi

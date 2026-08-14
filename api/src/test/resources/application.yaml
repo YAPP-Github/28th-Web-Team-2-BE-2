@@ -12,5 +12,29 @@ spring:
     hibernate:
       ddl-auto: create-drop
     open-in-view: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
   flyway:
     enabled: false
+management:
+  health:
+    redis:
+      enabled: false
+
+jwt:
+  access-secret: test-only-access-secret-key-that-is-long-enough-for-hmac-sha
+  refresh-secret: test-only-refresh-secret-key-that-is-long-enough-for-hmac-sha
+  access-token-expiration: 30m
+  refresh-token-expiration: 14d
+
+kakao:
+  oauth:
+    client-id: test-kakao-client-id
+    client-secret: test-kakao-client-secret
+    test-redirect-uri: http://localhost:8080/api/auth/test/kakao/redirect
+    test-endpoint:
+      enabled: false
+    issuer: https://kauth.kakao.com
+    jwk-set-uri: https://kauth.kakao.com/.well-known/jwks.json

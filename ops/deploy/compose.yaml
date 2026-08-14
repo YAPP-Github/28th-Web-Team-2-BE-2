@@ -1,0 +1,23 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
+    container_name: marketgo-backend
+    restart: unless-stopped
+    env_file:
+      - ${BACKEND_ENV_FILE:-/etc/marketgo/backend.env}
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - marketgo
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  marketgo:
+    external: true
