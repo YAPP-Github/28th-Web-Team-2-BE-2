@@ -26,12 +26,6 @@ public class Item {
     @Column(name = "item_name", nullable = false, length = 50)
     private String name;
 
-    @Column(name = "kamis_item_code", length = 20)
-    private String kamisItemCode;
-
-    @Column(name = "kamis_kind_code", length = 20)
-    private String kamisKindCode;
-
     @Column(name = "default_unit", length = 20)
     private String defaultUnit;
 
@@ -39,21 +33,14 @@ public class Item {
     private String imageUrl;
 
     public Item(final String name, final String defaultUnit) {
-        this(name, null, null, defaultUnit, null);
+        this(name, defaultUnit, null);
     }
 
-    public Item(
-            final String name,
-            final String kamisItemCode,
-            final String kamisKindCode,
-            final String defaultUnit,
-            final String imageUrl) {
+    public Item(final String name, final String defaultUnit, final String imageUrl) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("item name must not be blank");
         }
         this.name = name;
-        this.kamisItemCode = kamisItemCode;
-        this.kamisKindCode = kamisKindCode;
         this.defaultUnit = defaultUnit;
         this.imageUrl = imageUrl;
     }
