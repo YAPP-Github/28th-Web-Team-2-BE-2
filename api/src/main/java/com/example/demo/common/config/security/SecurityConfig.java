@@ -46,6 +46,7 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/actuator/health",
                                 "/api/kamis/**",
+                                "/api/v1/items",
                                 "/api/auth/test/kakao/redirect",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
