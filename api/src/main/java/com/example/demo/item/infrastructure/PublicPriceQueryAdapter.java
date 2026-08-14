@@ -14,10 +14,10 @@ public class PublicPriceQueryAdapter implements PublicPriceQueryPort {
     private final PublicPriceJpaRepository publicPriceJpaRepository;
 
     @Override
-    public List<PublicPrice> findByItemIdsAndRegionIdAndPriceDate(
-            final List<Long> itemIds, final String regionId, final LocalDate priceDate) {
-        return publicPriceJpaRepository.findAllByItemIdInAndRegionIdAndPriceDateOrderByItemIdAscIdDesc(
-                itemIds, regionId, priceDate);
+    public List<PublicPrice> findByItemIdsAndRegionId(
+            final List<Long> itemIds, final String regionId) {
+        return publicPriceJpaRepository.findAllByItemIdInAndRegionIdOrderByItemIdAscPriceDateDescIdDesc(
+                itemIds, regionId);
     }
 
     @Override
