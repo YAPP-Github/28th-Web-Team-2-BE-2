@@ -1,11 +1,10 @@
 package com.example.demo.item.e2e;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.nullValue;
 
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.PublicPrice;
@@ -30,6 +29,7 @@ class ItemQueryE2ETest {
     private final MockMvc mockMvc;
     private final ItemJpaRepository itemJpaRepository;
     private final PublicPriceJpaRepository publicPriceJpaRepository;
+    private LocalDate referenceDate;
 
     @Autowired
     ItemQueryE2ETest(
@@ -45,37 +45,59 @@ class ItemQueryE2ETest {
     void setUp() {
         publicPriceJpaRepository.deleteAll();
         itemJpaRepository.deleteAll();
+        referenceDate = LocalDate.now();
 
         final Item potato = itemJpaRepository.save(new Item("감자", "1kg"));
         final Item onion = itemJpaRepository.save(new Item("양파", "1kg"));
         final Item greenOnion = itemJpaRepository.save(new Item("대파", "1단"));
-        publicPriceJpaRepository.save(new PublicPrice(potato.id(), REGION_ID, 3500, LocalDate.now()));
-        publicPriceJpaRepository.save(new PublicPrice(onion.id(), REGION_ID, 2800, LocalDate.now()));
+        final Item carrot = itemJpaRepository.save(new Item("당근", "1kg"));
+        itemJpaRepository.save(new Item("양배추", "1통"));
         publicPriceJpaRepository.save(
-                new PublicPrice(greenOnion.id(), REGION_ID, 2100, LocalDate.now().minusDays(1)));
-        publicPriceJpaRepository.save(new PublicPrice(potato.id(), OTHER_REGION_ID, 9999, LocalDate.now()));
+                new PublicPrice(potato.id(), REGION_ID, 3000, referenceDate.minusDays(2)));
+        publicPriceJpaRepository.save(new PublicPrice(potato.id(), REGION_ID, 3500, referenceDate));
+        publicPriceJpaRepository.save(
+                new PublicPrice(onion.id(), REGION_ID, 3000, referenceDate.minusDays(3)));
+        publicPriceJpaRepository.save(new PublicPrice(onion.id(), REGION_ID, 2800, referenceDate));
+        publicPriceJpaRepository.save(
+                new PublicPrice(greenOnion.id(), REGION_ID, 2100, referenceDate.minusDays(4)));
+        publicPriceJpaRepository.save(new PublicPrice(greenOnion.id(), REGION_ID, 2100, referenceDate));
+        publicPriceJpaRepository.save(
+                new PublicPrice(carrot.id(), REGION_ID, 4000, referenceDate.minusDays(6)));
+        publicPriceJpaRepository.save(
+                new PublicPrice(carrot.id(), REGION_ID, 4500, referenceDate.minusDays(5)));
+        publicPriceJpaRepository.save(
+                new PublicPrice(carrot.id(), REGION_ID, 4600, referenceDate.minusDays(5)));
+        publicPriceJpaRepository.save(new PublicPrice(potato.id(), OTHER_REGION_ID, 9999, referenceDate));
     }
 
     @Test
-    void 공개_품목과_공공가격_목록을_조회한다() throws Exception {
+    void 공개_품목과_공공가격_목록을_직접_성공_응답과_priceGap으로_조회한다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
                         .queryParam("page", "0")
-                        .queryParam("size", "2"))
+                        .queryParam("size", "5"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").exists())
-                .andExpect(jsonPath("$.message").exists())
-                .andExpect(jsonPath("$.data.baseDate").exists())
-                .andExpect(jsonPath("$.data.totalCount").exists())
-                .andExpect(jsonPath("$.data.items").isArray())
-                .andExpect(jsonPath("$.data.items[0].price").value(3500))
-                .andExpect(jsonPath("$.data.items[0]").value(hasKey("priceGap")))
-                .andExpect(jsonPath("$.data.items[0].priceGap").value(nullValue()))
-                .andExpect(jsonPath("$.data.items[0].priceDiffRate").doesNotExist())
-                .andExpect(jsonPath("$.data.page").value(0))
-                .andExpect(jsonPath("$.data.size").value(2))
-                .andExpect(jsonPath("$.data.hasNext").isBoolean());
+                .andExpect(jsonPath("$.code").doesNotExist())
+                .andExpect(jsonPath("$.message").doesNotExist())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.baseDate").value(referenceDate.toString()))
+                .andExpect(jsonPath("$.totalCount").value(5))
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.items[0].price").value(3500))
+                .andExpect(jsonPath("$.items[0].priceGap").value(500))
+                .andExpect(jsonPath("$.items[1].price").value(2800))
+                .andExpect(jsonPath("$.items[1].priceGap").value(-200))
+                .andExpect(jsonPath("$.items[2].price").value(2100))
+                .andExpect(jsonPath("$.items[2].priceGap").value(0))
+                .andExpect(jsonPath("$.items[3].price").value(4600))
+                .andExpect(jsonPath("$.items[3].priceGap").value(600))
+                .andExpect(jsonPath("$.items[4].price").value(nullValue()))
+                .andExpect(jsonPath("$.items[4].priceGap").value(nullValue()))
+                .andExpect(jsonPath("$.items[0].priceDiffRate").doesNotExist())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(5))
+                .andExpect(jsonPath("$.hasNext").isBoolean());
     }
 
     @Test
@@ -83,19 +105,7 @@ class ItemQueryE2ETest {
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.size").value(10));
-    }
-
-    @Test
-    void 가격이_없는_품목도_목록에서_누락하지_않는다() throws Exception {
-        mockMvc.perform(get("/api/v1/items")
-                        .queryParam("regionId", REGION_ID)
-                        .queryParam("page", "0")
-                        .queryParam("size", "3"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.totalCount").value(3))
-                .andExpect(jsonPath("$.data.items[2].itemName").value("대파"))
-                .andExpect(jsonPath("$.data.items[2].price").value(nullValue()));
+                .andExpect(jsonPath("$.size").value(10));
     }
 
     @Test
@@ -142,13 +152,12 @@ class ItemQueryE2ETest {
     void 빈_페이지는_성공과_빈_목록을_응답한다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
-                        .queryParam("page", "1")
+                        .queryParam("page", "2")
                         .queryParam("size", "3"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.items").isEmpty())
-                .andExpect(jsonPath("$.data.page").value(1))
-                .andExpect(jsonPath("$.data.hasNext").value(false));
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.page").value(2))
+                .andExpect(jsonPath("$.hasNext").value(false));
     }
 
     @Test
@@ -158,9 +167,8 @@ class ItemQueryE2ETest {
                         .queryParam("page", "10")
                         .queryParam("size", "3"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.items").isEmpty())
-                .andExpect(jsonPath("$.data.hasNext").value(false));
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.hasNext").value(false));
     }
 
     @Test
@@ -184,6 +192,8 @@ class ItemQueryE2ETest {
                         .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'size')]")
                         .isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['200'].content['application/json'].schema.$ref")
+                        .value("#/components/schemas/ItemPageResponse"))
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['400']").exists());
     }
 }

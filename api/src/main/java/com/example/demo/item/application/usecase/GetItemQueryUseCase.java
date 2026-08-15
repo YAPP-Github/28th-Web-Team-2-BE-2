@@ -33,9 +33,12 @@ public class GetItemQueryUseCase {
                 Sort.by(Sort.Direction.ASC, "id")));
         final LocalDate baseDate = publicPriceQueryPort.findLatestPriceDateByRegionId(query.regionId());
         final List<Long> itemIds = itemPage.getContent().stream().map(Item::id).toList();
-        final Map<Long, PublicPrice> pricesByItemId = findPrices(itemIds, query.regionId(), baseDate);
+        final PriceHistory priceHistory = findPrices(itemIds, query.regionId());
         final List<ItemPriceResult> items = itemPage.getContent().stream()
-                .map(item -> toResult(item, pricesByItemId.get(item.id())))
+                .map(item -> toResult(
+                        item,
+                        priceHistory.currentPrices().get(item.id()),
+                        priceHistory.previousPrices().get(item.id())))
                 .toList();
         return new ItemQueryResult(
                 baseDate,
@@ -46,21 +49,45 @@ public class GetItemQueryUseCase {
                 itemPage.hasNext());
     }
 
-    private Map<Long, PublicPrice> findPrices(
-            final List<Long> itemIds, final String regionId, final LocalDate baseDate) {
-        if (baseDate == null || itemIds.isEmpty()) {
-            return Map.of();
+    private PriceHistory findPrices(final List<Long> itemIds, final String regionId) {
+        if (itemIds.isEmpty()) {
+            return new PriceHistory(Map.of(), Map.of());
         }
         final Map<Long, PublicPrice> pricesByItemId = new HashMap<>();
-        publicPriceQueryPort.findByItemIdsAndRegionIdAndPriceDate(itemIds, regionId, baseDate)
-                .forEach(price -> pricesByItemId.putIfAbsent(price.itemId(), price));
-        return pricesByItemId;
+        final Map<Long, PublicPrice> previousPricesByItemId = new HashMap<>();
+        // ponytail: loads history for the page once; use a per-item top-2 query if history volume matters.
+        for (final PublicPrice price : publicPriceQueryPort.findByItemIdsAndRegionId(itemIds, regionId)) {
+            if (!pricesByItemId.containsKey(price.itemId())) {
+                pricesByItemId.put(price.itemId(), price);
+                continue;
+            }
+            if (previousPricesByItemId.containsKey(price.itemId())) {
+                continue;
+            }
+            if (price.priceDate().equals(pricesByItemId.get(price.itemId()).priceDate())) {
+                continue;
+            }
+            previousPricesByItemId.putIfAbsent(price.itemId(), price);
+        }
+        return new PriceHistory(pricesByItemId, previousPricesByItemId);
     }
 
-    private ItemPriceResult toResult(final Item item, final PublicPrice publicPrice) {
+    private ItemPriceResult toResult(
+            final Item item, final PublicPrice publicPrice, final PublicPrice previousPrice) {
         if (publicPrice == null) {
             return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), null, null);
         }
-        return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), publicPrice.price(), null);
+        if (previousPrice == null) {
+            return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), publicPrice.price(), null);
+        }
+        return new ItemPriceResult(
+                item.id(),
+                item.name(),
+                item.imageUrl(),
+                publicPrice.price(),
+                publicPrice.price() - previousPrice.price());
     }
+
+    private record PriceHistory(
+            Map<Long, PublicPrice> currentPrices, Map<Long, PublicPrice> previousPrices) {}
 }
