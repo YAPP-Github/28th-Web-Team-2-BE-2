@@ -18,6 +18,10 @@ spring:
       port: 6379
   flyway:
     enabled: false
+
+springdoc:
+  paths-to-exclude: /api/auth/test/**
+
 management:
   health:
     redis:

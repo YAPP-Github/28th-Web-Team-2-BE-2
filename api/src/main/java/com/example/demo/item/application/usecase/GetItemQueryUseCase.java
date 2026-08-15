@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,15 +25,17 @@ public class GetItemQueryUseCase {
 
     @Transactional(readOnly = true)
     public ItemQueryResult execute(final ItemQuery query) {
-        final Page<Item> itemPage = itemQueryPort.findAll(PageRequest.of(
-                query.page(),
-                query.size(),
-                Sort.by(Sort.Direction.ASC, "id")));
         final LocalDate baseDate = publicPriceQueryPort.findLatestPriceDateByRegionId(query.regionId());
+        final Page<Item> itemPage = itemQueryPort.findAll(query);
         final List<Long> itemIds = itemPage.getContent().stream().map(Item::id).toList();
-        final Map<Long, PublicPrice> pricesByItemId = findPrices(itemIds, query.regionId(), baseDate);
+        final List<PublicPrice> prices = findPrices(itemIds, query.regionId());
+        final Map<Long, PublicPrice> pricesByItemId = currentPrices(prices);
+        final Map<Long, PublicPrice> previousPricesByItemId = previousPrices(prices, pricesByItemId);
         final List<ItemPriceResult> items = itemPage.getContent().stream()
-                .map(item -> toResult(item, pricesByItemId.get(item.id())))
+                .map(item -> toResult(
+                        item,
+                        pricesByItemId.get(item.id()),
+                        previousPricesByItemId.get(item.id())))
                 .toList();
         return new ItemQueryResult(
                 baseDate,
@@ -46,21 +46,45 @@ public class GetItemQueryUseCase {
                 itemPage.hasNext());
     }
 
-    private Map<Long, PublicPrice> findPrices(
-            final List<Long> itemIds, final String regionId, final LocalDate baseDate) {
-        if (baseDate == null || itemIds.isEmpty()) {
-            return Map.of();
+    private List<PublicPrice> findPrices(final List<Long> itemIds, final String regionId) {
+        if (itemIds.isEmpty()) {
+            return List.of();
         }
+        return publicPriceQueryPort.findByItemIdsAndRegionId(itemIds, regionId);
+    }
+
+    private Map<Long, PublicPrice> currentPrices(final List<PublicPrice> prices) {
         final Map<Long, PublicPrice> pricesByItemId = new HashMap<>();
-        publicPriceQueryPort.findByItemIdsAndRegionIdAndPriceDate(itemIds, regionId, baseDate)
-                .forEach(price -> pricesByItemId.putIfAbsent(price.itemId(), price));
+        prices.forEach(price -> pricesByItemId.putIfAbsent(price.itemId(), price));
         return pricesByItemId;
     }
 
-    private ItemPriceResult toResult(final Item item, final PublicPrice publicPrice) {
+    private Map<Long, PublicPrice> previousPrices(
+            final List<PublicPrice> prices, final Map<Long, PublicPrice> currentPrices) {
+        final Map<Long, PublicPrice> previousPricesByItemId = new HashMap<>();
+        prices.forEach(price -> {
+            final PublicPrice currentPrice = currentPrices.get(price.itemId());
+            if (!price.id().equals(currentPrice.id())
+                    && !price.priceDate().equals(currentPrice.priceDate())) {
+                previousPricesByItemId.putIfAbsent(price.itemId(), price);
+            }
+        });
+        return previousPricesByItemId;
+    }
+
+    private ItemPriceResult toResult(
+            final Item item, final PublicPrice publicPrice, final PublicPrice previousPrice) {
         if (publicPrice == null) {
             return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), null, null);
         }
-        return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), publicPrice.price(), null);
+        if (previousPrice == null) {
+            return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), publicPrice.price(), null);
+        }
+        return new ItemPriceResult(
+                item.id(),
+                item.name(),
+                item.imageUrl(),
+                publicPrice.price(),
+                publicPrice.price() - previousPrice.price());
     }
 }

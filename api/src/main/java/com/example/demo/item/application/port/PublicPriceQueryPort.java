@@ -6,8 +6,7 @@ import java.util.List;
 
 public interface PublicPriceQueryPort {
 
-    List<PublicPrice> findByItemIdsAndRegionIdAndPriceDate(
-            List<Long> itemIds, String regionId, LocalDate priceDate);
+    List<PublicPrice> findByItemIdsAndRegionId(List<Long> itemIds, String regionId);
 
     LocalDate findLatestPriceDateByRegionId(String regionId);
 }
