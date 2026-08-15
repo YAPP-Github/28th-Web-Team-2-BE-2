@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,18 +25,17 @@ public class GetItemQueryUseCase {
 
     @Transactional(readOnly = true)
     public ItemQueryResult execute(final ItemQuery query) {
-        final Page<Item> itemPage = itemQueryPort.findAll(PageRequest.of(
-                query.page(),
-                query.size(),
-                Sort.by(Sort.Direction.ASC, "id")));
         final LocalDate baseDate = publicPriceQueryPort.findLatestPriceDateByRegionId(query.regionId());
+        final Page<Item> itemPage = itemQueryPort.findAll(query);
         final List<Long> itemIds = itemPage.getContent().stream().map(Item::id).toList();
-        final PriceHistory priceHistory = findPrices(itemIds, query.regionId());
+        final List<PublicPrice> prices = findPrices(itemIds, query.regionId());
+        final Map<Long, PublicPrice> pricesByItemId = currentPrices(prices);
+        final Map<Long, PublicPrice> previousPricesByItemId = previousPrices(prices, pricesByItemId);
         final List<ItemPriceResult> items = itemPage.getContent().stream()
                 .map(item -> toResult(
                         item,
-                        priceHistory.currentPrices().get(item.id()),
-                        priceHistory.previousPrices().get(item.id())))
+                        pricesByItemId.get(item.id()),
+                        previousPricesByItemId.get(item.id())))
                 .toList();
         return new ItemQueryResult(
                 baseDate,
@@ -49,27 +46,30 @@ public class GetItemQueryUseCase {
                 itemPage.hasNext());
     }
 
-    private PriceHistory findPrices(final List<Long> itemIds, final String regionId) {
+    private List<PublicPrice> findPrices(final List<Long> itemIds, final String regionId) {
         if (itemIds.isEmpty()) {
-            return new PriceHistory(Map.of(), Map.of());
+            return List.of();
         }
+        return publicPriceQueryPort.findByItemIdsAndRegionId(itemIds, regionId);
+    }
+
+    private Map<Long, PublicPrice> currentPrices(final List<PublicPrice> prices) {
         final Map<Long, PublicPrice> pricesByItemId = new HashMap<>();
+        prices.forEach(price -> pricesByItemId.putIfAbsent(price.itemId(), price));
+        return pricesByItemId;
+    }
+
+    private Map<Long, PublicPrice> previousPrices(
+            final List<PublicPrice> prices, final Map<Long, PublicPrice> currentPrices) {
         final Map<Long, PublicPrice> previousPricesByItemId = new HashMap<>();
-        // ponytail: loads history for the page once; use a per-item top-2 query if history volume matters.
-        for (final PublicPrice price : publicPriceQueryPort.findByItemIdsAndRegionId(itemIds, regionId)) {
-            if (!pricesByItemId.containsKey(price.itemId())) {
-                pricesByItemId.put(price.itemId(), price);
-                continue;
+        prices.forEach(price -> {
+            final PublicPrice currentPrice = currentPrices.get(price.itemId());
+            if (!price.id().equals(currentPrice.id())
+                    && !price.priceDate().equals(currentPrice.priceDate())) {
+                previousPricesByItemId.putIfAbsent(price.itemId(), price);
             }
-            if (previousPricesByItemId.containsKey(price.itemId())) {
-                continue;
-            }
-            if (price.priceDate().equals(pricesByItemId.get(price.itemId()).priceDate())) {
-                continue;
-            }
-            previousPricesByItemId.putIfAbsent(price.itemId(), price);
-        }
-        return new PriceHistory(pricesByItemId, previousPricesByItemId);
+        });
+        return previousPricesByItemId;
     }
 
     private ItemPriceResult toResult(
@@ -87,7 +87,4 @@ public class GetItemQueryUseCase {
                 publicPrice.price(),
                 publicPrice.price() - previousPrice.price());
     }
-
-    private record PriceHistory(
-            Map<Long, PublicPrice> currentPrices, Map<Long, PublicPrice> previousPrices) {}
 }

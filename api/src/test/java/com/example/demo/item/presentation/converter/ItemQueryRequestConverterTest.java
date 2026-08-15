@@ -1,0 +1,22 @@
+package com.example.demo.item.presentation.converter;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.example.demo.item.application.query.ItemQuery;
+import com.example.demo.item.application.query.ItemSort;
+import com.example.demo.item.presentation.dto.ItemQueryRequest;
+import org.junit.jupiter.api.Test;
+
+class ItemQueryRequestConverterTest {
+
+    @Test
+    void 요청을_정렬조건을_포함한_품목조회쿼리로_변환한다() {
+        final ItemQueryRequest request =
+                new ItemQueryRequest("1121510100", 2, 20, ItemSort.PRICE_DESC);
+
+        final ItemQuery result = new ItemQueryRequestConverter().toQuery(request);
+
+        assertThat(result)
+                .isEqualTo(new ItemQuery("1121510100", 2, 20, ItemSort.PRICE_DESC));
+    }
+}
