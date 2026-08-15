@@ -3,13 +3,14 @@ package com.example.demo.item.infrastructure.crawler.elevenst.parser;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.demo.item.infrastructure.crawler.elevenst.ElevenStProduct;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ElevenStSearchPageParserTest {
 
-    private final ElevenStSearchPageParser parser = new ElevenStSearchPageParser();
+    private final ElevenStSearchPageParser parser = new ElevenStSearchPageParser(new ObjectMapper());
 
     @Test
     void extractsProductFieldsFromSearchResponse() {

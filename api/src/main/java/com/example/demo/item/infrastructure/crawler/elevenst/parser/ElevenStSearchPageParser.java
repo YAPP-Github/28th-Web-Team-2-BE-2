@@ -7,14 +7,16 @@ import java.math.BigDecimal;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ElevenStSearchPageParser {
 
     private static final String PRODUCT_URL = "https://www.11st.co.kr/products/";
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public List<ElevenStProduct> parse(final String json) {
         if (json == null || json.isBlank()) {

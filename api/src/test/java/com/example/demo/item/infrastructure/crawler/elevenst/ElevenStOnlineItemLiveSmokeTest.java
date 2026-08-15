@@ -7,6 +7,7 @@ import com.example.demo.external.selenium.factory.SeleniumDriverFactory;
 import com.example.demo.item.domain.policy.OnlineProductSelectionPolicy;
 import com.example.demo.item.infrastructure.crawler.elevenst.parser.ElevenStProductDetailParser;
 import com.example.demo.item.infrastructure.crawler.elevenst.parser.ElevenStSearchPageParser;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ class ElevenStOnlineItemLiveSmokeTest {
                 true, Duration.ofSeconds(30), Duration.ofSeconds(10)));
         final ElevenStOnlineItemCrawler crawler = new ElevenStOnlineItemCrawler(
                 driverFactory,
-                new ElevenStSearchPageParser(),
+                new ElevenStSearchPageParser(new ObjectMapper()),
                 new ElevenStProductDetailParser(),
                 new OnlineProductSelectionPolicy());
 
