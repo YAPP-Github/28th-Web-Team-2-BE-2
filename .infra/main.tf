@@ -65,6 +65,7 @@ resource "aws_ssm_document" "backend_deploy" {
           timeoutSeconds = "2100"
           runCommand = [
             "test -x /usr/local/sbin/marketgo-deploy",
+            "if [ -z \"$${SSM_Image+x}\" ]; then export SSM_Image=\"{{Image}}\"; fi",
             "/usr/local/sbin/marketgo-deploy \"$SSM_Image\"",
           ]
         }
