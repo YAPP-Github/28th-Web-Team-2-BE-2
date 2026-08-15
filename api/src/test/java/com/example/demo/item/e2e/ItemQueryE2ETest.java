@@ -29,6 +29,7 @@ class ItemQueryE2ETest {
     private final MockMvc mockMvc;
     private final ItemJpaRepository itemJpaRepository;
     private final PublicPriceJpaRepository publicPriceJpaRepository;
+    private LocalDate referenceDate;
 
     @Autowired
     ItemQueryE2ETest(
@@ -44,6 +45,7 @@ class ItemQueryE2ETest {
     void setUp() {
         publicPriceJpaRepository.deleteAll();
         itemJpaRepository.deleteAll();
+        referenceDate = LocalDate.now();
 
         final Item potato = itemJpaRepository.save(new Item("감자", "1kg"));
         final Item onion = itemJpaRepository.save(new Item("양파", "1kg"));
@@ -51,21 +53,21 @@ class ItemQueryE2ETest {
         final Item carrot = itemJpaRepository.save(new Item("당근", "1kg"));
         itemJpaRepository.save(new Item("양배추", "1통"));
         publicPriceJpaRepository.save(
-                new PublicPrice(potato.id(), REGION_ID, 3000, LocalDate.now().minusDays(2)));
-        publicPriceJpaRepository.save(new PublicPrice(potato.id(), REGION_ID, 3500, LocalDate.now()));
+                new PublicPrice(potato.id(), REGION_ID, 3000, referenceDate.minusDays(2)));
+        publicPriceJpaRepository.save(new PublicPrice(potato.id(), REGION_ID, 3500, referenceDate));
         publicPriceJpaRepository.save(
-                new PublicPrice(onion.id(), REGION_ID, 3000, LocalDate.now().minusDays(3)));
-        publicPriceJpaRepository.save(new PublicPrice(onion.id(), REGION_ID, 2800, LocalDate.now()));
+                new PublicPrice(onion.id(), REGION_ID, 3000, referenceDate.minusDays(3)));
+        publicPriceJpaRepository.save(new PublicPrice(onion.id(), REGION_ID, 2800, referenceDate));
         publicPriceJpaRepository.save(
-                new PublicPrice(greenOnion.id(), REGION_ID, 2100, LocalDate.now().minusDays(4)));
-        publicPriceJpaRepository.save(new PublicPrice(greenOnion.id(), REGION_ID, 2100, LocalDate.now()));
+                new PublicPrice(greenOnion.id(), REGION_ID, 2100, referenceDate.minusDays(4)));
+        publicPriceJpaRepository.save(new PublicPrice(greenOnion.id(), REGION_ID, 2100, referenceDate));
         publicPriceJpaRepository.save(
-                new PublicPrice(carrot.id(), REGION_ID, 4000, LocalDate.now().minusDays(6)));
+                new PublicPrice(carrot.id(), REGION_ID, 4000, referenceDate.minusDays(6)));
         publicPriceJpaRepository.save(
-                new PublicPrice(carrot.id(), REGION_ID, 4500, LocalDate.now().minusDays(5)));
+                new PublicPrice(carrot.id(), REGION_ID, 4500, referenceDate.minusDays(5)));
         publicPriceJpaRepository.save(
-                new PublicPrice(carrot.id(), REGION_ID, 4600, LocalDate.now().minusDays(5)));
-        publicPriceJpaRepository.save(new PublicPrice(potato.id(), OTHER_REGION_ID, 9999, LocalDate.now()));
+                new PublicPrice(carrot.id(), REGION_ID, 4600, referenceDate.minusDays(5)));
+        publicPriceJpaRepository.save(new PublicPrice(potato.id(), OTHER_REGION_ID, 9999, referenceDate));
     }
 
     @Test
@@ -79,7 +81,7 @@ class ItemQueryE2ETest {
                 .andExpect(jsonPath("$.code").doesNotExist())
                 .andExpect(jsonPath("$.message").doesNotExist())
                 .andExpect(jsonPath("$.data").doesNotExist())
-                .andExpect(jsonPath("$.baseDate").value(LocalDate.now().toString()))
+                .andExpect(jsonPath("$.baseDate").value(referenceDate.toString()))
                 .andExpect(jsonPath("$.totalCount").value(5))
                 .andExpect(jsonPath("$.items").isArray())
                 .andExpect(jsonPath("$.items[0].price").value(3500))
