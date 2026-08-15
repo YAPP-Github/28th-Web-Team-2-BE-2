@@ -41,6 +41,9 @@ public class ElevenStProductDetailParser {
         }
         final BigDecimal unit = new BigDecimal(matcher.group(1));
         final BigDecimal grams = grams(matcher.group(2), unit);
+        if (grams.signum() <= 0) {
+            return null;
+        }
         return sellingPrice.multiply(HUNDRED_GRAMS).divide(grams, 0, RoundingMode.HALF_UP);
     }
 
@@ -63,6 +66,9 @@ public class ElevenStProductDetailParser {
         final BigDecimal unit = new BigDecimal(matcher.group(1));
         final BigDecimal price = new BigDecimal(matcher.group(3).replace(",", ""));
         final BigDecimal grams = grams(matcher.group(2), unit);
+        if (grams.signum() <= 0) {
+            return null;
+        }
         return price.multiply(HUNDRED_GRAMS).divide(grams, 0, RoundingMode.HALF_UP);
     }
 
