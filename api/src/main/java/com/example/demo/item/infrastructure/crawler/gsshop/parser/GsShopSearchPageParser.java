@@ -20,7 +20,7 @@ public class GsShopSearchPageParser {
         if (html == null || html.isBlank()) {
             return List.of();
         }
-        return Jsoup.parse(html, BASE_URL).select("a.prd-item[data-prdid]").stream()
+        return Jsoup.parse(html, BASE_URL).select("a.prd-item").stream()
                 .map(this::parseProduct)
                 .filter(product -> product != null)
                 .toList();

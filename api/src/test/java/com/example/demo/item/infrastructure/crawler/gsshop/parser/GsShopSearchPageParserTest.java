@@ -37,6 +37,22 @@ class GsShopSearchPageParserTest {
                 """)).isEmpty();
     }
 
+    @Test
+    void extractsProductIdFromHrefWhenDataAttributeIsMissing() {
+        final List<GsShopProduct> products = parser.parse("""
+                <a class="prd-item" href="/prd/prd.gs?prdid=2">
+                  <dl class="prd-info">
+                    <dt class="prd-name">감자</dt>
+                    <dd class="price-info"><span class="set-price"><strong>2,000</strong>원</span></dd>
+                  </dl>
+                </a>
+                """);
+
+        assertThat(products).singleElement()
+                .extracting(GsShopProduct::externalProductId)
+                .isEqualTo("2");
+    }
+
     private String searchHtml() {
         return """
                 <section class="prd-list">

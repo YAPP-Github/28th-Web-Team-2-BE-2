@@ -29,6 +29,20 @@ class GsShopProductDetailParserTest {
     }
 
     @Test
+    void returnsNullForZeroDirectUnitPrices() {
+        assertThat(parser.parsePricePer100g("<div class='unit-price'>0g당 8,900원</div>")).isNull();
+        assertThat(parser.parsePricePer100g("<div class='unit-price'>0kg당 8,900원</div>")).isNull();
+    }
+
+    @Test
+    void returnsNullForZeroProductUnitsInFallback() {
+        assertThat(parser.parsePricePer100g("<html></html>", "감자 0g", BigDecimal.valueOf(8900)))
+                .isNull();
+        assertThat(parser.parsePricePer100g("<html></html>", "감자 0kg", BigDecimal.valueOf(8900)))
+                .isNull();
+    }
+
+    @Test
     void extractsDeliveryNote() {
         assertThat(parser.parseDeliveryNote("<div class='delivery'>무료배송</div>"))
                 .isEqualTo("무료배송");

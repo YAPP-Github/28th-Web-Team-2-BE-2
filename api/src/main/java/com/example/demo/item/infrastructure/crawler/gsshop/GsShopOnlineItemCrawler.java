@@ -11,6 +11,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.jsoup.Jsoup;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -49,7 +50,7 @@ public class GsShopOnlineItemCrawler {
     }
 
     private static boolean hasSearchResults(final String pageSource) {
-        return pageSource.contains("class=\"prd-item\"") && pageSource.contains("data-prdid");
+        return !Jsoup.parse(pageSource).select("a.prd-item[data-prdid]").isEmpty();
     }
 
     private URI searchUrl(final String itemName) {
