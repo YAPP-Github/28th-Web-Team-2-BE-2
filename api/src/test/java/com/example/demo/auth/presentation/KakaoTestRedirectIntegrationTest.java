@@ -24,4 +24,15 @@ class KakaoTestRedirectIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorType").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
     }
+
+    @Test
+    void 활성화된_test_redirect_endpoint는_OpenAPI_문서에서_제외된다() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/auth/test/kakao/redirect']").doesNotExist());
+
+        mockMvc.perform(get("/v3/api-docs/general"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/auth/test/kakao/redirect']").doesNotExist());
+    }
 }

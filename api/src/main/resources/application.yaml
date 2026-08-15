@@ -21,6 +21,10 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+springdoc:
+  paths-to-exclude: /api/auth/test/**
+
 item:
   price:
     collection:

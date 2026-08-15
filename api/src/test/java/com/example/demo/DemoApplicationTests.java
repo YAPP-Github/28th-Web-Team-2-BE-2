@@ -75,11 +75,15 @@ class DemoApplicationTests {
                 .andExpect(jsonPath("$.paths['/api/auth/reissue'].post.parameters[0].in")
                         .value("cookie"))
                 .andExpect(jsonPath("$.paths['/api/auth/logout'].post.summary")
-                        .value("현재 사용자의 Refresh Token을 폐기하고 로그아웃한다"));
+                        .value("현재 사용자의 Refresh Token을 폐기하고 로그아웃한다"))
+                .andExpect(jsonPath("$.paths['/api/auth/test/kakao/redirect']")
+                        .doesNotExist());
 
         mockMvc.perform(get("/v3/api-docs/general"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.paths['/api/samples']").exists());
+                .andExpect(jsonPath("$.paths['/api/samples']").exists())
+                .andExpect(jsonPath("$.paths['/api/auth/test/kakao/redirect']")
+                        .doesNotExist());
     }
 
 }

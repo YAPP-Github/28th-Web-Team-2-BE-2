@@ -70,8 +70,8 @@
 
 ## 3. API 문서화
 
-- Controller나 공개 API를 추가·변경할 때 SpringDoc `@Operation`과 성공·실패 응답, 요청·응답 스키마를 실제 HTTP 계약과 함께 갱신한다.
-- Swagger 문서가 복잡하거나 여러 Controller에서 공유될 때만 `presentation/spec/<Domain>ControllerSpec`에 OpenAPI annotation을 두고 Controller가 이를 `implements`한다. 단순한 API는 Controller에 직접 annotation을 둔다.
+- Controller는 `io.swagger.v3..`와 `org.springdoc..`에 의존하지 않는다. `@Operation`, `@ApiResponse`, `@ParameterObject` 같은 OpenAPI 문서 계약은 `presentation/spec/<Domain>ControllerSpec`에 두고 Controller가 이를 `implements`한다.
+- 요청·응답 필드의 `@Schema`는 Presentation DTO에 둘 수 있다. 테스트용·내부 경로의 문서 제외는 Controller의 `@Hidden`이 아니라 `springdoc.paths-to-exclude` 같은 공통 설정으로 관리한다.
 - 문서 설명과 상태 코드는 구현보다 앞서가지 않게 유지하고, `/v3/api-docs` 또는 그룹별 OpenAPI endpoint의 JSON을 테스트해 문서가 실제 경로·요약·응답을 반영하는지 확인한다.
 
 ## 4. TDD
