@@ -28,7 +28,7 @@ public class ItemController implements ItemControllerSpec {
     public ResponseEntity<ItemPageResponse> getItems(
             @Valid @ModelAttribute final ItemQueryRequest request) {
         final ItemQueryResult result = getItemQueryUseCase.execute(
-                new ItemQuery(request.regionId(), request.page(), request.size()));
+                new ItemQuery(request.regionId(), request.page(), request.size(), request.sort()));
         final ItemPageResponse data = itemResultConverter.toResponse(result);
         return ResponseEntity.ok(data);
     }
