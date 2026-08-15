@@ -39,7 +39,7 @@ public class ElevenStOnlineItemCrawler {
     }
 
     private ElevenStProduct loadUnitPrice(final ElevenStProduct product) {
-        final SeleniumPage detailPage = driverFactory.loadPage(product.productUrl(), ElevenStOnlineItemCrawler::hasUnitPrice);
+        final SeleniumPage detailPage = driverFactory.loadPage(product.productUrl());
         final String deliveryNote = detailParser.parseDeliveryNote(detailPage.html());
         final ElevenStProduct priceUpdatedProduct = product.withPricePer100g(
                 detailParser.parsePricePer100g(detailPage.html(), product.name(), product.sellingPrice()));
@@ -51,10 +51,6 @@ public class ElevenStOnlineItemCrawler {
 
     private static boolean hasSearchResults(final String pageSource) {
         return pageSource.contains("\"data\"") && pageSource.contains("\"items\"");
-    }
-
-    private static boolean hasUnitPrice(final String pageSource) {
-        return pageSource.contains("pricePerUnitResult") || pageSource.contains("price_per_unit");
     }
 
     private URI searchUrl(final String itemName) {
