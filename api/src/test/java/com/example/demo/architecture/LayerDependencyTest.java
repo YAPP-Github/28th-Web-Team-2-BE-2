@@ -5,6 +5,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.example.demo.auth.presentation.AuthController;
 import com.example.demo.auth.presentation.spec.AuthControllerSpec;
+import com.example.demo.item.presentation.ItemController;
+import com.example.demo.item.presentation.spec.ItemControllerSpec;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -48,9 +50,24 @@ class LayerDependencyTest {
             .resideInAnyPackage("..infrastructure..");
 
     @ArchTest
+    static final ArchRule controllers_do_not_depend_on_openapi = noClasses()
+            .that()
+            .haveSimpleNameEndingWith("Controller")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("io.swagger.v3..", "org.springdoc..");
+
+    @ArchTest
     static final ArchRule auth_controller_implements_spec = classes()
             .that()
             .haveSimpleName(AuthController.class.getSimpleName())
             .should()
             .implement(AuthControllerSpec.class);
+
+    @ArchTest
+    static final ArchRule item_controller_implements_spec = classes()
+            .that()
+            .haveSimpleName(ItemController.class.getSimpleName())
+            .should()
+            .implement(ItemControllerSpec.class);
 }
