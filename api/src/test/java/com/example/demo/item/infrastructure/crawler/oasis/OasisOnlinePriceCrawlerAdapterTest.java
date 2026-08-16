@@ -17,6 +17,11 @@ class OasisOnlinePriceCrawlerAdapterTest {
     private final OasisOnlinePriceCrawlerAdapter adapter = new OasisOnlinePriceCrawlerAdapter(crawler);
 
     @Test
+    void 오아시스_채널명을_반환한다() {
+        assertThat(adapter.channelName()).isEqualTo("오아시스");
+    }
+
+    @Test
     void convertsOasisProductToCommonPriceResult() {
         final OasisProduct product = new OasisProduct(
                 "59370",

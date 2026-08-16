@@ -17,6 +17,11 @@ class GsShopOnlinePriceCrawlerAdapterTest {
     private final GsShopOnlinePriceCrawlerAdapter adapter = new GsShopOnlinePriceCrawlerAdapter(crawler);
 
     @Test
+    void 지에스샵_채널명을_반환한다() {
+        assertThat(adapter.channelName()).isEqualTo("GS SHOP");
+    }
+
+    @Test
     void convertsGsShopProductToCommonPriceResult() {
         final GsShopProduct product = new GsShopProduct(
                 "57668979",
