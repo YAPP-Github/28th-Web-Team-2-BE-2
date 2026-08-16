@@ -9,7 +9,8 @@ public enum ErrorType {
     KAKAO_TOKEN_INVALID("유효하지 않은 Kakao idToken입니다."),
     INVALID_TOKEN("유효하지 않은 인증 토큰입니다."),
     UNAUTHORIZED("로그인이 필요한 서비스입니다."),
-    FORBIDDEN("해당 권한이 없습니다.");
+    FORBIDDEN("해당 권한이 없습니다."),
+    NEWS_UNAVAILABLE("뉴스를 조회할 수 없습니다.");
 
     private final String description;
 

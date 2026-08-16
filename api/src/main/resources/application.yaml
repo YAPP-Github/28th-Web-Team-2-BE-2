@@ -25,6 +25,10 @@ spring:
 springdoc:
   paths-to-exclude: /api/auth/test/**
 
+news:
+  crawler:
+    enabled: true
+
 item:
   price:
     collection:

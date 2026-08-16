@@ -38,15 +38,16 @@ class FlywayMigrationIntegrationTest {
         flyway.clean();
         flyway.migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
+        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
         assertThat(countRows("batch_item_errors")).isZero();
+        assertThat(countRows("news_articles")).isZero();
     }
 
     @Test
-    void 기존_V1부터_V7까지의_이력에서_V8만_추가된다() throws SQLException {
+    void 기존_V1부터_V7까지의_이력에서_V8과_V9가_추가된다() throws SQLException {
         flyway().clean();
         flyway("7").migrate();
 
@@ -56,7 +57,7 @@ class FlywayMigrationIntegrationTest {
 
         flyway().migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
+        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -64,6 +65,7 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRows("online_prices")).isEqualTo(onlinePricesBefore);
         assertThat(countRows("batch_job_execution")).isZero();
         assertThat(countRows("batch_item_errors")).isZero();
+        assertThat(countRows("news_articles")).isZero();
     }
 
     @Test
