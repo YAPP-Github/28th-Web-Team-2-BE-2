@@ -1,7 +1,9 @@
 package com.example.demo.external.kakao.feign;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.example.demo.common.exception.ApiException;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,6 +54,12 @@ class KakaoResponseDecoderTest {
         });
     }
 
+    @Test
+    void 잘못된_응답을_공통_API_예외로_변환한다() {
+        assertThatThrownBy(() -> decode("{}", KakaoRegionCodeResult.class))
+                .isInstanceOf(ApiException.class);
+    }
+
     private <T> T decode(final String body, final Class<T> type) throws Exception {
         final Response response = Response.builder()
                 .status(200)
@@ -61,7 +69,7 @@ class KakaoResponseDecoderTest {
                         "https://dapi.kakao.com",
                         Map.of(),
                         (Request.Body) null,
-                        StandardCharsets.UTF_8))
+                        null))
                 .body(body, StandardCharsets.UTF_8)
                 .build();
         return type.cast(decoder.decode(response, type));

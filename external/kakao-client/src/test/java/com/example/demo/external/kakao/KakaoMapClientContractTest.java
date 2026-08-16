@@ -2,15 +2,30 @@ package com.example.demo.external.kakao;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.demo.external.kakao.feign.KakaoMapClientConfiguration;
+import feign.RequestInterceptor;
+import feign.RequestTemplate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.openfeign.FeignClient;
 
-class KakaoLocalClientContractTest {
+class KakaoMapClientContractTest {
 
     @Test
-    void Kakao_Local_클라이언트는_FeignClient로_선언된다() {
-        assertThat(KakaoLocalClient.class.getAnnotation(FeignClient.class)).isNotNull();
+    void Kakao_Map_클라이언트는_FeignClient로_선언된다() {
+        assertThat(KakaoMapClient.class.getAnnotation(FeignClient.class)).isNotNull();
+    }
+
+    @Test
+    void Kakao_REST_API_Key를_Authorization_헤더에_추가한다() {
+        final RequestTemplate template = new RequestTemplate();
+        final RequestInterceptor interceptor = new KakaoMapClientConfiguration()
+                .requestInterceptor("rest-api-key");
+
+        interceptor.apply(template);
+
+        assertThat(template.headers().get("Authorization"))
+                .containsExactly("KakaoAK rest-api-key");
     }
 
     @Test

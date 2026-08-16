@@ -7,7 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
-import com.example.demo.external.kakao.KakaoLocalClient;
+import com.example.demo.external.kakao.KakaoMapClient;
 import com.example.demo.external.kakao.KakaoPlace;
 import com.example.demo.store.application.query.NearbyStoreQuery;
 import java.math.BigDecimal;
@@ -16,12 +16,12 @@ import org.junit.jupiter.api.Test;
 
 class KakaoNearbyStoreSearchAdapterTest {
 
-    private final KakaoLocalClient kakaoLocalClient = mock(KakaoLocalClient.class);
-    private final KakaoNearbyStoreSearchAdapter adapter = new KakaoNearbyStoreSearchAdapter(kakaoLocalClient);
+    private final KakaoMapClient kakaoMapClient = mock(KakaoMapClient.class);
+    private final KakaoNearbyStoreSearchAdapter adapter = new KakaoNearbyStoreSearchAdapter(kakaoMapClient);
 
     @Test
     void 카카오_응답을_주변_매장_결과로_변환한다() {
-        when(kakaoLocalClient.searchCategory(
+        when(kakaoMapClient.searchCategory(
                 any(String.class), any(BigDecimal.class), any(BigDecimal.class), anyInt(),
                 any(String.class), anyInt()))
                 .thenReturn(new KakaoCategorySearchResult(1, List.of(new KakaoPlace(
