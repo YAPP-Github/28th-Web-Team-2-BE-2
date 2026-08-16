@@ -26,6 +26,7 @@ public class ItemResultConverter {
                 result.itemImageUrl(),
                 result.defaultUnit(),
                 result.price(),
-                result.priceGap());
+                result.priceGap(),
+                result.priceDiffRate());
     }
 }

@@ -7,6 +7,8 @@ import com.example.demo.item.application.result.ItemPriceResult;
 import com.example.demo.item.application.result.ItemQueryResult;
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.PublicPrice;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -76,7 +78,7 @@ public class GetItemQueryUseCase {
             final Item item, final PublicPrice publicPrice, final PublicPrice previousPrice) {
         if (publicPrice == null) {
             return new ItemPriceResult(
-                    item.id(), item.name(), item.imageUrl(), item.defaultUnit(), null, null);
+                    item.id(), item.name(), item.imageUrl(), item.defaultUnit(), null, null, null);
         }
         if (previousPrice == null) {
             return new ItemPriceResult(
@@ -85,6 +87,7 @@ public class GetItemQueryUseCase {
                     item.imageUrl(),
                     item.defaultUnit(),
                     publicPrice.price(),
+                    null,
                     null);
         }
         return new ItemPriceResult(
@@ -93,6 +96,19 @@ public class GetItemQueryUseCase {
                 item.imageUrl(),
                 item.defaultUnit(),
                 publicPrice.price(),
-                publicPrice.price() - previousPrice.price());
+                publicPrice.price() - previousPrice.price(),
+                calculatePriceDiffRate(publicPrice, previousPrice));
+    }
+
+    private BigDecimal calculatePriceDiffRate(
+            final PublicPrice publicPrice, final PublicPrice previousPrice) {
+        if (previousPrice.price() == 0) {
+            return null;
+        }
+        final BigDecimal priceGap = BigDecimal.valueOf(publicPrice.price())
+                .subtract(BigDecimal.valueOf(previousPrice.price()));
+        return priceGap
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(previousPrice.price()), 1, RoundingMode.HALF_UP);
     }
 }
