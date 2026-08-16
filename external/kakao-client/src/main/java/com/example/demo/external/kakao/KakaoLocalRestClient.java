@@ -114,7 +114,7 @@ public class KakaoLocalRestClient implements KakaoLocalClient {
         }
         return new KakaoRegion(
                 document.regionType(),
-                document.code(),
+                Long.valueOf(document.code()),
                 document.region2DepthName(),
                 document.region3DepthName());
     }

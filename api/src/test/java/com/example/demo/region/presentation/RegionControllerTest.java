@@ -45,7 +45,7 @@ class RegionControllerTest {
     void setUp() {
         when(getNearbyRegionUseCase.execute(any(NearbyRegionQuery.class)))
                 .thenReturn(new NearbyRegionResult(
-                        List.of(new NearbyRegionResult.Region("4413310500", "천안시 서북구 성성동"))));
+                        List.of(new NearbyRegionResult.Region(4413310500L, "천안시 서북구 성성동"))));
     }
 
     @Test
@@ -55,7 +55,8 @@ class RegionControllerTest {
                         .queryParam("longitude", "127.1324"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$[0].regionId").value("4413310500"))
+                .andExpect(jsonPath("$[0].regionId").isNumber())
+                .andExpect(jsonPath("$[0].regionId").value(4413310500L))
                 .andExpect(jsonPath("$[0].regionName").value("천안시 서북구 성성동"));
     }
 

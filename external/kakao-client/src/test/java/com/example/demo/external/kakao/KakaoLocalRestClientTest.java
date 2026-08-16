@@ -77,7 +77,7 @@ class KakaoLocalRestClientTest {
         assertThat(result.regions()).hasSize(2);
         assertThat(result.regions()).first().satisfies(region -> {
             assertThat(region.regionType()).isEqualTo("B");
-            assertThat(region.code()).isEqualTo("4413310500");
+            assertThat(region.code()).isEqualTo(4413310500L);
             assertThat(region.region2DepthName()).isEqualTo("천안시 서북구");
             assertThat(region.region3DepthName()).isEqualTo("성성동");
         });
