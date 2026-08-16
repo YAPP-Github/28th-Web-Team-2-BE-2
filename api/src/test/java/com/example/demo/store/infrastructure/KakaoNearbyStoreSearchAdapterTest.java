@@ -5,8 +5,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
-import com.example.demo.external.kakao.KakaoLocalClient;
 import com.example.demo.external.kakao.KakaoPlace;
+import com.example.demo.external.kakao.feign.KakaoMapClient;
 import com.example.demo.store.application.query.NearbyStoreQuery;
 import java.math.BigDecimal;
 import java.util.List;
@@ -14,12 +14,14 @@ import org.junit.jupiter.api.Test;
 
 class KakaoNearbyStoreSearchAdapterTest {
 
-    private final KakaoLocalClient kakaoLocalClient = mock(KakaoLocalClient.class);
-    private final KakaoNearbyStoreSearchAdapter adapter = new KakaoNearbyStoreSearchAdapter(kakaoLocalClient);
+    private final KakaoMapClient kakaoMapClient = mock(KakaoMapClient.class);
+    private final KakaoNearbyStoreSearchAdapter adapter = new KakaoNearbyStoreSearchAdapter(kakaoMapClient);
 
     @Test
     void 카카오_응답을_주변_매장_결과로_변환한다() {
-        when(kakaoLocalClient.searchCategory(org.mockito.ArgumentMatchers.any()))
+        when(kakaoMapClient.searchCategory(
+                "MT1", new BigDecimal("127.0276"), new BigDecimal("37.4979"), 1500,
+                "distance", 15))
                 .thenReturn(new KakaoCategorySearchResult(1, List.of(new KakaoPlace(
                         "123", "강남마트", new BigDecimal("37.4979"), new BigDecimal("127.0276"),
                         "서울 강남구 삼성동 123", "서울 강남구 테헤란로 123", "02-1234-5678",

@@ -34,8 +34,8 @@ jwt:
   refresh-token-expiration: 14d
 
 kakao:
-  local:
-    base-url: https://dapi.kakao.com
+  map:
+    url: https://dapi.kakao.com
     rest-api-key: test-kakao-rest-api-key
   oauth:
     client-id: test-kakao-client-id
