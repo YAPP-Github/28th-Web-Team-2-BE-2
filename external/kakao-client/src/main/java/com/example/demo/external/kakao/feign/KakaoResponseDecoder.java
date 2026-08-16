@@ -1,7 +1,8 @@
 package com.example.demo.external.kakao.feign;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
-import com.example.demo.external.kakao.KakaoClientException;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,6 +12,7 @@ import feign.codec.Decoder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
+import org.springframework.http.HttpStatus;
 
 public final class KakaoResponseDecoder implements Decoder {
 
@@ -27,14 +29,16 @@ public final class KakaoResponseDecoder implements Decoder {
     @Override
     public Object decode(final Response response, final Type type) throws IOException {
         if (response.body() == null) {
-            throw new KakaoClientException(new IllegalStateException("Empty Kakao response"));
+            throw externalApiException();
         }
         try (InputStream body = response.body().asInputStream()) {
             final JsonNode root = objectMapper.readTree(body);
             return objectMapper.convertValue(
                     normalize(root, type), objectMapper.constructType(type));
+        } catch (final ApiException exception) {
+            throw exception;
         } catch (final IOException | RuntimeException exception) {
-            throw new KakaoClientException(exception);
+            throw externalApiException(exception);
         }
     }
 
@@ -81,5 +85,20 @@ public final class KakaoResponseDecoder implements Decoder {
             places.add(place);
         });
         return places;
+    }
+
+    private ApiException externalApiException() {
+        return new ApiException(
+                ErrorType.EXTERNAL_API_ERROR.description(),
+                ErrorType.EXTERNAL_API_ERROR,
+                HttpStatus.BAD_GATEWAY);
+    }
+
+    private ApiException externalApiException(final Exception exception) {
+        return new ApiException(
+                ErrorType.EXTERNAL_API_ERROR.description(),
+                ErrorType.EXTERNAL_API_ERROR,
+                HttpStatus.BAD_GATEWAY,
+                exception);
     }
 }

@@ -50,8 +50,8 @@ jwt:
     secure: ${JWT_REFRESH_COOKIE_SECURE:true}
 
 kakao:
-  local:
-    base-url: ${KAKAO_LOCAL_BASE_URL:https://dapi.kakao.com}
+  map:
+    url: ${KAKAO_MAP_URL:https://dapi.kakao.com}
     rest-api-key: ${KAKAO_REST_API_KEY:}
   oauth:
     client-id: ${KAKAO_CLIENT_ID:}

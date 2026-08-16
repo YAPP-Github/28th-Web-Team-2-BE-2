@@ -1,16 +1,16 @@
 package com.example.demo.external.kakao;
 
-import com.example.demo.external.kakao.feign.KakaoLocalClientConfiguration;
+import com.example.demo.external.kakao.feign.KakaoMapClientConfiguration;
 import java.math.BigDecimal;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(
-        name = "kakaoLocalClient",
-        url = "${kakao.local.base-url:https://dapi.kakao.com}",
-        configuration = KakaoLocalClientConfiguration.class)
-public interface KakaoLocalClient {
+        name = "kakaoMapClient",
+        url = "${kakao.map.url:https://dapi.kakao.com}",
+        configuration = KakaoMapClientConfiguration.class)
+public interface KakaoMapClient {
 
     @GetMapping("/v2/local/search/category.json")
     KakaoCategorySearchResult searchCategory(
