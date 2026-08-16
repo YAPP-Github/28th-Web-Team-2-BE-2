@@ -1,7 +1,10 @@
 package com.example.demo.item.infrastructure.batch;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
+import com.example.demo.item.application.contract.BatchItemFailure;
+import com.example.demo.item.application.contract.BatchJobCompletion;
 import com.example.demo.item.application.port.BatchJobPersistencePort;
-import com.example.demo.item.application.result.BatchJobStatus;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -25,33 +28,30 @@ public class BatchJobPersistenceAdapter implements BatchJobPersistencePort {
     @Transactional
     public void recordItemError(
             final Long jobExecutionId,
-            final Long itemId,
-            final Integer channelId,
-            final int attemptCount,
-            final String errorType,
-            final String errorMessage) {
+            final BatchItemFailure failure) {
         entityManager.persist(new BatchItemErrorEntity(
                 jobExecutionId,
-                itemId,
-                channelId,
-                attemptCount,
-                errorType,
-                errorMessage));
+                failure,
+                errorType(failure.cause())));
     }
 
     @Override
     @Transactional
     public void finish(
             final Long jobExecutionId,
-            final BatchJobStatus status,
-            final int totalRecords,
-            final int successRecords,
-            final String errorMessage) {
+            final BatchJobCompletion completion) {
         final BatchJobExecutionEntity execution = entityManager.find(
                 BatchJobExecutionEntity.class, jobExecutionId);
         if (execution == null) {
             throw new IllegalStateException("batch job execution not found");
         }
-        execution.finish(status, totalRecords, successRecords, errorMessage);
+        execution.finish(completion);
+    }
+
+    private ErrorType errorType(final RuntimeException cause) {
+        if (cause instanceof ApiException apiException) {
+            return apiException.errorType();
+        }
+        return ErrorType.UNKNOWN_ERROR;
     }
 }

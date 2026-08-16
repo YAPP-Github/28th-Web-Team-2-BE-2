@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.command.CrawlOnlinePriceCommand;
+import com.example.demo.item.application.contract.BatchItemFailure;
+import com.example.demo.item.application.contract.BatchJobCompletion;
 import com.example.demo.item.application.port.BatchJobPersistencePort;
 import com.example.demo.item.application.port.OnlineChannelQueryPort;
 import com.example.demo.item.application.port.OnlineItemQueryPort;
@@ -58,6 +60,7 @@ class CollectOnlinePriceUseCaseTest {
         assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.COMPLETED);
         assertThat(jobs.execution().totalRecords()).isEqualTo(184);
         assertThat(jobs.execution().successRecords()).isEqualTo(184);
+        assertThat(jobs.execution().errorMessage()).isNull();
     }
 
     @Test
@@ -166,12 +169,12 @@ class CollectOnlinePriceUseCaseTest {
         assertThat(persistence.savedPrices().get(failedScope)).containsExactly(oldPrice);
         assertThat(persistence.savedPrices()).containsKey(new Scope(2L, 1, COLLECTION_DATE));
         assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.PARTIAL);
-        assertThat(jobs.itemErrors()).containsExactly(new ItemError(
-                1L,
-                1,
-                1,
-                ErrorType.EXTERNAL_API_ERROR.name(),
-                ErrorType.EXTERNAL_API_ERROR.description()));
+        assertThat(jobs.itemFailures()).singleElement().satisfies(failure -> {
+            assertThat(failure.itemId()).isEqualTo(1L);
+            assertThat(failure.channelId()).isEqualTo(1);
+            assertThat(failure.attemptCount()).isEqualTo(1);
+            assertThat(failure.cause()).isInstanceOf(ApiException.class);
+        });
     }
 
     @Test
@@ -194,7 +197,7 @@ class CollectOnlinePriceUseCaseTest {
         assertThat(result.succeededTaskCount()).isEqualTo(1);
         assertThat(result.failedTaskCount()).isZero();
         assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.PARTIAL);
-        assertThat(jobs.itemErrors()).isEmpty();
+        assertThat(jobs.itemFailures()).isEmpty();
     }
 
     @Test
@@ -211,7 +214,8 @@ class CollectOnlinePriceUseCaseTest {
 
         assertThat(result.totalTaskCount()).isZero();
         assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.FAILED);
-        assertThat(jobs.itemErrors()).isEmpty();
+        assertThat(jobs.execution().errorMessage()).isNotBlank();
+        assertThat(jobs.itemFailures()).isEmpty();
     }
 
     @Test
@@ -230,12 +234,13 @@ class CollectOnlinePriceUseCaseTest {
 
         assertThat(result.failedTaskCount()).isEqualTo(1);
         assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.FAILED);
-        assertThat(jobs.itemErrors()).containsExactly(new ItemError(
-                1L,
-                1,
-                1,
-                ErrorType.UNKNOWN_ERROR.name(),
-                ErrorType.UNKNOWN_ERROR.description()));
+        assertThat(jobs.execution().errorMessage()).isNotBlank();
+        assertThat(jobs.itemFailures()).singleElement().satisfies(failure -> {
+            assertThat(failure.itemId()).isEqualTo(1L);
+            assertThat(failure.channelId()).isEqualTo(1);
+            assertThat(failure.attemptCount()).isEqualTo(1);
+            assertThat(failure.cause()).isInstanceOf(IllegalStateException.class);
+        });
     }
 
     @Test
@@ -343,13 +348,6 @@ class CollectOnlinePriceUseCaseTest {
             int successRecords,
             String errorMessage) {}
 
-    private record ItemError(
-            Long itemId,
-            Integer channelId,
-            int attemptCount,
-            String errorType,
-            String errorMessage) {}
-
     private static final class StubCrawler implements OnlinePriceCrawlerPort {
 
         private final String channelName;
@@ -414,7 +412,7 @@ class CollectOnlinePriceUseCaseTest {
         private static final Long JOB_EXECUTION_ID = 1L;
 
         private JobExecution execution;
-        private final List<ItemError> itemErrors = new ArrayList<>();
+        private final List<BatchItemFailure> itemFailures = new ArrayList<>();
         private boolean failOnStart;
 
         @Override
@@ -429,30 +427,27 @@ class CollectOnlinePriceUseCaseTest {
         @Override
         public void recordItemError(
                 final Long jobExecutionId,
-                final Long itemId,
-                final Integer channelId,
-                final int attemptCount,
-                final String errorType,
-                final String errorMessage) {
-            itemErrors.add(new ItemError(itemId, channelId, attemptCount, errorType, errorMessage));
+                final BatchItemFailure failure) {
+            itemFailures.add(failure);
         }
 
         @Override
         public void finish(
                 final Long jobExecutionId,
-                final BatchJobStatus status,
-                final int totalRecords,
-                final int successRecords,
-                final String errorMessage) {
-            execution = new JobExecution(status, totalRecords, successRecords, errorMessage);
+                final BatchJobCompletion completion) {
+            execution = new JobExecution(
+                    completion.status(),
+                    completion.totalRecords(),
+                    completion.successRecords(),
+                    completion.errorMessage());
         }
 
         private JobExecution execution() {
             return execution;
         }
 
-        private List<ItemError> itemErrors() {
-            return itemErrors;
+        private List<BatchItemFailure> itemFailures() {
+            return itemFailures;
         }
 
         private void failOnStart() {

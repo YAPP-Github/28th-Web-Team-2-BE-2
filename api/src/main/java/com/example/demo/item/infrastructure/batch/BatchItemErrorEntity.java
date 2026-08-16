@@ -1,5 +1,7 @@
 package com.example.demo.item.infrastructure.batch;
 
+import com.example.demo.common.exception.ErrorType;
+import com.example.demo.item.application.contract.BatchItemFailure;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -48,17 +50,14 @@ class BatchItemErrorEntity {
 
     BatchItemErrorEntity(
             final Long jobExecutionId,
-            final Long itemId,
-            final Integer channelId,
-            final int attemptCount,
-            final String errorType,
-            final String errorMessage) {
+            final BatchItemFailure failure,
+            final ErrorType errorType) {
         this.jobExecutionId = jobExecutionId;
-        this.itemId = itemId;
-        this.channelId = channelId;
-        this.attemptCount = attemptCount;
-        this.errorType = errorType;
-        this.errorMessage = errorMessage;
+        this.itemId = failure.itemId();
+        this.channelId = failure.channelId();
+        this.attemptCount = failure.attemptCount();
+        this.errorType = errorType.name();
+        this.errorMessage = errorType.description();
         this.createdAt = Instant.now();
     }
 }

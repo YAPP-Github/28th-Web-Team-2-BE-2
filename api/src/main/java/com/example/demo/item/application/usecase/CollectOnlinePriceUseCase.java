@@ -1,8 +1,8 @@
 package com.example.demo.item.application.usecase;
 
-import com.example.demo.common.exception.ApiException;
-import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.command.CrawlOnlinePriceCommand;
+import com.example.demo.item.application.contract.BatchItemFailure;
+import com.example.demo.item.application.contract.BatchJobCompletion;
 import com.example.demo.item.application.port.BatchJobPersistencePort;
 import com.example.demo.item.application.port.OnlineChannelQueryPort;
 import com.example.demo.item.application.port.OnlineItemQueryPort;
@@ -30,9 +30,7 @@ import org.springframework.stereotype.Service;
 public class CollectOnlinePriceUseCase {
 
     private static final int MAX_RESULT_COUNT = 5;
-    private static final int FIRST_ATTEMPT = 1;
     private static final String JOB_NAME = "ONLINE_PRICE_COLLECTION";
-    private static final String JOB_FAILURE_MESSAGE = "온라인 가격 job 실행에 실패했습니다.";
 
     private final OnlineItemQueryPort onlineItemQueryPort;
     private final OnlineChannelQueryPort onlineChannelQueryPort;
@@ -64,11 +62,7 @@ public class CollectOnlinePriceUseCase {
                         failedTaskCount++;
                         batchJobPersistencePort.recordItemError(
                                 jobExecutionId,
-                                item.id(),
-                                channel.id(),
-                                FIRST_ATTEMPT,
-                                errorType(exception),
-                                errorMessage(exception));
+                                new BatchItemFailure(item.id(), channel.id(), exception));
                         log.error(
                                 "온라인 가격 수집에 실패했습니다. itemId={}, channelId={}, collectionDate={}",
                                 item.id(), channel.id(), collectionDate, exception);
@@ -83,10 +77,7 @@ public class CollectOnlinePriceUseCase {
                     totalTaskCount, succeededTaskCount, failedTaskCount, hasSkippedChannel);
             batchJobPersistencePort.finish(
                     jobExecutionId,
-                    status,
-                    totalTaskCount,
-                    succeededTaskCount,
-                    status == BatchJobStatus.FAILED ? JOB_FAILURE_MESSAGE : null);
+                    new BatchJobCompletion(status, totalTaskCount, succeededTaskCount));
             return new OnlinePriceCollectionResult(
                     totalTaskCount, succeededTaskCount, failedTaskCount, savedPriceCount);
         } catch (RuntimeException exception) {
@@ -132,20 +123,6 @@ public class CollectOnlinePriceUseCase {
         return BatchJobStatus.COMPLETED;
     }
 
-    private String errorType(final RuntimeException exception) {
-        if (exception instanceof ApiException apiException) {
-            return apiException.errorType().name();
-        }
-        return ErrorType.UNKNOWN_ERROR.name();
-    }
-
-    private String errorMessage(final RuntimeException exception) {
-        if (exception instanceof ApiException apiException) {
-            return apiException.errorType().description();
-        }
-        return ErrorType.UNKNOWN_ERROR.description();
-    }
-
     private void failJob(
             final Long jobExecutionId,
             final int totalTaskCount,
@@ -154,10 +131,8 @@ public class CollectOnlinePriceUseCase {
         try {
             batchJobPersistencePort.finish(
                     jobExecutionId,
-                    BatchJobStatus.FAILED,
-                    totalTaskCount,
-                    succeededTaskCount,
-                    JOB_FAILURE_MESSAGE);
+                    new BatchJobCompletion(
+                            BatchJobStatus.FAILED, totalTaskCount, succeededTaskCount));
         } catch (RuntimeException exception) {
             cause.addSuppressed(exception);
         }

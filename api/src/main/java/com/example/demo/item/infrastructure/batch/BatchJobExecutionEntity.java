@@ -1,5 +1,6 @@
 package com.example.demo.item.infrastructure.batch;
 
+import com.example.demo.item.application.contract.BatchJobCompletion;
 import com.example.demo.item.application.result.BatchJobStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -57,15 +58,11 @@ class BatchJobExecutionEntity {
         return id;
     }
 
-    void finish(
-            final BatchJobStatus status,
-            final int totalRecords,
-            final int successRecords,
-            final String errorMessage) {
-        this.status = status;
+    void finish(final BatchJobCompletion completion) {
+        this.status = completion.status();
         this.endedAt = Instant.now();
-        this.totalRecords = totalRecords;
-        this.successRecords = successRecords;
-        this.errorMessage = errorMessage;
+        this.totalRecords = completion.totalRecords();
+        this.successRecords = completion.successRecords();
+        this.errorMessage = completion.errorMessage();
     }
 }

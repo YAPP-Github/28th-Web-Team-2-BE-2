@@ -82,9 +82,12 @@ class FlywayMigrationIntegrationTest {
                 ) VALUES (1, 1, 1, 1, 'EXTERNAL_API_ERROR', '정제된 오류', CURRENT_TIMESTAMP)
                 """);
 
-        executeUpdate("DELETE FROM items WHERE item_id = 1");
-        executeUpdate("DELETE FROM online_channels WHERE channel_id = 1");
+        final int deletedItems = executeUpdate("DELETE FROM items WHERE item_id = 1");
+        final int deletedChannels = executeUpdate(
+                "DELETE FROM online_channels WHERE channel_id = 1");
 
+        assertThat(deletedItems).isEqualTo(1);
+        assertThat(deletedChannels).isEqualTo(1);
         assertThat(countRows("batch_item_errors")).isEqualTo(1);
     }
 
@@ -150,10 +153,10 @@ class FlywayMigrationIntegrationTest {
         }
     }
 
-    private void executeUpdate(final String sql) throws SQLException {
+    private int executeUpdate(final String sql) throws SQLException {
         try (Connection connection = connection();
                 Statement statement = connection.createStatement()) {
-            statement.executeUpdate(sql);
+            return statement.executeUpdate(sql);
         }
     }
 
