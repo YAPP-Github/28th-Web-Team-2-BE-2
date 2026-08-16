@@ -11,11 +11,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class OasisOnlinePriceCrawlerAdapter implements OnlinePriceCrawlerPort {
 
+    private static final String CHANNEL_NAME = "오아시스";
+
     private final OasisOnlineItemCrawler itemCrawler;
 
     @Override
     public String channelName() {
-        return "오아시스";
+        return CHANNEL_NAME;
     }
 
     @Override

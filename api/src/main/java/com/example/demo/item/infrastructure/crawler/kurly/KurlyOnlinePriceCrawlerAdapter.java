@@ -11,11 +11,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class KurlyOnlinePriceCrawlerAdapter implements OnlinePriceCrawlerPort {
 
+    private static final String CHANNEL_NAME = "컬리";
+
     private final KurlyOnlineItemCrawler crawler;
 
     @Override
     public String channelName() {
-        return "컬리";
+        return CHANNEL_NAME;
     }
 
     @Override

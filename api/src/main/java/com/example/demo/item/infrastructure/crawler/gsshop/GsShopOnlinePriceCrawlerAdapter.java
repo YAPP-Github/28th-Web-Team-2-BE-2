@@ -11,11 +11,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class GsShopOnlinePriceCrawlerAdapter implements OnlinePriceCrawlerPort {
 
+    private static final String CHANNEL_NAME = "GS SHOP";
+
     private final GsShopOnlineItemCrawler crawler;
 
     @Override
     public String channelName() {
-        return "GS SHOP";
+        return CHANNEL_NAME;
     }
 
     @Override
