@@ -1,16 +1,21 @@
 package com.example.demo.item.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.command.CrawlOnlinePriceCommand;
+import com.example.demo.item.application.contract.BatchItemFailure;
+import com.example.demo.item.application.contract.BatchJobCompletion;
+import com.example.demo.item.application.port.BatchJobPersistencePort;
 import com.example.demo.item.application.port.OnlineChannelQueryPort;
 import com.example.demo.item.application.port.OnlineItemQueryPort;
 import com.example.demo.item.application.port.OnlinePriceCrawlerPort;
 import com.example.demo.item.application.port.OnlinePricePersistencePort;
+import com.example.demo.item.application.result.BatchJobStatus;
 import com.example.demo.item.application.result.OnlinePriceCollectionResult;
 import com.example.demo.item.application.result.OnlinePriceCrawlResult;
 import com.example.demo.item.domain.Item;
@@ -36,7 +41,8 @@ class CollectOnlinePriceUseCaseTest {
         final List<Item> items = itemList(46);
         final List<OnlineChannel> channels = channelList();
         final InMemoryOnlinePricePersistence persistence = new InMemoryOnlinePricePersistence();
-        final CollectOnlinePriceUseCase useCase = useCase(items, channels, persistence, crawlers());
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(items, channels, persistence, crawlers(), jobs);
 
         final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
 
@@ -51,6 +57,10 @@ class CollectOnlinePriceUseCaseTest {
                 .flatMap(List::stream)
                 .map(OnlinePrice::unit))
                 .allMatch(unit -> unit == OnlinePriceCrawlResult.PER_100_GRAMS);
+        assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.COMPLETED);
+        assertThat(jobs.execution().totalRecords()).isEqualTo(184);
+        assertThat(jobs.execution().successRecords()).isEqualTo(184);
+        assertThat(jobs.execution().errorMessage()).isNull();
     }
 
     @Test
@@ -60,14 +70,20 @@ class CollectOnlinePriceUseCaseTest {
         final InMemoryOnlinePricePersistence persistence = new InMemoryOnlinePricePersistence();
         final Scope scope = new Scope(1L, 1, COLLECTION_DATE);
         persistence.save(scope, List.of(price(item.name(), "기존 상품", 300)));
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
         final CollectOnlinePriceUseCase useCase = useCase(
-                List.of(item), List.of(channel), persistence, List.of(new StubCrawler("오아시스", name -> List.of())));
+                List.of(item),
+                List.of(channel),
+                persistence,
+                List.of(new StubCrawler("오아시스", name -> List.of())),
+                jobs);
 
         final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
 
         assertThat(result.succeededTaskCount()).isEqualTo(1);
         assertThat(persistence.deletedScopes()).contains(scope);
         assertThat(persistence.savedPrices()).doesNotContainKey(scope);
+        assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.COMPLETED);
     }
 
     @Test
@@ -83,7 +99,8 @@ class CollectOnlinePriceUseCaseTest {
                 List.of(item),
                 List.of(channel),
                 persistence,
-                List.of(new StubCrawler("오아시스", name -> List.of(result))));
+                List.of(new StubCrawler("오아시스", name -> List.of(result))),
+                new InMemoryBatchJobPersistence());
 
         final OnlinePriceCollectionResult collectionResult = useCase.execute(COLLECTION_DATE);
 
@@ -95,6 +112,31 @@ class CollectOnlinePriceUseCaseTest {
     }
 
     @Test
+    void 같은_URL의_크롤링_결과는_한건만_저장한다() {
+        final Item item = item(1L, "감자");
+        final OnlineChannel channel = channel(1, "오아시스");
+        final URI productUrl = URI.create("https://example.com/same-product");
+        final InMemoryOnlinePricePersistence persistence = new InMemoryOnlinePricePersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item),
+                List.of(channel),
+                persistence,
+                List.of(new StubCrawler("오아시스", name -> List.of(
+                        new OnlinePriceCrawlResult(
+                                name, "상품 A", BigDecimal.valueOf(200), 100, productUrl, null),
+                        new OnlinePriceCrawlResult(
+                                name, "상품 B", BigDecimal.valueOf(300), 100, productUrl, null)))),
+                new InMemoryBatchJobPersistence());
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.savedPriceCount()).isEqualTo(1);
+        assertThat(persistence.savedPrices().values().stream().flatMap(List::stream))
+                .extracting(OnlinePrice::productName)
+                .containsExactly("상품 A");
+    }
+
+    @Test
     void 한_작업이_실패해도_다른_작업은_계속하고_실패한_작업의_기존_가격은_보존한다() {
         final Item failedItem = item(1L, "실패 품목");
         final Item succeededItem = item(2L, "성공 품목");
@@ -103,6 +145,7 @@ class CollectOnlinePriceUseCaseTest {
         final Scope failedScope = new Scope(1L, 1, COLLECTION_DATE);
         final OnlinePrice oldPrice = price("실패 품목", "기존 상품", 300);
         persistence.save(failedScope, List.of(oldPrice));
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
         final CollectOnlinePriceUseCase useCase = useCase(
                 List.of(failedItem, succeededItem),
                 List.of(channel),
@@ -110,12 +153,13 @@ class CollectOnlinePriceUseCaseTest {
                 List.of(new StubCrawler("오아시스", name -> {
                     if (name.equals("실패 품목")) {
                         throw new ApiException(
-                                ErrorType.EXTERNAL_API_ERROR.description(),
+                                "<html>provider raw response</html>",
                                 ErrorType.EXTERNAL_API_ERROR,
                                 HttpStatus.BAD_GATEWAY);
                     }
                     return List.of(crawlResult(name, "신규 상품", 200));
-                })));
+                })),
+                jobs);
 
         final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
 
@@ -124,17 +168,116 @@ class CollectOnlinePriceUseCaseTest {
         assertThat(result.failedTaskCount()).isEqualTo(1);
         assertThat(persistence.savedPrices().get(failedScope)).containsExactly(oldPrice);
         assertThat(persistence.savedPrices()).containsKey(new Scope(2L, 1, COLLECTION_DATE));
+        assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.PARTIAL);
+        assertThat(jobs.itemFailures()).singleElement().satisfies(failure -> {
+            assertThat(failure.itemId()).isEqualTo(1L);
+            assertThat(failure.channelId()).isEqualTo(1);
+            assertThat(failure.attemptCount()).isEqualTo(1);
+            assertThat(failure.cause()).isInstanceOf(ApiException.class);
+        });
+    }
+
+    @Test
+    void 등록된_crawler가_없는_채널은_작업수와_실패수에서_제외한다() {
+        final Item item = item(1L, "감자");
+        final OnlineChannel runnableChannel = channel(1, "오아시스");
+        final OnlineChannel missingChannel = channel(2, "미등록 채널");
+        final InMemoryOnlinePricePersistence persistence = new InMemoryOnlinePricePersistence();
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item),
+                List.of(runnableChannel, missingChannel),
+                persistence,
+                List.of(new StubCrawler("오아시스", name -> List.of(crawlResult(name, "신규 상품", 200)))),
+                jobs);
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.totalTaskCount()).isEqualTo(1);
+        assertThat(result.succeededTaskCount()).isEqualTo(1);
+        assertThat(result.failedTaskCount()).isZero();
+        assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.PARTIAL);
+        assertThat(jobs.itemFailures()).isEmpty();
+    }
+
+    @Test
+    void 실행할_crawler가_하나도_없으면_job은_실패하고_item_error는_남기지_않는다() {
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "미등록 채널")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(),
+                jobs);
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.totalTaskCount()).isZero();
+        assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.FAILED);
+        assertThat(jobs.execution().errorMessage()).isNotBlank();
+        assertThat(jobs.itemFailures()).isEmpty();
+    }
+
+    @Test
+    void 모든_실행_작업이_실패하면_job은_FAILED다() {
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    throw new IllegalStateException("raw provider body");
+                })),
+                jobs);
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.failedTaskCount()).isEqualTo(1);
+        assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.FAILED);
+        assertThat(jobs.execution().errorMessage()).isNotBlank();
+        assertThat(jobs.itemFailures()).singleElement().satisfies(failure -> {
+            assertThat(failure.itemId()).isEqualTo(1L);
+            assertThat(failure.channelId()).isEqualTo(1);
+            assertThat(failure.attemptCount()).isEqualTo(1);
+            assertThat(failure.cause()).isInstanceOf(IllegalStateException.class);
+        });
+    }
+
+    @Test
+    void job_초기화가_실패하면_crawler를_실행하지_않는다() {
+        final List<String> calledItems = new ArrayList<>();
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        jobs.failOnStart();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    calledItems.add(name);
+                    return List.of();
+                })),
+                jobs);
+
+        assertThatThrownBy(() -> useCase.execute(COLLECTION_DATE))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(calledItems).isEmpty();
     }
 
     private CollectOnlinePriceUseCase useCase(
             final List<Item> items,
             final List<OnlineChannel> channels,
             final InMemoryOnlinePricePersistence persistence,
-            final List<OnlinePriceCrawlerPort> crawlers) {
+            final List<OnlinePriceCrawlerPort> crawlers,
+            final BatchJobPersistencePort batchJobPersistencePort) {
         final OnlineItemQueryPort itemQueryPort = () -> items;
         final OnlineChannelQueryPort channelQueryPort = () -> channels;
         final ReplaceOnlinePriceUseCase replaceUseCase = new ReplaceOnlinePriceUseCase(persistence);
-        return new CollectOnlinePriceUseCase(itemQueryPort, channelQueryPort, crawlers, replaceUseCase);
+        return new CollectOnlinePriceUseCase(
+                itemQueryPort,
+                channelQueryPort,
+                crawlers,
+                replaceUseCase,
+                batchJobPersistencePort);
     }
 
     private List<OnlinePriceCrawlerPort> crawlers() {
@@ -199,6 +342,12 @@ class CollectOnlinePriceUseCaseTest {
 
     private record Scope(Long itemId, Integer channelId, LocalDate collectionDate) {}
 
+    private record JobExecution(
+            BatchJobStatus status,
+            int totalRecords,
+            int successRecords,
+            String errorMessage) {}
+
     private static final class StubCrawler implements OnlinePriceCrawlerPort {
 
         private final String channelName;
@@ -255,6 +404,54 @@ class CollectOnlinePriceUseCaseTest {
 
         private List<Scope> deletedScopes() {
             return deletedScopes;
+        }
+    }
+
+    private static final class InMemoryBatchJobPersistence implements BatchJobPersistencePort {
+
+        private static final Long JOB_EXECUTION_ID = 1L;
+
+        private JobExecution execution;
+        private final List<BatchItemFailure> itemFailures = new ArrayList<>();
+        private boolean failOnStart;
+
+        @Override
+        public Long start(final String jobName) {
+            if (failOnStart) {
+                throw new IllegalStateException("job initialization failed");
+            }
+            execution = new JobExecution(BatchJobStatus.STARTED, 0, 0, null);
+            return JOB_EXECUTION_ID;
+        }
+
+        @Override
+        public void recordItemError(
+                final Long jobExecutionId,
+                final BatchItemFailure failure) {
+            itemFailures.add(failure);
+        }
+
+        @Override
+        public void finish(
+                final Long jobExecutionId,
+                final BatchJobCompletion completion) {
+            execution = new JobExecution(
+                    completion.status(),
+                    completion.totalRecords(),
+                    completion.successRecords(),
+                    completion.errorMessage());
+        }
+
+        private JobExecution execution() {
+            return execution;
+        }
+
+        private List<BatchItemFailure> itemFailures() {
+            return itemFailures;
+        }
+
+        private void failOnStart() {
+            failOnStart = true;
         }
     }
 }

@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,7 +19,10 @@ import lombok.experimental.Accessors;
         name = "online_prices",
         indexes = @Index(
                 name = "idx_online_prices_item_channel_date",
-                columnList = "item_id, channel_id, created_at"))
+                columnList = "item_id, channel_id, created_at"),
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_online_prices_scope_product_url",
+                columnNames = {"item_id", "channel_id", "created_at", "product_url"}))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Accessors(fluent = true)
