@@ -7,6 +7,7 @@ import com.example.demo.item.domain.OnlineChannel;
 import com.example.demo.item.domain.OnlinePrice;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,14 +73,37 @@ class OnlinePriceJpaRepositoryTest {
                 .containsExactly("지난 상품");
     }
 
+    @Test
+    void 품목과_채널과_수집일의_100g당_최저가를_조회한다() {
+        onlinePriceJpaRepository.saveAll(List.of(
+                price("비싼 상품", PRICE_DATE, 500, 100),
+                price("저렴한 상품", PRICE_DATE, 300, 100),
+                price("다른 단위 상품", PRICE_DATE, 1, 1)));
+
+        final Optional<OnlinePrice> lowestPrice = onlinePriceJpaRepository
+                .findFirstByItemIdAndChannelIdAndCreatedAtAndUnitOrderByPriceAscIdAsc(
+                        itemId, channelId, PRICE_DATE, 100);
+
+        assertThat(lowestPrice).isPresent();
+        assertThat(lowestPrice.orElseThrow().productName()).isEqualTo("저렴한 상품");
+    }
+
     private OnlinePrice price(final String productName, final LocalDate createdAt) {
+        return price(productName, createdAt, 890, 100);
+    }
+
+    private OnlinePrice price(
+            final String productName,
+            final LocalDate createdAt,
+            final int price,
+            final int unit) {
         return new OnlinePrice(
                 itemId,
                 channelId,
                 "감자",
                 productName,
-                890,
-                100,
+                price,
+                unit,
                 "https://example.com/" + productName,
                 "무료배송",
                 createdAt);
