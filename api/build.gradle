@@ -19,6 +19,7 @@ repositories {
 dependencies {
     implementation project(':common')
     implementation project(':external:kamis-client')
+    implementation project(':external:kakao-client')
     implementation project(':external:selenium')
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
@@ -57,6 +58,7 @@ tasks.named('test') {
     useJUnitPlatform()
     systemProperty 'kurly.live', System.getProperty('kurly.live', 'false')
     systemProperty 'oasis.live', System.getProperty('oasis.live', 'false')
+    systemProperty 'elevenst.live', System.getProperty('elevenst.live', 'false')
     systemProperty 'gsshop.live', System.getProperty('gsshop.live', 'false')
     finalizedBy tasks.named('jacocoTestReport')
 }
