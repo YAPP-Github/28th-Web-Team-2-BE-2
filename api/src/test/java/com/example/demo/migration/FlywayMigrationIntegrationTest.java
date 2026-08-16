@@ -34,6 +34,7 @@ class FlywayMigrationIntegrationTest {
     void 빈_PostgreSQL에_모든_migration이_순서대로_적용된다() throws SQLException {
         final Flyway flyway = flyway();
 
+        flyway.clean();
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5");
