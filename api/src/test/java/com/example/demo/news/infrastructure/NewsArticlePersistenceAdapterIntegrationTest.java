@@ -63,7 +63,7 @@ class NewsArticlePersistenceAdapterIntegrationTest {
     }
 
     @Test
-    void 최신_기사_5건만_발행일과_내부_ID_내림차순으로_조회하고_기존_row는_삭제하지_않는다() {
+    void 요청한_크기만큼_최신_기사를_발행일과_내부_ID_내림차순으로_조회하고_기존_row는_삭제하지_않는다() {
         newsArticlePersistenceAdapter.upsertAll(List.of(
                 article("기사 1", "요약 1", "https://news.example.com/articles/1", null, "2026-08-10T00:00:00Z"),
                 article("기사 2", "요약 2", "https://news.example.com/articles/2", null, "2026-08-11T00:00:00Z"),
@@ -72,16 +72,13 @@ class NewsArticlePersistenceAdapterIntegrationTest {
                 article("기사 5", "요약 5", "https://news.example.com/articles/5", null, "2026-08-14T00:00:00Z"),
                 article("기사 6", "요약 6", "https://news.example.com/articles/6", null, "2026-08-14T00:00:00Z")));
 
-        final List<NewsArticle> latestArticles = newsArticlePersistenceAdapter.findLatest(5);
+        final List<NewsArticle> latestArticles = newsArticlePersistenceAdapter.findLatest(2);
 
         assertThat(latestArticles)
                 .extracting(NewsArticle::originalUrl)
                 .containsExactly(
                         "https://news.example.com/articles/6",
-                        "https://news.example.com/articles/5",
-                        "https://news.example.com/articles/4",
-                        "https://news.example.com/articles/3",
-                        "https://news.example.com/articles/2");
+                        "https://news.example.com/articles/5");
         assertThat(newsArticleJpaRepository.count()).isEqualTo(6);
         assertThat(newsArticleJpaRepository.findByOriginalUrl("https://news.example.com/articles/1")).isPresent();
     }

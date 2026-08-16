@@ -177,11 +177,11 @@ class NaverNewsCrawler implements NewsSource {
         if (image == null) {
             return null;
         }
-        final String lazySource = firstNonBlank(image.attr("data-lazysrc"), image.absUrl("data-lazysrc"));
+        final String lazySource = firstNonBlank(image.absUrl("data-lazysrc"), image.attr("data-lazysrc"));
         if (lazySource != null) {
             return lazySource;
         }
-        return firstNonBlank(image.attr("src"), image.absUrl("src"));
+        return firstNonBlank(image.absUrl("src"), image.attr("src"));
     }
 
     private String firstNonBlank(final String first, final String second) {

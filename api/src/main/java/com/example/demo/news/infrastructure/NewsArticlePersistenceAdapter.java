@@ -4,6 +4,7 @@ import com.example.demo.news.application.port.NewsArticlePort;
 import com.example.demo.news.domain.NewsArticle;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -19,7 +20,7 @@ class NewsArticlePersistenceAdapter implements NewsArticlePort {
 
     @Override
     public List<NewsArticle> findLatest(final int size) {
-        return newsArticleJpaRepository.findTop5ByOrderByPublishedAtDescNewsIdDesc();
+        return newsArticleJpaRepository.findAllByOrderByPublishedAtDescNewsIdDesc(PageRequest.of(0, size));
     }
 
     private void upsert(final NewsArticle newsArticle) {

@@ -48,6 +48,38 @@ class NaverNewsCrawlerTest {
     }
 
     @Test
+    void 상대경로_data_lazysrc를_절대_URL로_파싱한다() {
+        final List<NewsArticle> articles = crawler.parse(document("""
+                <article>
+                  <a data-heatmap-target=".title" href="https://news.example.com/lazy">지연 이미지 기사</a>
+                  <div class="body">요약</div>
+                  <div class="img"><img data-lazysrc="/images/lazy.jpg" src="/images/fallback.jpg"></div>
+                  <span class="sds-comps-profile-info-subtext">2026.08.17.</span>
+                </article>
+                """));
+
+        assertThat(articles).singleElement()
+                .extracting(NewsArticle::thumbnailUrl)
+                .isEqualTo("https://m.search.naver.com/images/lazy.jpg");
+    }
+
+    @Test
+    void 상대경로_src를_절대_URL로_파싱한다() {
+        final List<NewsArticle> articles = crawler.parse(document("""
+                <article>
+                  <a data-heatmap-target=".title" href="https://news.example.com/src">src 이미지 기사</a>
+                  <div class="body">요약</div>
+                  <div class="img"><img src="/images/src.jpg"></div>
+                  <span class="sds-comps-profile-info-subtext">2026.08.17.</span>
+                </article>
+                """));
+
+        assertThat(articles).singleElement()
+                .extracting(NewsArticle::thumbnailUrl)
+                .isEqualTo("https://m.search.naver.com/images/src.jpg");
+    }
+
+    @Test
     void 필수_요약이나_발행일이_없는_기사는_제외한다() {
         final List<NewsArticle> articles = crawler.parse(document("""
                 <article>

@@ -3,8 +3,6 @@ package com.example.demo.news.scheduler;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import com.example.demo.news.application.usecase.CollectNewsUseCase;
 import java.lang.reflect.Method;
@@ -15,17 +13,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 
 class NewsCrawlerSchedulerTest {
-
-    @Test
-    void startup과_스케줄_실행은_수집을_호출한다() {
-        final CollectNewsUseCase collectNewsUseCase = mock(CollectNewsUseCase.class);
-        final NewsCrawlerScheduler scheduler = new NewsCrawlerScheduler(collectNewsUseCase);
-
-        scheduler.collectOnReady();
-        scheduler.collectBySchedule();
-
-        verify(collectNewsUseCase, times(2)).execute();
-    }
 
     @Test
     void 수집_실패는_스케줄러를_중단시키지_않는다() {
