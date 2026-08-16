@@ -5,12 +5,14 @@ import com.example.demo.item.application.query.ItemQuery;
 import com.example.demo.item.application.query.ItemSort;
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.QItem;
+import com.example.demo.item.domain.QItemFavorite;
 import com.example.demo.item.domain.QPublicPrice;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -38,6 +40,16 @@ public class ItemQueryAdapter implements ItemQueryPort {
                 .fetch();
         final long totalCount = jpaQueryFactory.select(item.count()).from(item).fetchOne();
         return new PageImpl<>(content, PageRequest.of(query.page(), query.size()), totalCount);
+    }
+
+    @Override
+    public Set<Long> findFavoriteItemIds(final Long userId, final List<Long> itemIds) {
+        final QItemFavorite itemFavorite = QItemFavorite.itemFavorite;
+        return Set.copyOf(jpaQueryFactory
+                .select(itemFavorite.itemId)
+                .from(itemFavorite)
+                .where(itemFavorite.userId.eq(userId), itemFavorite.itemId.in(itemIds))
+                .fetch());
     }
 
     private void joinCurrentPrice(

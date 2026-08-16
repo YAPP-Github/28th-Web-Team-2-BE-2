@@ -5,4 +5,5 @@ public record ItemResponse(
         String itemName,
         String itemImageUrl,
         Integer price,
-        Integer priceGap) {}
+        Integer priceGap,
+        boolean isLiked) {}

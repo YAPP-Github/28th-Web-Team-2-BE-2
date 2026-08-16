@@ -5,4 +5,10 @@ public record ItemPriceResult(
         String itemName,
         String itemImageUrl,
         Integer price,
-        Integer priceGap) {}
+        Integer priceGap,
+        boolean isLiked) {
+
+    public ItemPriceResult withLiked(final boolean liked) {
+        return new ItemPriceResult(itemId, itemName, itemImageUrl, price, priceGap, liked);
+    }
+}

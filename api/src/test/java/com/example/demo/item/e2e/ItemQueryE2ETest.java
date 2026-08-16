@@ -1,5 +1,6 @@
 package com.example.demo.item.e2e;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -7,20 +8,39 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.demo.auth.domain.ProviderType;
+import com.example.demo.auth.domain.User;
+import com.example.demo.auth.infrastructure.persistence.UserJpaRepository;
+import com.example.demo.auth.infrastructure.token.JwtTokenProvider;
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.PublicPrice;
 import com.example.demo.item.infrastructure.ItemJpaRepository;
 import com.example.demo.item.infrastructure.PublicPriceJpaRepository;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import jakarta.persistence.EntityManagerFactory;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.UUID;
+import javax.crypto.SecretKey;
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 @AutoConfigureMockMvc
 class ItemQueryE2ETest {
 
@@ -31,24 +51,42 @@ class ItemQueryE2ETest {
     private final MockMvc mockMvc;
     private final ItemJpaRepository itemJpaRepository;
     private final PublicPriceJpaRepository publicPriceJpaRepository;
+    private final UserJpaRepository userJpaRepository;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final JdbcTemplate jdbcTemplate;
+    private final Statistics statistics;
+    private final String accessSecret;
     private Long firstPotatoId;
     private Long secondPotatoId;
+    private Long onionId;
     private LocalDate referenceDate;
 
     @Autowired
     ItemQueryE2ETest(
             final MockMvc mockMvc,
             final ItemJpaRepository itemJpaRepository,
-            final PublicPriceJpaRepository publicPriceJpaRepository) {
+            final PublicPriceJpaRepository publicPriceJpaRepository,
+            final UserJpaRepository userJpaRepository,
+            final JwtTokenProvider jwtTokenProvider,
+            final JdbcTemplate jdbcTemplate,
+            final EntityManagerFactory entityManagerFactory,
+            @Value("${jwt.access-secret}") final String accessSecret) {
         this.mockMvc = mockMvc;
         this.itemJpaRepository = itemJpaRepository;
         this.publicPriceJpaRepository = publicPriceJpaRepository;
+        this.userJpaRepository = userJpaRepository;
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.jdbcTemplate = jdbcTemplate;
+        this.statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        this.accessSecret = accessSecret;
     }
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("DELETE FROM item_favorites");
         publicPriceJpaRepository.deleteAll();
         itemJpaRepository.deleteAll();
+        userJpaRepository.deleteAll();
         referenceDate = LocalDate.now();
 
         final Item potato = itemJpaRepository.save(new Item("감자", "1kg"));
@@ -59,6 +97,7 @@ class ItemQueryE2ETest {
         final Item secondPotato = itemJpaRepository.save(new Item("감자", "1kg"));
         firstPotatoId = potato.id();
         secondPotatoId = secondPotato.id();
+        onionId = onion.id();
         publicPriceJpaRepository.save(
                 new PublicPrice(potato.id(), REGION_ID, 3000, referenceDate.minusDays(2)));
         publicPriceJpaRepository.save(new PublicPrice(potato.id(), REGION_ID, 3500, referenceDate));
@@ -71,6 +110,57 @@ class ItemQueryE2ETest {
         publicPriceJpaRepository.save(new PublicPrice(carrot.id(), REGION_ID, 4000, referenceDate));
         publicPriceJpaRepository.save(new PublicPrice(secondPotato.id(), REGION_ID, 3500, referenceDate));
         publicPriceJpaRepository.save(new PublicPrice(potato.id(), OTHER_REGION_ID, 9999, referenceDate));
+    }
+
+    @Test
+    void 비로그인과_지원하지_않는_GUEST_토큰은_모든_isLiked를_false로_조회한다() throws Exception {
+        mockMvc.perform(itemListRequest())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].isLiked")
+                        .value(contains(false, false, false, false, false, false)));
+
+        mockMvc.perform(itemListRequest()
+                        .header(HttpHeaders.AUTHORIZATION, bearer(guestAccessToken())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].isLiked")
+                        .value(contains(false, false, false, false, false, false)));
+    }
+
+    @Test
+    void ROLE_USER는_자신의_찜만_isLiked로_조회한다() throws Exception {
+        final User currentUser = saveUser("현재 사용자");
+        final User otherUser = saveUser("다른 사용자");
+        addFavorite(currentUser.id(), firstPotatoId);
+        addFavorite(otherUser.id(), onionId);
+
+        mockMvc.perform(itemListRequest()
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(currentUser))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].itemId").value(firstPotatoId))
+                .andExpect(jsonPath("$.items[0].isLiked").value(true))
+                .andExpect(jsonPath("$.items[5].itemId").value(onionId))
+                .andExpect(jsonPath("$.items[5].isLiked").value(false));
+
+        mockMvc.perform(itemListRequest()
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(otherUser))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].isLiked").value(false))
+                .andExpect(jsonPath("$.items[5].isLiked").value(true));
+    }
+
+    @Test
+    void ROLE_USER의_현재_페이지_찜은_한_번의_일괄_쿼리로_조회한다() throws Exception {
+        final User user = saveUser("일괄 조회 사용자");
+        itemJpaRepository.findAll().forEach(item -> addFavorite(user.id(), item.id()));
+        statistics.clear();
+
+        mockMvc.perform(itemListRequest()
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].isLiked")
+                        .value(contains(true, true, true, true, true, true)));
+
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(5);
     }
 
     @Test
@@ -386,6 +476,50 @@ class ItemQueryE2ETest {
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['200'].content['application/json'].schema.$ref")
                         .value("#/components/schemas/ItemPageResponse"))
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['400'].description")
-                        .value("조회 조건이 올바르지 않다"));
+                        .value("조회 조건이 올바르지 않다"))
+                .andExpect(jsonPath("$.components.schemas.ItemResponse.properties.isLiked.type")
+                        .value("boolean"));
+    }
+
+    private MockHttpServletRequestBuilder itemListRequest() {
+        return get("/api/v1/items")
+                .queryParam("regionId", REGION_ID)
+                .queryParam("sort", "NAME_ASC")
+                .queryParam("page", "0")
+                .queryParam("size", "6");
+    }
+
+    private User saveUser(final String name) {
+        return userJpaRepository.save(User.oauth(
+                ProviderType.KAKAO,
+                UUID.randomUUID().toString(),
+                UUID.randomUUID() + "@example.com",
+                name));
+    }
+
+    private void addFavorite(final Long userId, final Long itemId) {
+        jdbcTemplate.update(
+                "INSERT INTO item_favorites (user_id, item_id) VALUES (?, ?)", userId, itemId);
+    }
+
+    private String accessToken(final User user) {
+        return jwtTokenProvider.createAccessToken(user.id(), user.role());
+    }
+
+    private String guestAccessToken() {
+        final Instant now = Instant.now();
+        final SecretKey key = Keys.hmacShaKeyFor(accessSecret.getBytes(StandardCharsets.UTF_8));
+        return Jwts.builder()
+                .subject("999999")
+                .claim("type", "access")
+                .claim("role", "GUEST")
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plus(30, ChronoUnit.MINUTES)))
+                .signWith(key)
+                .compact();
+    }
+
+    private String bearer(final String token) {
+        return "Bearer " + token;
     }
 }

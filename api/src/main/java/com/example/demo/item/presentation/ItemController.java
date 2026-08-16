@@ -34,8 +34,10 @@ public class ItemController implements ItemControllerSpec {
     @GetMapping
     @Override
     public ResponseEntity<ItemPageResponse> getItems(
-        @Valid @ModelAttribute final ItemQueryRequest request) {
-        final ItemQueryResult result = getItemQueryUseCase.execute(itemQueryRequestConverter.toQuery(request));
+            @Valid @ModelAttribute final ItemQueryRequest request,
+            @AuthenticationPrincipal final AuthPrincipal principal) {
+        final ItemQueryResult result = getItemQueryUseCase.execute(
+                itemQueryRequestConverter.toQuery(request), userId(principal));
         final ItemPageResponse data = itemResultConverter.toResponse(result);
         return ResponseEntity.ok(data);
     }
@@ -56,5 +58,12 @@ public class ItemController implements ItemControllerSpec {
             @AuthenticationPrincipal final AuthPrincipal principal) {
         itemFavoriteUseCase.delete(principal.userId(), itemId);
         return ResponseEntity.noContent().build();
+    }
+
+    private Long userId(final AuthPrincipal principal) {
+        if (principal == null) {
+            return null;
+        }
+        return principal.userId();
     }
 }

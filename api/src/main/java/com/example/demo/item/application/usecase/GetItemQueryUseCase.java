@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -24,18 +25,20 @@ public class GetItemQueryUseCase {
     private final PublicPriceQueryPort publicPriceQueryPort;
 
     @Transactional(readOnly = true)
-    public ItemQueryResult execute(final ItemQuery query) {
+    public ItemQueryResult execute(final ItemQuery query, final Long userId) {
         final LocalDate baseDate = publicPriceQueryPort.findLatestPriceDateByRegionId(query.regionId());
         final Page<Item> itemPage = itemQueryPort.findAll(query);
         final List<Long> itemIds = itemPage.getContent().stream().map(Item::id).toList();
         final List<PublicPrice> prices = findPrices(itemIds, query.regionId());
+        final Set<Long> favoriteItemIds = findFavoriteItemIds(userId, itemIds);
         final Map<Long, PublicPrice> pricesByItemId = currentPrices(prices);
         final Map<Long, PublicPrice> previousPricesByItemId = previousPrices(prices, pricesByItemId);
         final List<ItemPriceResult> items = itemPage.getContent().stream()
                 .map(item -> toResult(
                         item,
                         pricesByItemId.get(item.id()),
-                        previousPricesByItemId.get(item.id())))
+                        previousPricesByItemId.get(item.id()))
+                        .withLiked(favoriteItemIds.contains(item.id())))
                 .toList();
         return new ItemQueryResult(
                 baseDate,
@@ -51,6 +54,13 @@ public class GetItemQueryUseCase {
             return List.of();
         }
         return publicPriceQueryPort.findByItemIdsAndRegionId(itemIds, regionId);
+    }
+
+    private Set<Long> findFavoriteItemIds(final Long userId, final List<Long> itemIds) {
+        if (userId == null || itemIds.isEmpty()) {
+            return Set.of();
+        }
+        return itemQueryPort.findFavoriteItemIds(userId, itemIds);
     }
 
     private Map<Long, PublicPrice> currentPrices(final List<PublicPrice> prices) {
@@ -75,16 +85,18 @@ public class GetItemQueryUseCase {
     private ItemPriceResult toResult(
             final Item item, final PublicPrice publicPrice, final PublicPrice previousPrice) {
         if (publicPrice == null) {
-            return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), null, null);
+            return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), null, null, false);
         }
         if (previousPrice == null) {
-            return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), publicPrice.price(), null);
+            return new ItemPriceResult(
+                    item.id(), item.name(), item.imageUrl(), publicPrice.price(), null, false);
         }
         return new ItemPriceResult(
                 item.id(),
                 item.name(),
                 item.imageUrl(),
                 publicPrice.price(),
-                publicPrice.price() - previousPrice.price());
+                publicPrice.price() - previousPrice.price(),
+                false);
     }
 }

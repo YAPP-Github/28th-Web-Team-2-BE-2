@@ -25,6 +25,7 @@ public class ItemResultConverter {
                 result.itemName(),
                 result.itemImageUrl(),
                 result.price(),
-                result.priceGap());
+                result.priceGap(),
+                result.isLiked());
     }
 }
