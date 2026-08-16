@@ -2,7 +2,6 @@ package com.example.demo.store.infrastructure;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
-import com.example.demo.external.kakao.KakaoCategorySearchQuery;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
 import com.example.demo.external.kakao.KakaoClientException;
 import com.example.demo.external.kakao.KakaoLocalClient;
@@ -20,13 +19,22 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class KakaoNearbyStoreSearchAdapter implements NearbyStoreSearchPort {
 
+    private static final String CATEGORY_GROUP_CODE = "MT1";
+    private static final String SORT = "distance";
+    private static final int SIZE = 15;
+
     private final KakaoLocalClient kakaoLocalClient;
 
     @Override
     public NearbyStoreSearchResult search(final NearbyStoreQuery query) {
         try {
             final KakaoCategorySearchResult result = kakaoLocalClient.searchCategory(
-                    new KakaoCategorySearchQuery(query.latitude(), query.longitude(), query.radius()));
+                    CATEGORY_GROUP_CODE,
+                    query.longitude(),
+                    query.latitude(),
+                    query.radius(),
+                    SORT,
+                    SIZE);
             return toSearchResult(result);
         } catch (final KakaoClientException exception) {
             throw externalApiException(exception);

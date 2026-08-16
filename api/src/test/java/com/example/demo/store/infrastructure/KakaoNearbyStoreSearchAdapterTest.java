@@ -1,6 +1,8 @@
 package com.example.demo.store.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -19,7 +21,9 @@ class KakaoNearbyStoreSearchAdapterTest {
 
     @Test
     void 카카오_응답을_주변_매장_결과로_변환한다() {
-        when(kakaoLocalClient.searchCategory(org.mockito.ArgumentMatchers.any()))
+        when(kakaoLocalClient.searchCategory(
+                any(String.class), any(BigDecimal.class), any(BigDecimal.class), anyInt(),
+                any(String.class), anyInt()))
                 .thenReturn(new KakaoCategorySearchResult(1, List.of(new KakaoPlace(
                         "123", "강남마트", new BigDecimal("37.4979"), new BigDecimal("127.0276"),
                         "서울 강남구 삼성동 123", "서울 강남구 테헤란로 123", "02-1234-5678",

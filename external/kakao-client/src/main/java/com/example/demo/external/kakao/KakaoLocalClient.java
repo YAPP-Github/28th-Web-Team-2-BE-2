@@ -1,8 +1,28 @@
 package com.example.demo.external.kakao;
 
+import com.example.demo.external.kakao.feign.KakaoLocalClientConfiguration;
+import java.math.BigDecimal;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+@FeignClient(
+        name = "kakaoLocalClient",
+        url = "${kakao.local.base-url:https://dapi.kakao.com}",
+        configuration = KakaoLocalClientConfiguration.class)
 public interface KakaoLocalClient {
 
-    KakaoCategorySearchResult searchCategory(KakaoCategorySearchQuery query);
+    @GetMapping("/v2/local/search/category.json")
+    KakaoCategorySearchResult searchCategory(
+            @RequestParam("category_group_code") String categoryGroupCode,
+            @RequestParam("x") BigDecimal longitude,
+            @RequestParam("y") BigDecimal latitude,
+            @RequestParam("radius") int radius,
+            @RequestParam("sort") String sort,
+            @RequestParam("size") int size);
 
-    KakaoRegionCodeResult searchRegionCode(KakaoRegionCodeQuery query);
+    @GetMapping("/v2/local/geo/coord2regioncode.json")
+    KakaoRegionCodeResult searchRegionCode(
+            @RequestParam("x") BigDecimal longitude,
+            @RequestParam("y") BigDecimal latitude);
 }

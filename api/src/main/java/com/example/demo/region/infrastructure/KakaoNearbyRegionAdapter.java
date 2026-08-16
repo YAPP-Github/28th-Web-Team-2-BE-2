@@ -5,7 +5,6 @@ import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kakao.KakaoClientException;
 import com.example.demo.external.kakao.KakaoLocalClient;
 import com.example.demo.external.kakao.KakaoRegion;
-import com.example.demo.external.kakao.KakaoRegionCodeQuery;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.example.demo.region.application.port.NearbyRegionQueryPort;
 import com.example.demo.region.application.query.NearbyRegionQuery;
@@ -25,7 +24,7 @@ public class KakaoNearbyRegionAdapter implements NearbyRegionQueryPort {
     public NearbyRegionResult find(final NearbyRegionQuery query) {
         try {
             final KakaoRegionCodeResult result = kakaoLocalClient.searchRegionCode(
-                    new KakaoRegionCodeQuery(query.latitude(), query.longitude()));
+                    query.longitude(), query.latitude());
             return toResult(result);
         } catch (final KakaoClientException exception) {
             throw externalApiException(exception);
@@ -33,8 +32,7 @@ public class KakaoNearbyRegionAdapter implements NearbyRegionQueryPort {
     }
 
     private NearbyRegionResult toResult(final KakaoRegionCodeResult result) {
-        final List<NearbyRegionResult.Region> regions = result.regions().stream()
-                .filter(region -> "B".equals(region.regionType()))
+        final List<NearbyRegionResult.Region> regions = result.legalRegions().stream()
                 .map(this::toRegion)
                 .toList();
         return new NearbyRegionResult(regions);

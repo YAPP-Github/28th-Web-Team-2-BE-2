@@ -11,7 +11,6 @@ import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kakao.KakaoClientException;
 import com.example.demo.external.kakao.KakaoLocalClient;
 import com.example.demo.external.kakao.KakaoRegion;
-import com.example.demo.external.kakao.KakaoRegionCodeQuery;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.example.demo.region.application.query.NearbyRegionQuery;
 import java.math.BigDecimal;
@@ -26,7 +25,7 @@ class KakaoNearbyRegionAdapterTest {
 
     @Test
     void Kakao_좌표_행정구역_검색에서_법정동만_변환한다() {
-        when(kakaoLocalClient.searchRegionCode(any(KakaoRegionCodeQuery.class)))
+        when(kakaoLocalClient.searchRegionCode(any(), any()))
                 .thenReturn(new KakaoRegionCodeResult(
                         2,
                         List.of(
@@ -46,7 +45,7 @@ class KakaoNearbyRegionAdapterTest {
 
     @Test
     void Kakao_외부_호출_오류를_외부_API_오류로_변환한다() {
-        when(kakaoLocalClient.searchRegionCode(any(KakaoRegionCodeQuery.class)))
+        when(kakaoLocalClient.searchRegionCode(any(), any()))
                 .thenThrow(new KakaoClientException(new IllegalStateException("Kakao failed")));
 
         assertThatThrownBy(() -> adapter.find(new NearbyRegionQuery(
