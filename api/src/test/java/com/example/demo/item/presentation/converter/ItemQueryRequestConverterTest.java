@@ -10,13 +10,13 @@ import org.junit.jupiter.api.Test;
 class ItemQueryRequestConverterTest {
 
     @Test
-    void 요청을_정렬조건을_포함한_품목조회쿼리로_변환한다() {
+    void 요청을_정렬과_검색조건을_포함한_품목조회쿼리로_변환한다() {
         final ItemQueryRequest request =
-                new ItemQueryRequest("1121510100", 2, 20, ItemSort.PRICE_DESC);
+                new ItemQueryRequest("1121510100", 2, 20, ItemSort.PRICE_DESC, "  파  ");
 
         final ItemQuery result = new ItemQueryRequestConverter().toQuery(request);
 
         assertThat(result)
-                .isEqualTo(new ItemQuery("1121510100", 2, 20, ItemSort.PRICE_DESC));
+                .isEqualTo(new ItemQuery("1121510100", 2, 20, ItemSort.PRICE_DESC, "파"));
     }
 }

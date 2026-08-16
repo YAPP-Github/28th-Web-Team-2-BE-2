@@ -185,6 +185,78 @@ class ItemQueryE2ETest {
     }
 
     @Test
+    void 품목명을_trim한_부분_일치_결과에_세_정렬과_페이지네이션을_적용한다() throws Exception {
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("keyword", "  파  ")
+                        .queryParam("sort", "NAME_ASC")
+                        .queryParam("page", "0")
+                        .queryParam("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[*].itemName").value(contains("대파", "양파")))
+                .andExpect(jsonPath("$.hasNext").value(false));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("keyword", "파")
+                        .queryParam("sort", "PRICE_ASC")
+                        .queryParam("page", "0")
+                        .queryParam("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[*].itemName").value(contains("대파", "양파")));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("keyword", "파")
+                        .queryParam("sort", "PRICE_DESC")
+                        .queryParam("page", "0")
+                        .queryParam("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[*].itemName").value(contains("양파")))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.hasNext").value(true));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("keyword", "파")
+                        .queryParam("sort", "PRICE_DESC")
+                        .queryParam("page", "1")
+                        .queryParam("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[*].itemName").value(contains("대파")))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void 검색어가_빈_문자열이거나_공백이면_전체_목록을_조회하고_결과가_없으면_빈_목록을_응답한다()
+            throws Exception {
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("keyword", ""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(6));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("keyword", "   "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(6));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("keyword", "없는품목"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(0))
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
     void 지역_전체_최신일과_품목별_최신일이_달라도_품목별_가격과_priceGap으로_정렬한다()
             throws Exception {
         final LocalDate today = referenceDate;
@@ -365,7 +437,7 @@ class ItemQueryE2ETest {
     }
 
     @Test
-    void 품목_조회_경로와_페이지_파라미터를_OpenAPI에_노출한다() throws Exception {
+    void 품목_조회_경로와_조회_파라미터를_OpenAPI에_노출한다() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get").exists())
@@ -376,6 +448,8 @@ class ItemQueryE2ETest {
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'size')]")
                         .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'sort')]")
+                        .isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'keyword')]")
                         .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[3].name")
                         .value("sort"))
