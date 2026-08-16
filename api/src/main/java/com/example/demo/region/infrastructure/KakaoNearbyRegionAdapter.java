@@ -1,8 +1,8 @@
 package com.example.demo.region.infrastructure;
 
-import com.example.demo.external.kakao.KakaoMapClient;
 import com.example.demo.external.kakao.KakaoRegion;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
+import com.example.demo.external.kakao.feign.KakaoMapClient;
 import com.example.demo.region.application.port.NearbyRegionQueryPort;
 import com.example.demo.region.application.query.NearbyRegionQuery;
 import com.example.demo.region.application.result.NearbyRegionResult;

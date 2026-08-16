@@ -1,6 +1,7 @@
-package com.example.demo.external.kakao;
+package com.example.demo.external.kakao.feign;
 
-import com.example.demo.external.kakao.feign.KakaoMapClientConfiguration;
+import com.example.demo.external.kakao.KakaoCategorySearchResult;
+import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import java.math.BigDecimal;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;

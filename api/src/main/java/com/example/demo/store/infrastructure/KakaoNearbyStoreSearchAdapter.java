@@ -1,8 +1,8 @@
 package com.example.demo.store.infrastructure;
 
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
-import com.example.demo.external.kakao.KakaoMapClient;
 import com.example.demo.external.kakao.KakaoPlace;
+import com.example.demo.external.kakao.feign.KakaoMapClient;
 import com.example.demo.store.application.port.NearbyStoreSearchPort;
 import com.example.demo.store.application.query.NearbyStoreQuery;
 import com.example.demo.store.application.result.NearbyStoreResult;

@@ -7,8 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
-import com.example.demo.external.kakao.KakaoMapClient;
 import com.example.demo.external.kakao.KakaoPlace;
+import com.example.demo.external.kakao.feign.KakaoMapClient;
 import com.example.demo.store.application.query.NearbyStoreQuery;
 import java.math.BigDecimal;
 import java.util.List;

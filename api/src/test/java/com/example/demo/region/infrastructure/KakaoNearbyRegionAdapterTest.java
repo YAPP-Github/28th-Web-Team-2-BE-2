@@ -5,9 +5,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.example.demo.external.kakao.KakaoMapClient;
 import com.example.demo.external.kakao.KakaoRegion;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
+import com.example.demo.external.kakao.feign.KakaoMapClient;
 import com.example.demo.region.application.query.NearbyRegionQuery;
 import java.math.BigDecimal;
 import java.util.List;
