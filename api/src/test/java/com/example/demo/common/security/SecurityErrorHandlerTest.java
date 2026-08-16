@@ -3,6 +3,7 @@ package com.example.demo.common.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.demo.common.exception.ErrorType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 
 class SecurityErrorHandlerTest {
 
-    private final SecurityErrorResponseWriter responseWriter = new SecurityErrorResponseWriter();
+    private final SecurityErrorResponseWriter responseWriter =
+            new SecurityErrorResponseWriter(new ObjectMapper());
 
     @Test
     void 인증되지_않은_요청은_JSON_401을_응답한다() throws Exception {
@@ -39,6 +41,20 @@ class SecurityErrorHandlerTest {
 
         assertThat(response.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
         assertThat(response.getContentAsString()).contains("INVALID_TOKEN");
+    }
+
+    @Test
+    void V1_인증_오류는_공통_V1_응답을_사용한다() throws Exception {
+        final JwtAuthenticationEntryPoint entryPoint = new JwtAuthenticationEntryPoint(responseWriter);
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/v1/items/1/favorite");
+        final MockHttpServletResponse response = new MockHttpServletResponse();
+
+        entryPoint.commence(request, response, new BadCredentialsException("unauthorized"));
+
+        assertThat(response.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+        assertThat(response.getContentAsString())
+                .isEqualTo("{\"code\":\"UNAUTHORIZED\",\"message\":\"로그인이 필요한 서비스입니다.\",\"data\":null}");
     }
 
     @Test

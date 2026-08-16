@@ -60,6 +60,10 @@ public class SecurityConfig {
                                 "/api/auth/*/login",
                                 "/api/auth/reissue")
                         .permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/items/*/favorite")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/items/*/favorite")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout")
                         .authenticated()
                         .anyRequest()
