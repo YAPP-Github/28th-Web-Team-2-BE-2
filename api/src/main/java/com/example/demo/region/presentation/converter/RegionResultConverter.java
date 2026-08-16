@@ -1,0 +1,16 @@
+package com.example.demo.region.presentation.converter;
+
+import com.example.demo.region.application.result.NearbyRegionResult;
+import com.example.demo.region.presentation.dto.NearbyRegionResponse;
+import java.util.List;
+import org.springframework.stereotype.Component;
+
+@Component
+public class RegionResultConverter {
+
+    public List<NearbyRegionResponse> toNearbyRegionResponses(final NearbyRegionResult result) {
+        return result.regions().stream()
+                .map(region -> new NearbyRegionResponse(region.regionId(), region.regionName()))
+                .toList();
+    }
+}

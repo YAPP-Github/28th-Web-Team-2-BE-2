@@ -47,6 +47,7 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/api/kamis/**",
                                 "/api/v1/items",
+                                "/api/v1/regions/nearby",
                                 "/api/auth/test/kakao/redirect",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
