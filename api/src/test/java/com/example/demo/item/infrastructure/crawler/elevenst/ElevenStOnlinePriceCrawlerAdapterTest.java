@@ -14,6 +14,14 @@ import org.junit.jupiter.api.Test;
 class ElevenStOnlinePriceCrawlerAdapterTest {
 
     @Test
+    void 십일번가_채널명을_반환한다() {
+        final ElevenStOnlinePriceCrawlerAdapter adapter =
+                new ElevenStOnlinePriceCrawlerAdapter(mock(ElevenStOnlineItemCrawler.class));
+
+        assertThat(adapter.channelName()).isEqualTo("11번가");
+    }
+
+    @Test
     void convertsElevenStProductToCommonResult() {
         final ElevenStOnlineItemCrawler crawler = mock(ElevenStOnlineItemCrawler.class);
         final ElevenStProduct product = new ElevenStProduct(
