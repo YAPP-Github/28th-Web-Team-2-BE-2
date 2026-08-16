@@ -14,25 +14,28 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class OnlinePriceJpaRepositoryTest {
+class OnlinePricePersistenceAdapterTest {
 
     private static final LocalDate PRICE_DATE = LocalDate.of(2026, 8, 15);
 
     private final ItemJpaRepository itemJpaRepository;
     private final OnlineChannelJpaRepository onlineChannelJpaRepository;
     private final OnlinePriceJpaRepository onlinePriceJpaRepository;
+    private final OnlinePricePersistenceAdapter onlinePricePersistenceAdapter;
 
     private Long itemId;
     private Integer channelId;
 
     @Autowired
-    OnlinePriceJpaRepositoryTest(
+    OnlinePricePersistenceAdapterTest(
             final ItemJpaRepository itemJpaRepository,
             final OnlineChannelJpaRepository onlineChannelJpaRepository,
-            final OnlinePriceJpaRepository onlinePriceJpaRepository) {
+            final OnlinePriceJpaRepository onlinePriceJpaRepository,
+            final OnlinePricePersistenceAdapter onlinePricePersistenceAdapter) {
         this.itemJpaRepository = itemJpaRepository;
         this.onlineChannelJpaRepository = onlineChannelJpaRepository;
         this.onlinePriceJpaRepository = onlinePriceJpaRepository;
+        this.onlinePricePersistenceAdapter = onlinePricePersistenceAdapter;
     }
 
     @BeforeEach
@@ -41,51 +44,45 @@ class OnlinePriceJpaRepositoryTest {
         onlineChannelJpaRepository.deleteAll();
         itemJpaRepository.deleteAll();
         itemId = itemJpaRepository.save(new Item("감자", "1kg")).id();
-        channelId = onlineChannelJpaRepository.save(new OnlineChannel("컬리")).id().intValue();
+        channelId = onlineChannelJpaRepository.save(new OnlineChannel("컬리")).id();
     }
 
     @Test
-    void 품목과_채널과_수집일로_온라인_가격을_조회한다() {
-        onlinePriceJpaRepository.saveAll(List.of(
-                price("상품 A", PRICE_DATE),
-                price("상품 B", PRICE_DATE),
-                price("지난 상품", PRICE_DATE.minusDays(1))));
+    void 온라인_가격을_저장한다() {
+        final OnlinePrice price = price("상품 A", PRICE_DATE, 300, 100);
 
-        final List<OnlinePrice> prices = onlinePriceJpaRepository
-                .findAllByItemIdAndChannelIdAndCreatedAtOrderByIdAsc(itemId, channelId, PRICE_DATE);
+        onlinePricePersistenceAdapter.saveAll(List.of(price));
 
-        assertThat(prices).extracting(OnlinePrice::productName)
-                .containsExactly("상품 A", "상품 B");
+        assertThat(onlinePriceJpaRepository.findAll()).extracting(OnlinePrice::productName)
+                .containsExactly("상품 A");
     }
 
     @Test
-    void 품목과_채널과_수집일로_온라인_가격을_삭제한다() {
+    void 품목과_채널과_수집일이_같은_온라인_가격을_삭제한다() {
         onlinePriceJpaRepository.saveAll(List.of(
-                price("상품 A", PRICE_DATE),
-                price("상품 B", PRICE_DATE),
-                price("지난 상품", PRICE_DATE.minusDays(1))));
+                price("상품 A", PRICE_DATE, 300, 100),
+                price("지난 상품", PRICE_DATE.minusDays(1), 400, 100)));
 
-        final long deletedCount = onlinePriceJpaRepository
-                .deleteAllByItemIdAndChannelIdAndCreatedAt(itemId, channelId, PRICE_DATE);
+        onlinePricePersistenceAdapter.deleteAll(itemId, channelId, PRICE_DATE);
 
-        assertThat(deletedCount).isEqualTo(2);
         assertThat(onlinePriceJpaRepository.findAll()).extracting(OnlinePrice::productName)
                 .containsExactly("지난 상품");
     }
 
     @Test
-    void 품목과_채널과_수집일의_100g당_최저가를_조회한다() {
+    void 채널별_100g당_최저가를_조회한다() {
         onlinePriceJpaRepository.saveAll(List.of(
                 price("비싼 상품", PRICE_DATE, 500, 100),
                 price("저렴한 상품", PRICE_DATE, 300, 100),
                 price("다른 단위 상품", PRICE_DATE, 1, 1)));
 
-        final Optional<OnlinePrice> lowestPrice = onlinePriceJpaRepository
-                .findFirstByItemIdAndChannelIdAndCreatedAtAndUnitOrderByPriceAscIdAsc(
-                        itemId, channelId, PRICE_DATE, 100);
+        final Optional<OnlinePrice> lowestPrice = onlinePricePersistenceAdapter.findLowestPrice(
+                itemId, channelId, PRICE_DATE, 100);
 
-        assertThat(lowestPrice).isPresent();
-        assertThat(lowestPrice.orElseThrow().productName()).isEqualTo("저렴한 상품");
+        assertThat(lowestPrice).isPresent()
+                .get()
+                .extracting(OnlinePrice::productName)
+                .isEqualTo("저렴한 상품");
     }
 
     @Test
@@ -94,16 +91,13 @@ class OnlinePriceJpaRepositoryTest {
                 price("먼저 저장된 상품", PRICE_DATE, 300, 100),
                 price("나중에 저장된 상품", PRICE_DATE, 300, 100)));
 
-        final Optional<OnlinePrice> lowestPrice = onlinePriceJpaRepository
-                .findFirstByItemIdAndChannelIdAndCreatedAtAndUnitOrderByPriceAscIdAsc(
-                        itemId, channelId, PRICE_DATE, 100);
+        final Optional<OnlinePrice> lowestPrice = onlinePricePersistenceAdapter.findLowestPrice(
+                itemId, channelId, PRICE_DATE, 100);
 
-        assertThat(lowestPrice).isPresent();
-        assertThat(lowestPrice.orElseThrow().productName()).isEqualTo("먼저 저장된 상품");
-    }
-
-    private OnlinePrice price(final String productName, final LocalDate createdAt) {
-        return price(productName, createdAt, 890, 100);
+        assertThat(lowestPrice).isPresent()
+                .get()
+                .extracting(OnlinePrice::productName)
+                .isEqualTo("먼저 저장된 상품");
     }
 
     private OnlinePrice price(
