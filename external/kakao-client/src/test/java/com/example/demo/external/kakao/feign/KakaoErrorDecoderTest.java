@@ -7,15 +7,17 @@ import com.example.demo.common.exception.ErrorType;
 import feign.Request;
 import feign.Response;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpStatus;
 
 class KakaoErrorDecoderTest {
 
-    @Test
-    void Kakao_HTTP_오류를_공통_API_예외로_변환한다() {
+    @ParameterizedTest
+    @ValueSource(ints = {401, 429, 503})
+    void Kakao_HTTP_오류를_BAD_GATEWAY_공통_API_예외로_변환한다(final int status) {
         final Response response = Response.builder()
-                .status(429)
+                .status(status)
                 .request(Request.create(
                         Request.HttpMethod.GET,
                         "https://dapi.kakao.com",
@@ -29,14 +31,15 @@ class KakaoErrorDecoderTest {
 
         assertThat(exception).isInstanceOfSatisfying(ApiException.class, apiException -> {
             assertThat(apiException.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
-            assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+            assertThat(apiException.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
         });
     }
 
-    @Test
-    void 알_수_없는_HTTP_상태는_BAD_GATEWAY로_변환한다() {
+    @ParameterizedTest
+    @ValueSource(ints = {599})
+    void 알_수_없는_HTTP_상태는_BAD_GATEWAY로_변환한다(final int status) {
         final Response response = Response.builder()
-                .status(599)
+                .status(status)
                 .request(Request.create(
                         Request.HttpMethod.GET,
                         "https://dapi.kakao.com",

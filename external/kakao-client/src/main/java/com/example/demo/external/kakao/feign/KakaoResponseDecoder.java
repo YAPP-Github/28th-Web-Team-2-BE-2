@@ -44,7 +44,7 @@ public final class KakaoResponseDecoder implements Decoder {
 
     private ObjectNode normalize(final JsonNode root, final Type type) {
         if (root == null || !root.has(META) || !root.has(DOCUMENTS)) {
-            throw new IllegalStateException("Invalid Kakao response");
+            throw externalApiException();
         }
         final ObjectNode normalized = root.deepCopy();
         normalized.set(TOTAL_COUNT_CAMEL_CASE, root.path(META).path(TOTAL_COUNT));
