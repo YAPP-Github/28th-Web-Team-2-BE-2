@@ -1,5 +1,7 @@
 package com.example.demo.item.application.usecase;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.command.CrawlOnlinePriceCommand;
 import com.example.demo.item.application.port.OnlineChannelQueryPort;
 import com.example.demo.item.application.port.OnlineItemQueryPort;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -73,7 +76,10 @@ public class CollectOnlinePriceUseCase {
         return crawlers.stream()
                 .filter(crawler -> crawler.channelName().equals(channelName))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("온라인 가격 크롤러가 없습니다: " + channelName));
+                .orElseThrow(() -> new ApiException(
+                        ErrorType.CONFIGURATION_ERROR.description(),
+                        ErrorType.CONFIGURATION_ERROR,
+                        HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
     private boolean isValid(final OnlinePriceCrawlResult result) {

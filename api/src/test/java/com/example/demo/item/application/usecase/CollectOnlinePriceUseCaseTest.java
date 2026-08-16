@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.command.CrawlOnlinePriceCommand;
 import com.example.demo.item.application.port.OnlineChannelQueryPort;
 import com.example.demo.item.application.port.OnlineItemQueryPort;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 class CollectOnlinePriceUseCaseTest {
 
@@ -106,7 +109,10 @@ class CollectOnlinePriceUseCaseTest {
                 persistence,
                 List.of(new StubCrawler("오아시스", name -> {
                     if (name.equals("실패 품목")) {
-                        throw new IllegalStateException("crawler failure");
+                        throw new ApiException(
+                                ErrorType.EXTERNAL_API_ERROR.description(),
+                                ErrorType.EXTERNAL_API_ERROR,
+                                HttpStatus.BAD_GATEWAY);
                     }
                     return List.of(crawlResult(name, "신규 상품", 200));
                 })));
