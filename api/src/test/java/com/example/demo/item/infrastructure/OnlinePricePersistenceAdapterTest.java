@@ -85,6 +85,21 @@ class OnlinePricePersistenceAdapterTest {
                 .isEqualTo("저렴한 상품");
     }
 
+    @Test
+    void 같은_가격과_단위이면_먼저_저장된_상품을_조회한다() {
+        onlinePriceJpaRepository.saveAll(List.of(
+                price("먼저 저장된 상품", PRICE_DATE, 300, 100),
+                price("나중에 저장된 상품", PRICE_DATE, 300, 100)));
+
+        final Optional<OnlinePrice> lowestPrice = onlinePricePersistenceAdapter.findLowestPrice(
+                itemId, channelId, PRICE_DATE, 100);
+
+        assertThat(lowestPrice).isPresent()
+                .get()
+                .extracting(OnlinePrice::productName)
+                .isEqualTo("먼저 저장된 상품");
+    }
+
     private OnlinePrice price(
             final String productName,
             final LocalDate createdAt,

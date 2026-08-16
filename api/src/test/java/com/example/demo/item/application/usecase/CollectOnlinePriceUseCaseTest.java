@@ -68,6 +68,28 @@ class CollectOnlinePriceUseCaseTest {
     }
 
     @Test
+    void 가격이_없는_결과는_실패하지_않고_저장하지_않는다() {
+        final Item item = item(1L, "감자");
+        final OnlineChannel channel = channel(1, "오아시스");
+        final OnlinePriceCrawlResult result = mock(OnlinePriceCrawlResult.class);
+        when(result.price()).thenReturn(null);
+        final InMemoryOnlinePricePersistence persistence = new InMemoryOnlinePricePersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item),
+                List.of(channel),
+                persistence,
+                List.of(new StubCrawler("오아시스", name -> List.of(result))));
+
+        final OnlinePriceCollectionResult collectionResult = useCase.execute(COLLECTION_DATE);
+
+        assertThat(collectionResult.succeededTaskCount()).isEqualTo(1);
+        assertThat(collectionResult.failedTaskCount()).isZero();
+        assertThat(collectionResult.savedPriceCount()).isZero();
+        assertThat(persistence.deletedScopes()).contains(new Scope(1L, 1, COLLECTION_DATE));
+        assertThat(persistence.savedPrices()).isEmpty();
+    }
+
+    @Test
     void 한_작업이_실패해도_다른_작업은_계속하고_실패한_작업의_기존_가격은_보존한다() {
         final Item failedItem = item(1L, "실패 품목");
         final Item succeededItem = item(2L, "성공 품목");

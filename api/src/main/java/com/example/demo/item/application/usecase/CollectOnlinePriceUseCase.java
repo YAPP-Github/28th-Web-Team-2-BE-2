@@ -78,6 +78,7 @@ public class CollectOnlinePriceUseCase {
 
     private boolean isValid(final OnlinePriceCrawlResult result) {
         return result != null
+                && result.price() != null
                 && result.price().signum() > 0
                 && result.unit() > 0
                 && result.productName() != null
