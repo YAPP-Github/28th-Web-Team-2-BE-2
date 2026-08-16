@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
-import com.example.demo.external.kakao.KakaoClientException;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Request;
@@ -13,6 +13,7 @@ import feign.Response;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 class KakaoResponseDecoderTest {
 
@@ -65,7 +66,7 @@ class KakaoResponseDecoderTest {
     void documents가_누락된_지역_응답을_거부한다() {
         assertThatThrownBy(() -> decode(
                         "{\"meta\":{\"total_count\":0}}", KakaoRegionCodeResult.class))
-                .isInstanceOf(KakaoClientException.class);
+                .isInstanceOfSatisfying(ApiException.class, this::assertExternalApiException);
     }
 
     @Test
@@ -73,7 +74,7 @@ class KakaoResponseDecoderTest {
         assertThatThrownBy(() -> decode(
                         "{\"meta\":{\"total_count\":0},\"documents\":null}",
                         KakaoRegionCodeResult.class))
-                .isInstanceOf(KakaoClientException.class);
+                .isInstanceOfSatisfying(ApiException.class, this::assertExternalApiException);
     }
 
     @Test
@@ -81,7 +82,7 @@ class KakaoResponseDecoderTest {
         assertThatThrownBy(() -> decode(
                         "{\"meta\":{\"total_count\":\"1\"},\"documents\":[]}",
                         KakaoRegionCodeResult.class))
-                .isInstanceOf(KakaoClientException.class);
+                .isInstanceOfSatisfying(ApiException.class, this::assertExternalApiException);
     }
 
     @Test
@@ -91,7 +92,7 @@ class KakaoResponseDecoderTest {
                                 + "\"region_type\":\"B\",\"code\":\"4413310500\","
                                 + "\"region_2depth_name\":\"천안시 서북구\"}]}",
                         KakaoRegionCodeResult.class))
-                .isInstanceOf(KakaoClientException.class);
+                .isInstanceOfSatisfying(ApiException.class, this::assertExternalApiException);
     }
 
     @Test
@@ -99,7 +100,13 @@ class KakaoResponseDecoderTest {
         assertThatThrownBy(() -> decode(
                         "{\"meta\":{\"total_count\":1},\"documents\":[null]}",
                         KakaoCategorySearchResult.class))
-                .isInstanceOf(KakaoClientException.class);
+                .isInstanceOfSatisfying(ApiException.class, this::assertExternalApiException);
+    }
+
+    private void assertExternalApiException(final ApiException exception) {
+        assertThat(exception.errorType())
+                .isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+        assertThat(exception.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
     }
 
     private <T> T decode(final String body, final Class<T> type) throws Exception {

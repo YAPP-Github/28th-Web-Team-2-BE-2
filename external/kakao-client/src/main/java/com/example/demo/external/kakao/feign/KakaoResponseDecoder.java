@@ -1,8 +1,8 @@
 package com.example.demo.external.kakao.feign;
 
 import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
-import com.example.demo.external.kakao.KakaoClientException;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +12,7 @@ import feign.codec.Decoder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
+import org.springframework.http.HttpStatus;
 
 public final class KakaoResponseDecoder implements Decoder {
 
@@ -177,12 +178,19 @@ public final class KakaoResponseDecoder implements Decoder {
         return places;
     }
 
-    private KakaoClientException externalApiException() {
-        return new KakaoClientException();
+    private ApiException externalApiException() {
+        return new ApiException(
+                ErrorType.EXTERNAL_API_ERROR.description(),
+                ErrorType.EXTERNAL_API_ERROR,
+                HttpStatus.BAD_GATEWAY);
     }
 
-    private KakaoClientException externalApiException(final Exception exception) {
-        return new KakaoClientException(exception);
+    private ApiException externalApiException(final Exception exception) {
+        return new ApiException(
+                ErrorType.EXTERNAL_API_ERROR.description(),
+                ErrorType.EXTERNAL_API_ERROR,
+                HttpStatus.BAD_GATEWAY,
+                exception);
     }
 
     @FunctionalInterface
