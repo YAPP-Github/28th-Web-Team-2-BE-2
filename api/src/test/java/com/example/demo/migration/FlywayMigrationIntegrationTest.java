@@ -38,17 +38,21 @@ class FlywayMigrationIntegrationTest {
         flyway.clean();
         flyway.migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
+        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
         assertThat(countRows("batch_item_errors")).isZero();
+        assertThat(columnNames("item_favorites"))
+                .containsExactly("item_favorite_id", "user_id", "item_id", "created_at");
+        assertThat(constraintNames("item_favorites"))
+                .contains("uk_item_favorites_user_item", "fk_item_favorites_user", "fk_item_favorites_item");
     }
 
     @Test
-    void 기존_V1부터_V7까지의_이력에서_V8만_추가된다() throws SQLException {
+    void 기존_V1부터_V8까지의_이력에서_V9만_추가된다() throws SQLException {
         flyway().clean();
-        flyway("7").migrate();
+        flyway("8").migrate();
 
         final int itemsBefore = countRows("items");
         final int usersBefore = countRows("users");
@@ -56,7 +60,7 @@ class FlywayMigrationIntegrationTest {
 
         flyway().migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
+        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -64,6 +68,7 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRows("online_prices")).isEqualTo(onlinePricesBefore);
         assertThat(countRows("batch_job_execution")).isZero();
         assertThat(countRows("batch_item_errors")).isZero();
+        assertThat(countRows("item_favorites")).isZero();
     }
 
     @Test
@@ -168,6 +173,38 @@ class FlywayMigrationIntegrationTest {
                     1, 1, '감자', '감자 상품', 1000, 100, '%s', CURRENT_DATE
                 )
                 """.formatted(productUrl);
+    }
+
+    private List<String> columnNames(final String tableName) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT column_name FROM information_schema.columns "
+                                + "WHERE table_schema = 'public' AND table_name = ? ORDER BY ordinal_position")) {
+            statement.setString(1, tableName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                final ArrayList<String> columns = new ArrayList<>();
+                while (resultSet.next()) {
+                    columns.add(resultSet.getString("column_name"));
+                }
+                return columns;
+            }
+        }
+    }
+
+    private List<String> constraintNames(final String tableName) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT constraint_name FROM information_schema.table_constraints "
+                                + "WHERE table_schema = 'public' AND table_name = ?")) {
+            statement.setString(1, tableName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                final ArrayList<String> constraints = new ArrayList<>();
+                while (resultSet.next()) {
+                    constraints.add(resultSet.getString("constraint_name"));
+                }
+                return constraints;
+            }
+        }
     }
 
     private Connection connection() throws SQLException {

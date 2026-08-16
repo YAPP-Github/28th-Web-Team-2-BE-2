@@ -26,6 +26,6 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         final ErrorType errorType = tokenError instanceof ErrorType
                 ? (ErrorType) tokenError
                 : ErrorType.UNAUTHORIZED;
-        responseWriter.write(response, HttpStatus.UNAUTHORIZED, errorType);
+        responseWriter.write(request, response, HttpStatus.UNAUTHORIZED, errorType);
     }
 }
