@@ -6,6 +6,7 @@ public record ItemPriceResult(
         Long itemId,
         String itemName,
         String itemImageUrl,
+        String defaultUnit,
         Integer price,
         Integer priceGap,
         BigDecimal priceDiffRate) {}

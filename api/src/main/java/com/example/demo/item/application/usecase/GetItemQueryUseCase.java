@@ -77,16 +77,24 @@ public class GetItemQueryUseCase {
     private ItemPriceResult toResult(
             final Item item, final PublicPrice publicPrice, final PublicPrice previousPrice) {
         if (publicPrice == null) {
-            return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), null, null, null);
+            return new ItemPriceResult(
+                    item.id(), item.name(), item.imageUrl(), item.defaultUnit(), null, null, null);
         }
         if (previousPrice == null) {
             return new ItemPriceResult(
-                    item.id(), item.name(), item.imageUrl(), publicPrice.price(), null, null);
+                    item.id(),
+                    item.name(),
+                    item.imageUrl(),
+                    item.defaultUnit(),
+                    publicPrice.price(),
+                    null,
+                    null);
         }
         return new ItemPriceResult(
                 item.id(),
                 item.name(),
                 item.imageUrl(),
+                item.defaultUnit(),
                 publicPrice.price(),
                 publicPrice.price() - previousPrice.price(),
                 calculatePriceDiffRate(publicPrice, previousPrice));
