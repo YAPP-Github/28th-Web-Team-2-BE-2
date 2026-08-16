@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
+import com.example.demo.external.kakao.KakaoClientException;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Request;
@@ -58,6 +59,47 @@ class KakaoResponseDecoderTest {
     void 잘못된_응답을_공통_API_예외로_변환한다() {
         assertThatThrownBy(() -> decode("{}", KakaoRegionCodeResult.class))
                 .isInstanceOf(ApiException.class);
+    }
+
+    @Test
+    void documents가_누락된_지역_응답을_거부한다() {
+        assertThatThrownBy(() -> decode(
+                        "{\"meta\":{\"total_count\":0}}", KakaoRegionCodeResult.class))
+                .isInstanceOf(KakaoClientException.class);
+    }
+
+    @Test
+    void documents가_null인_지역_응답을_거부한다() {
+        assertThatThrownBy(() -> decode(
+                        "{\"meta\":{\"total_count\":0},\"documents\":null}",
+                        KakaoRegionCodeResult.class))
+                .isInstanceOf(KakaoClientException.class);
+    }
+
+    @Test
+    void totalCount가_숫자가_아닌_응답을_거부한다() {
+        assertThatThrownBy(() -> decode(
+                        "{\"meta\":{\"total_count\":\"1\"},\"documents\":[]}",
+                        KakaoRegionCodeResult.class))
+                .isInstanceOf(KakaoClientException.class);
+    }
+
+    @Test
+    void 필수_필드가_누락된_지역_document를_거부한다() {
+        assertThatThrownBy(() -> decode(
+                        "{\"meta\":{\"total_count\":1},\"documents\":[{"
+                                + "\"region_type\":\"B\",\"code\":\"4413310500\","
+                                + "\"region_2depth_name\":\"천안시 서북구\"}]}",
+                        KakaoRegionCodeResult.class))
+                .isInstanceOf(KakaoClientException.class);
+    }
+
+    @Test
+    void 객체가_아닌_장소_document를_거부한다() {
+        assertThatThrownBy(() -> decode(
+                        "{\"meta\":{\"total_count\":1},\"documents\":[null]}",
+                        KakaoCategorySearchResult.class))
+                .isInstanceOf(KakaoClientException.class);
     }
 
     private <T> T decode(final String body, final Class<T> type) throws Exception {
