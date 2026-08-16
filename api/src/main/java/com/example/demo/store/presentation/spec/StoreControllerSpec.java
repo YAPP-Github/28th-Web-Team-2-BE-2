@@ -14,7 +14,7 @@ public interface StoreControllerSpec {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "주변 가게 조회 성공"),
         @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다"),
-        @ApiResponse(responseCode = "401", description = "찜 필터는 로그인이 필요하다")
+        @ApiResponse(responseCode = "502", description = "카카오 장소 검색에 실패했다")
     })
     ResponseEntity<NearbyStoresResponse> getNearbyStores(@ParameterObject NearbyStoreRequest request);
 }
