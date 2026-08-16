@@ -22,6 +22,10 @@ spring:
 springdoc:
   paths-to-exclude: /api/auth/test/**
 
+news:
+  crawler:
+    enabled: false
+
 management:
   health:
     redis:
