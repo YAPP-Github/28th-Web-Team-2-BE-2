@@ -55,7 +55,7 @@ class ItemQueryE2ETest {
         final Item onion = itemJpaRepository.save(new Item("양파", "1kg"));
         final Item greenOnion = itemJpaRepository.save(new Item("대파", "1단"));
         final Item carrot = itemJpaRepository.save(new Item("당근", "1kg"));
-        itemJpaRepository.save(new Item("양배추", "1통"));
+        itemJpaRepository.save(new Item("양배추", null));
         final Item secondPotato = itemJpaRepository.save(new Item("감자", "1kg"));
         firstPotatoId = potato.id();
         secondPotatoId = secondPotato.id();
@@ -92,6 +92,7 @@ class ItemQueryE2ETest {
                         .value(contains("감자", "감자", "당근", "대파", "양배추", "양파")))
                 .andExpect(jsonPath("$.items[0].price").value(3500))
                 .andExpect(jsonPath("$.items[0].priceGap").value(500))
+                .andExpect(jsonPath("$.items[0].defaultUnit").value("1kg"))
                 .andExpect(jsonPath("$.items[0].priceDiffRate").value(16.7))
                 .andExpect(jsonPath("$.items[1].price").value(3500))
                 .andExpect(jsonPath("$.items[1].priceGap").value(nullValue()))
@@ -104,6 +105,7 @@ class ItemQueryE2ETest {
                 .andExpect(jsonPath("$.items[3].priceDiffRate").value(0.0))
                 .andExpect(jsonPath("$.items[4].price").value(nullValue()))
                 .andExpect(jsonPath("$.items[4].priceGap").value(nullValue()))
+                .andExpect(jsonPath("$.items[4].defaultUnit").value(nullValue()))
                 .andExpect(jsonPath("$.items[4].priceDiffRate").value(nullValue()))
                 .andExpect(jsonPath("$.items[5].price").value(2800))
                 .andExpect(jsonPath("$.items[5].priceGap").value(-200))
@@ -484,6 +486,10 @@ class ItemQueryE2ETest {
                         .value(contains("NAME_ASC", "PRICE_ASC", "PRICE_DESC")))
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['200'].content['application/json'].schema.$ref")
                         .value("#/components/schemas/ItemPageResponse"))
+                .andExpect(jsonPath("$.components.schemas.ItemResponse.properties.defaultUnit")
+                        .exists())
+                .andExpect(jsonPath("$.components.schemas.ItemResponse.properties.defaultUnit.type")
+                        .value(contains("string", "null")))
                 .andExpect(jsonPath("$.components.schemas.ItemResponse.properties.priceDiffRate")
                         .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['400'].description")
