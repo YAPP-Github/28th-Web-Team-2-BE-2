@@ -58,6 +58,25 @@ jobs:
         shell: bash
         run: echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${SOURCE_SHA}" >> "$GITHUB_OUTPUT"
 
+      - name: Check immutable image
+        id: existing-image
+        shell: bash
+        run: |
+          set -euo pipefail
+          if describe_output="$(aws ecr describe-images --repository-name "$ECR_REPOSITORY" --image-ids "imageTag=$SOURCE_SHA" --region "$AWS_REGION" 2>&1)"; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Immutable image already exists; reusing $SOURCE_SHA."
+          else
+            status=$?
+            if [[ "$describe_output" == *"ImageNotFoundException"* ]]; then
+              echo "exists=false" >> "$GITHUB_OUTPUT"
+              echo "No immutable image exists for $SOURCE_SHA; building it."
+            else
+              printf '%s\n' "$describe_output" >&2
+              exit "$status"
+            fi
+          fi
+
       - name: Download application JAR
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -77,6 +96,7 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Build and publish ARM64 image
+        if: steps.existing-image.outputs.exists != 'true'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
