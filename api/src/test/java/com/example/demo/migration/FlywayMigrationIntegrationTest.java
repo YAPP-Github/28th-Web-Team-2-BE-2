@@ -1,6 +1,7 @@
 package com.example.demo.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -37,26 +38,82 @@ class FlywayMigrationIntegrationTest {
         flyway.clean();
         flyway.migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7");
+        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
+        assertThat(countRows("batch_job_execution")).isZero();
+        assertThat(countRows("batch_item_errors")).isZero();
     }
 
     @Test
-    void 기존_V1부터_V6까지의_이력에서_V7만_추가된다() throws SQLException {
+    void 기존_V1부터_V7까지의_이력에서_V8만_추가된다() throws SQLException {
         flyway().clean();
-        flyway("6").migrate();
+        flyway("7").migrate();
 
         final int itemsBefore = countRows("items");
         final int usersBefore = countRows("users");
+        final int onlinePricesBefore = countRows("online_prices");
 
         flyway().migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7");
+        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
+        assertThat(countRows("online_prices")).isEqualTo(onlinePricesBefore);
+        assertThat(countRows("batch_job_execution")).isZero();
+        assertThat(countRows("batch_item_errors")).isZero();
+    }
+
+    @Test
+    void 품목과_채널이_삭제되어도_batch_item_error_이력은_보존한다() throws SQLException {
+        flyway().clean();
+        flyway().migrate();
+        executeUpdate("""
+                INSERT INTO batch_job_execution (
+                    job_name, status, started_at, ended_at, total_records, success_records
+                ) VALUES ('ONLINE_PRICE_COLLECTION', 'FAILED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1, 0)
+                """);
+        executeUpdate("""
+                INSERT INTO batch_item_errors (
+                    job_execution_id, item_id, channel_id, attempt_count,
+                    error_type, error_message, created_at
+                ) VALUES (1, 1, 1, 1, 'EXTERNAL_API_ERROR', '정제된 오류', CURRENT_TIMESTAMP)
+                """);
+
+        final int deletedItems = executeUpdate("DELETE FROM items WHERE item_id = 1");
+        final int deletedChannels = executeUpdate(
+                "DELETE FROM online_channels WHERE channel_id = 1");
+
+        assertThat(deletedItems).isEqualTo(1);
+        assertThat(deletedChannels).isEqualTo(1);
+        assertThat(countRows("batch_item_errors")).isEqualTo(1);
+    }
+
+    @Test
+    void 같은_품목_채널_날짜_URL의_온라인_가격은_중복_저장할_수_없다() throws SQLException {
+        flyway().clean();
+        flyway().migrate();
+        final String insert = onlinePriceInsert("https://example.com/product");
+
+        executeUpdate(insert);
+
+        assertThatThrownBy(() -> executeUpdate(insert)).isInstanceOf(SQLException.class);
+    }
+
+    @Test
+    void V7에_중복_온라인_가격이_있으면_삭제하지_않고_V8을_거부한다() throws SQLException {
+        flyway().clean();
+        flyway("7").migrate();
+        final String insert = onlinePriceInsert("https://example.com/duplicate");
+        executeUpdate(insert);
+        executeUpdate(insert);
+
+        assertThatThrownBy(() -> flyway().migrate())
+                .rootCause()
+                .hasMessageContaining("V8 requires unique online price scope and product URL");
+        assertThat(countRows("online_prices")).isEqualTo(2);
     }
 
     private Flyway flyway() {
@@ -94,6 +151,23 @@ class FlywayMigrationIntegrationTest {
             resultSet.next();
             return resultSet.getInt(1);
         }
+    }
+
+    private int executeUpdate(final String sql) throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement()) {
+            return statement.executeUpdate(sql);
+        }
+    }
+
+    private String onlinePriceInsert(final String productUrl) {
+        return """
+                INSERT INTO online_prices (
+                    item_id, channel_id, item_name, product_name, price, unit, product_url, created_at
+                ) VALUES (
+                    1, 1, '감자', '감자 상품', 1000, 100, '%s', CURRENT_DATE
+                )
+                """.formatted(productUrl);
     }
 
     private Connection connection() throws SQLException {
