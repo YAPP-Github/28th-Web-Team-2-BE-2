@@ -1,4 +1,4 @@
-package com.example.demo.store.infrastructure;
+package com.example.demo.common.config.kakao;
 
 import com.example.demo.external.kakao.KakaoLocalClient;
 import com.example.demo.external.kakao.KakaoLocalRestClient;

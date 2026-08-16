@@ -2,40 +2,36 @@ package com.example.demo.region.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
+import com.example.demo.external.kakao.KakaoClientException;
+import com.example.demo.external.kakao.KakaoLocalClient;
+import com.example.demo.external.kakao.KakaoRegion;
+import com.example.demo.external.kakao.KakaoRegionCodeQuery;
+import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.example.demo.region.application.query.NearbyRegionQuery;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.web.client.RestClient;
+import org.springframework.http.HttpStatus;
 
 class KakaoNearbyRegionAdapterTest {
 
+    private final KakaoLocalClient kakaoLocalClient = mock(KakaoLocalClient.class);
+    private final KakaoNearbyRegionAdapter adapter = new KakaoNearbyRegionAdapter(kakaoLocalClient);
+
     @Test
     void Kakao_좌표_행정구역_검색에서_법정동만_변환한다() {
-        final RestClient.Builder builder = RestClient.builder().baseUrl("https://dapi.kakao.com");
-        final MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-        server.expect(requestTo(
-                        "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json"
-                                + "?x=127.1324&y=36.8358"))
-                .andExpect(method(GET))
-                .andExpect(header("Authorization", "KakaoAK rest-api-key"))
-                .andRespond(withSuccess(
-                        "{\"meta\":{\"total_count\":2},\"documents\":["
-                                + "{\"region_type\":\"B\",\"code\":\"4413310500\","
-                                + "\"region_2depth_name\":\"천안시 서북구\",\"region_3depth_name\":\"성성동\"},"
-                                + "{\"region_type\":\"H\",\"code\":\"4413357000\","
-                                + "\"region_2depth_name\":\"천안시 서북구\",\"region_3depth_name\":\"부성2동\"}]}" ,
-                        MediaType.APPLICATION_JSON));
-
-        final KakaoNearbyRegionAdapter adapter = new KakaoNearbyRegionAdapter(builder, "rest-api-key");
+        when(kakaoLocalClient.searchRegionCode(any(KakaoRegionCodeQuery.class)))
+                .thenReturn(new KakaoRegionCodeResult(
+                        2,
+                        List.of(
+                                new KakaoRegion("B", "4413310500", "천안시 서북구", "성성동"),
+                                new KakaoRegion("H", "4413357000", "천안시 서북구", "부성2동"))));
 
         final var result = adapter.find(new NearbyRegionQuery(
                 new BigDecimal("36.8358"), new BigDecimal("127.1324")));
@@ -46,23 +42,18 @@ class KakaoNearbyRegionAdapterTest {
                     assertThat(region.regionId()).isEqualTo("4413310500");
                     assertThat(region.regionName()).isEqualTo("천안시 서북구 성성동");
                 });
-        server.verify();
     }
 
     @Test
-    void Kakao_응답_구조가_잘못되면_외부_API_오류로_변환한다() {
-        final RestClient.Builder builder = RestClient.builder().baseUrl("https://dapi.kakao.com");
-        final MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-        server.expect(requestTo(
-                        "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json"
-                                + "?x=127.1324&y=36.8358"))
-                .andRespond(withSuccess("{\"meta\":{\"total_count\":1}}", MediaType.APPLICATION_JSON));
-
-        final KakaoNearbyRegionAdapter adapter = new KakaoNearbyRegionAdapter(builder, "rest-api-key");
+    void Kakao_외부_호출_오류를_외부_API_오류로_변환한다() {
+        when(kakaoLocalClient.searchRegionCode(any(KakaoRegionCodeQuery.class)))
+                .thenThrow(new KakaoClientException(new IllegalStateException("Kakao failed")));
 
         assertThatThrownBy(() -> adapter.find(new NearbyRegionQuery(
                         new BigDecimal("36.8358"), new BigDecimal("127.1324"))))
-                .isInstanceOf(ApiException.class);
-        server.verify();
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(exception.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                });
     }
 }

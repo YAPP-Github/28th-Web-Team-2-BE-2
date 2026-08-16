@@ -50,6 +50,24 @@ public class KakaoLocalRestClient implements KakaoLocalClient {
         }
     }
 
+    @Override
+    public KakaoRegionCodeResult searchRegionCode(final KakaoRegionCodeQuery query) {
+        try {
+            final KakaoRegionCodeResponse response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/v2/local/geo/coord2regioncode.json")
+                            .queryParam("x", query.longitude())
+                            .queryParam("y", query.latitude())
+                            .build())
+                    .header("Authorization", "KakaoAK " + apiKey)
+                    .retrieve()
+                    .body(KakaoRegionCodeResponse.class);
+            return toRegionCodeResult(response);
+        } catch (final RuntimeException exception) {
+            throw new KakaoClientException(exception);
+        }
+    }
+
     private KakaoCategorySearchResult toResult(final KakaoResponse response) {
         if (response == null || response.documents() == null || response.meta() == null) {
             throw new IllegalStateException("Invalid Kakao response");
@@ -76,6 +94,35 @@ public class KakaoLocalRestClient implements KakaoLocalClient {
         return Integer.valueOf(distance);
     }
 
+    private KakaoRegionCodeResult toRegionCodeResult(final KakaoRegionCodeResponse response) {
+        if (response == null || response.documents() == null || response.meta() == null) {
+            throw new IllegalStateException("Invalid Kakao region response");
+        }
+        final List<KakaoRegion> regions = response.documents().stream()
+                .map(this::toRegion)
+                .toList();
+        return new KakaoRegionCodeResult(response.meta().totalCount(), regions);
+    }
+
+    private KakaoRegion toRegion(final KakaoRegionDocument document) {
+        if (document == null
+                || isBlank(document.regionType())
+                || isBlank(document.code())
+                || isBlank(document.region2DepthName())
+                || isBlank(document.region3DepthName())) {
+            throw new IllegalStateException("Invalid Kakao region document");
+        }
+        return new KakaoRegion(
+                document.regionType(),
+                document.code(),
+                document.region2DepthName(),
+                document.region3DepthName());
+    }
+
+    private boolean isBlank(final String value) {
+        return value == null || value.isBlank();
+    }
+
     private static ClientHttpRequestFactory requestFactory() {
         final SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(CONNECT_TIMEOUT);
@@ -97,4 +144,14 @@ public class KakaoLocalRestClient implements KakaoLocalClient {
             String phone,
             @JsonProperty("place_url") String placeUrl,
             String distance) {}
+
+    private record KakaoRegionCodeResponse(KakaoRegionMeta meta, List<KakaoRegionDocument> documents) {}
+
+    private record KakaoRegionMeta(@JsonProperty("total_count") long totalCount) {}
+
+    private record KakaoRegionDocument(
+            @JsonProperty("region_type") String regionType,
+            String code,
+            @JsonProperty("region_2depth_name") String region2DepthName,
+            @JsonProperty("region_3depth_name") String region3DepthName) {}
 }

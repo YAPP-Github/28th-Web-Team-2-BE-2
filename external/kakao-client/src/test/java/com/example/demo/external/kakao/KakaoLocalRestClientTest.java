@@ -1,6 +1,7 @@
 package com.example.demo.external.kakao;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -46,6 +47,62 @@ class KakaoLocalRestClientTest {
             assertThat(place.longitude()).isEqualByComparingTo("127.0276");
             assertThat(place.distanceMeters()).isEqualTo(670);
         });
+        server.verify();
+    }
+
+    @Test
+    void 카카오_좌표_행정구역_검색_요청과_응답을_변환한다() {
+        final RestClient.Builder builder = RestClient.builder().baseUrl("https://dapi.kakao.com");
+        final MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                        "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json"
+                                + "?x=127.1324&y=36.8358"))
+                .andExpect(method(GET))
+                .andExpect(header("Authorization", "KakaoAK rest-api-key"))
+                .andRespond(withSuccess(
+                        "{\"meta\":{\"total_count\":2},\"documents\":["
+                                + "{\"region_type\":\"B\",\"code\":\"4413310500\","
+                                + "\"region_2depth_name\":\"천안시 서북구\","
+                                + "\"region_3depth_name\":\"성성동\"},"
+                                + "{\"region_type\":\"H\",\"code\":\"4413357000\","
+                                + "\"region_2depth_name\":\"천안시 서북구\","
+                                + "\"region_3depth_name\":\"부성2동\"}]}" ,
+                        MediaType.APPLICATION_JSON));
+
+        final KakaoLocalRestClient client = new KakaoLocalRestClient(builder, "rest-api-key");
+
+        final var result = client.searchRegionCode(new KakaoRegionCodeQuery(
+                new BigDecimal("36.8358"), new BigDecimal("127.1324")));
+
+        assertThat(result.regions()).hasSize(2);
+        assertThat(result.regions()).first().satisfies(region -> {
+            assertThat(region.regionType()).isEqualTo("B");
+            assertThat(region.code()).isEqualTo("4413310500");
+            assertThat(region.region2DepthName()).isEqualTo("천안시 서북구");
+            assertThat(region.region3DepthName()).isEqualTo("성성동");
+        });
+        server.verify();
+    }
+
+    @Test
+    void 카카오_좌표_행정구역_응답이_잘못되면_클라이언트_오류를_던진다() {
+        final RestClient.Builder builder = RestClient.builder().baseUrl("https://dapi.kakao.com");
+        final MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(requestTo(
+                        "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json"
+                                + "?x=127.1324&y=36.8358"))
+                .andRespond(withSuccess(
+                        "{\"meta\":{\"total_count\":1},\"documents\":["
+                                + "{\"region_type\":\"B\",\"code\":null,"
+                                + "\"region_2depth_name\":\"천안시 서북구\","
+                                + "\"region_3depth_name\":\"성성동\"}]}" ,
+                        MediaType.APPLICATION_JSON));
+
+        final KakaoLocalRestClient client = new KakaoLocalRestClient(builder, "rest-api-key");
+
+        assertThatThrownBy(() -> client.searchRegionCode(new KakaoRegionCodeQuery(
+                        new BigDecimal("36.8358"), new BigDecimal("127.1324"))))
+                .isInstanceOf(KakaoClientException.class);
         server.verify();
     }
 }
