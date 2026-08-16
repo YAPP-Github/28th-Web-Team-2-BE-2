@@ -11,7 +11,14 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ElevenStOnlinePriceCrawlerAdapter implements OnlinePriceCrawlerPort {
 
+    private static final String CHANNEL_NAME = "11번가";
+
     private final ElevenStOnlineItemCrawler itemCrawler;
+
+    @Override
+    public String channelName() {
+        return CHANNEL_NAME;
+    }
 
     @Override
     public List<OnlinePriceCrawlResult> crawl(final CrawlOnlinePriceCommand command) {

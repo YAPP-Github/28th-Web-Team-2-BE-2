@@ -17,6 +17,11 @@ class KurlyOnlinePriceCrawlerAdapterTest {
     private final KurlyOnlinePriceCrawlerAdapter adapter = new KurlyOnlinePriceCrawlerAdapter(crawler);
 
     @Test
+    void 컬리_채널명을_반환한다() {
+        assertThat(adapter.channelName()).isEqualTo("컬리");
+    }
+
+    @Test
     void convertsKurlyProductsToApplicationPriceResults() {
         final KurlyProduct product = new KurlyProduct(
                 "5026448",
