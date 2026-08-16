@@ -74,6 +74,8 @@ class CollectOnlinePriceUseCaseTest {
         final OnlinePriceCrawlResult result = mock(OnlinePriceCrawlResult.class);
         when(result.price()).thenReturn(null);
         final InMemoryOnlinePricePersistence persistence = new InMemoryOnlinePricePersistence();
+        final Scope scope = new Scope(1L, 1, COLLECTION_DATE);
+        persistence.save(scope, List.of(price(item.name(), "기존 상품", 300)));
         final CollectOnlinePriceUseCase useCase = useCase(
                 List.of(item),
                 List.of(channel),
