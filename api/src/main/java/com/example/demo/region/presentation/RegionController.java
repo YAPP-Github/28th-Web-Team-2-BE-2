@@ -1,10 +1,14 @@
 package com.example.demo.region.presentation;
 
 import com.example.demo.region.application.usecase.GetNearbyRegionUseCase;
+import com.example.demo.region.application.usecase.SearchRegionsUseCase;
 import com.example.demo.region.presentation.converter.RegionQueryConverter;
 import com.example.demo.region.presentation.converter.RegionResultConverter;
 import com.example.demo.region.presentation.dto.NearbyRegionRequest;
 import com.example.demo.region.presentation.dto.NearbyRegionResponse;
+import com.example.demo.region.presentation.dto.RegionSearchRequest;
+import com.example.demo.region.presentation.dto.RegionSearchResponse;
+import com.example.demo.common.presentation.ApiV1Response;
 import com.example.demo.region.presentation.spec.RegionControllerSpec;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -21,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RegionController implements RegionControllerSpec {
 
     private final GetNearbyRegionUseCase getNearbyRegionUseCase;
+    private final SearchRegionsUseCase searchRegionsUseCase;
     private final RegionQueryConverter regionQueryConverter;
     private final RegionResultConverter regionResultConverter;
 
@@ -31,5 +36,14 @@ public class RegionController implements RegionControllerSpec {
         final List<NearbyRegionResponse> response = regionResultConverter.toNearbyRegionResponses(
                 getNearbyRegionUseCase.execute(regionQueryConverter.toNearbyRegionQuery(request)));
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/search")
+    @Override
+    public ResponseEntity<ApiV1Response<RegionSearchResponse>> searchRegions(
+            @Valid @ModelAttribute final RegionSearchRequest request) {
+        final RegionSearchResponse data = regionResultConverter.toRegionSearchResponse(
+                searchRegionsUseCase.execute(regionQueryConverter.toRegionSearchQuery(request)));
+        return ResponseEntity.ok(new ApiV1Response<>("SUCCESS", "성공", data));
     }
 }
