@@ -8,6 +8,11 @@ import org.springframework.stereotype.Component;
 public class ItemQueryRequestConverter {
 
     public ItemQuery toQuery(final ItemQueryRequest request) {
-        return new ItemQuery(request.regionId(), request.page(), request.size(), request.sort());
+        return new ItemQuery(
+                request.regionId(),
+                request.page(),
+                request.size(),
+                request.sort(),
+                request.keyword());
     }
 }

@@ -17,7 +17,8 @@ public record ItemQueryRequest(
         @Schema(
                         description = "정렬 방식",
                         defaultValue = "NAME_ASC")
-                ItemSort sort) {
+                ItemSort sort,
+        @Schema(description = "품목명 검색어", example = "감자") String keyword) {
 
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 10;
@@ -26,6 +27,15 @@ public record ItemQueryRequest(
         page = defaultValue(page, DEFAULT_PAGE);
         size = defaultValue(size, DEFAULT_SIZE);
         sort = defaultSort(sort);
+        keyword = normalizeKeyword(keyword);
+    }
+
+    public ItemQueryRequest(
+            final String regionId,
+            final Integer page,
+            final Integer size,
+            final ItemSort sort) {
+        this(regionId, page, size, sort, null);
     }
 
     public ItemQueryRequest(final String regionId, final Integer page, final Integer size) {
@@ -46,4 +56,14 @@ public record ItemQueryRequest(
         return sort;
     }
 
+    private static String normalizeKeyword(final String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        final String strippedKeyword = keyword.strip();
+        if (strippedKeyword.isEmpty()) {
+            return null;
+        }
+        return strippedKeyword;
+    }
 }
