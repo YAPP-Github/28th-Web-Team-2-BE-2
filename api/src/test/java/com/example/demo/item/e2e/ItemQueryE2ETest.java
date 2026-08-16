@@ -74,7 +74,7 @@ class ItemQueryE2ETest {
     }
 
     @Test
-    void 공개_품목과_공공가격_목록을_직접_성공_응답과_priceGap으로_조회한다() throws Exception {
+    void 공개_품목과_공공가격_목록을_직접_성공_응답과_가격_변동으로_조회한다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
                         .queryParam("sort", "NAME_ASC")
@@ -92,17 +92,22 @@ class ItemQueryE2ETest {
                         .value(contains("감자", "감자", "당근", "대파", "양배추", "양파")))
                 .andExpect(jsonPath("$.items[0].price").value(3500))
                 .andExpect(jsonPath("$.items[0].priceGap").value(500))
+                .andExpect(jsonPath("$.items[0].priceDiffRate").value(16.7))
                 .andExpect(jsonPath("$.items[1].price").value(3500))
                 .andExpect(jsonPath("$.items[1].priceGap").value(nullValue()))
+                .andExpect(jsonPath("$.items[1].priceDiffRate").value(nullValue()))
                 .andExpect(jsonPath("$.items[2].price").value(4000))
                 .andExpect(jsonPath("$.items[2].priceGap").value(nullValue()))
+                .andExpect(jsonPath("$.items[2].priceDiffRate").value(nullValue()))
                 .andExpect(jsonPath("$.items[3].price").value(2100))
                 .andExpect(jsonPath("$.items[3].priceGap").value(0))
+                .andExpect(jsonPath("$.items[3].priceDiffRate").value(0.0))
                 .andExpect(jsonPath("$.items[4].price").value(nullValue()))
                 .andExpect(jsonPath("$.items[4].priceGap").value(nullValue()))
+                .andExpect(jsonPath("$.items[4].priceDiffRate").value(nullValue()))
                 .andExpect(jsonPath("$.items[5].price").value(2800))
                 .andExpect(jsonPath("$.items[5].priceGap").value(-200))
-                .andExpect(jsonPath("$.items[0].priceDiffRate").doesNotExist())
+                .andExpect(jsonPath("$.items[5].priceDiffRate").value(-6.7))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(6))
                 .andExpect(jsonPath("$.hasNext").isBoolean());
@@ -339,8 +344,28 @@ class ItemQueryE2ETest {
                 .andExpect(jsonPath("$.items[0].itemName").value("동일날짜품목"))
                 .andExpect(jsonPath("$.items[0].price").value(1200))
                 .andExpect(jsonPath("$.items[0].priceGap").value(300))
+                .andExpect(jsonPath("$.items[0].priceDiffRate").value(33.3))
                 .andExpect(jsonPath("$.items[1].itemName").value("동일날짜보조품목"))
                 .andExpect(jsonPath("$.items[1].price").value(1300));
+    }
+
+    @Test
+    void 직전_공공가격이_0이면_변동률은_null이다() throws Exception {
+        final Item item = itemJpaRepository.save(new Item("직전가격0품목", "1개"));
+        publicPriceJpaRepository.save(
+                new PublicPrice(item.id(), SAME_DATE_PRICE_REGION_ID, 0, referenceDate.minusDays(1)));
+        publicPriceJpaRepository.save(
+                new PublicPrice(item.id(), SAME_DATE_PRICE_REGION_ID, 1000, referenceDate));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", SAME_DATE_PRICE_REGION_ID)
+                        .queryParam("sort", "PRICE_DESC")
+                        .queryParam("page", "0")
+                        .queryParam("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].price").value(1000))
+                .andExpect(jsonPath("$.items[0].priceGap").value(1000))
+                .andExpect(jsonPath("$.items[0].priceDiffRate").value(nullValue()));
     }
 
     @Test
@@ -459,6 +484,8 @@ class ItemQueryE2ETest {
                         .value(contains("NAME_ASC", "PRICE_ASC", "PRICE_DESC")))
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['200'].content['application/json'].schema.$ref")
                         .value("#/components/schemas/ItemPageResponse"))
+                .andExpect(jsonPath("$.components.schemas.ItemResponse.properties.priceDiffRate")
+                        .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['400'].description")
                         .value("조회 조건이 올바르지 않다"));
     }
