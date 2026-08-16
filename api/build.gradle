@@ -57,6 +57,7 @@ tasks.named('test') {
     useJUnitPlatform()
     systemProperty 'kurly.live', System.getProperty('kurly.live', 'false')
     systemProperty 'oasis.live', System.getProperty('oasis.live', 'false')
+    systemProperty 'gsshop.live', System.getProperty('gsshop.live', 'false')
     finalizedBy tasks.named('jacocoTestReport')
 }
 
