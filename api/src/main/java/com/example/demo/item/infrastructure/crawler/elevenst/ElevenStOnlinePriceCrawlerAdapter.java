@@ -14,6 +14,11 @@ public class ElevenStOnlinePriceCrawlerAdapter implements OnlinePriceCrawlerPort
     private final ElevenStOnlineItemCrawler itemCrawler;
 
     @Override
+    public String channelName() {
+        return "11번가";
+    }
+
+    @Override
     public List<OnlinePriceCrawlResult> crawl(final CrawlOnlinePriceCommand command) {
         return itemCrawler.crawl(command.itemName()).stream()
                 .map(product -> new OnlinePriceCrawlResult(

@@ -14,6 +14,11 @@ public class GsShopOnlinePriceCrawlerAdapter implements OnlinePriceCrawlerPort {
     private final GsShopOnlineItemCrawler crawler;
 
     @Override
+    public String channelName() {
+        return "GS SHOP";
+    }
+
+    @Override
     public List<OnlinePriceCrawlResult> crawl(final CrawlOnlinePriceCommand command) {
         return crawler.crawl(command.itemName()).stream()
                 .map(product -> new OnlinePriceCrawlResult(

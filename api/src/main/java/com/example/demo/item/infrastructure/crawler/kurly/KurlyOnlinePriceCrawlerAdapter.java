@@ -14,6 +14,11 @@ public class KurlyOnlinePriceCrawlerAdapter implements OnlinePriceCrawlerPort {
     private final KurlyOnlineItemCrawler crawler;
 
     @Override
+    public String channelName() {
+        return "컬리";
+    }
+
+    @Override
     public List<OnlinePriceCrawlResult> crawl(final CrawlOnlinePriceCommand command) {
         return crawler.crawl(command.itemName()).stream()
                 .map(product -> toResult(command.itemName(), product))
