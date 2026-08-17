@@ -24,8 +24,12 @@ class KakaoResponseDecoderTest {
         final var result = decode(
                 "{\"meta\":{\"total_count\":2},\"documents\":["
                         + "{\"region_type\":\"B\",\"code\":\"4413310500\","
+                        + "\"address_name\":\"충청남도 천안시 서북구 성성동\","
+                        + "\"region_1depth_name\":\"충청남도\","
                         + "\"region_2depth_name\":\"천안시 서북구\",\"region_3depth_name\":\"성성동\"},"
                         + "{\"region_type\":\"H\",\"code\":\"4413357000\","
+                        + "\"address_name\":\"충청남도 천안시 서북구 부성2동\","
+                        + "\"region_1depth_name\":\"충청남도\","
                         + "\"region_2depth_name\":\"천안시 서북구\",\"region_3depth_name\":\"부성2동\"}]}",
                 KakaoRegionCodeResult.class);
 
@@ -44,6 +48,8 @@ class KakaoResponseDecoderTest {
                         + "\"road_address_name\":\"서울 강남구 테헤란로 123\","
                         + "\"phone\":\"02-1234-5678\","
                         + "\"place_url\":\"http://place.map.kakao.com/123\","
+                        + "\"category_group_code\":\"MT1\","
+                        + "\"category_name\":\"가정,생활 > 슈퍼마켓\","
                         + "\"distance\":\"670\"}]}",
                 KakaoCategorySearchResult.class);
 

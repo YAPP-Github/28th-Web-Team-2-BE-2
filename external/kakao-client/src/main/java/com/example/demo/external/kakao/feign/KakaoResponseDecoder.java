@@ -154,6 +154,11 @@ public final class KakaoResponseDecoder implements Decoder {
         final var regions = objectMapper.createArrayNode();
         documents.forEach(document -> {
             final ObjectNode region = document.deepCopy();
+            region.remove("address_name");
+            region.remove("region_1depth_name");
+            region.remove("region_4depth_name");
+            region.remove("x");
+            region.remove("y");
             region.set("regionType", region.remove("region_type"));
             region.set("region2DepthName", region.remove("region_2depth_name"));
             region.set("region3DepthName", region.remove("region_3depth_name"));
@@ -166,6 +171,9 @@ public final class KakaoResponseDecoder implements Decoder {
         final var places = objectMapper.createArrayNode();
         documents.forEach(document -> {
             final ObjectNode place = document.deepCopy();
+            place.remove("category_name");
+            place.remove("category_group_code");
+            place.remove("category_group_name");
             place.set("placeName", place.remove("place_name"));
             place.set("longitude", place.remove("x"));
             place.set("latitude", place.remove("y"));
