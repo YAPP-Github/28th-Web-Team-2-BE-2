@@ -27,11 +27,15 @@ public class ItemQueryAdapter implements ItemQueryPort {
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public Page<Item> findAll(final ItemQuery query) {
+    public Page<Item> findAll(final ItemQuery query, final Long userId) {
         final QItem item = QItem.item;
         final QPublicPrice currentPrice = new QPublicPrice("currentPrice");
         final BooleanExpression keywordCondition = keywordCondition(item, query.keyword());
-        final JPAQuery<Item> contentQuery = jpaQueryFactory.selectFrom(item).where(keywordCondition);
+        final BooleanExpression favoriteCondition =
+                favoriteCondition(item, query.favoriteOnly(), userId);
+        final JPAQuery<Item> contentQuery = jpaQueryFactory
+                .selectFrom(item)
+                .where(keywordCondition, favoriteCondition);
         if (query.sort() != ItemSort.NAME_ASC) {
             joinCurrentPrice(contentQuery, item, currentPrice, query.regionId());
         }
@@ -43,7 +47,7 @@ public class ItemQueryAdapter implements ItemQueryPort {
         final long totalCount = jpaQueryFactory
                 .select(item.count())
                 .from(item)
-                .where(keywordCondition)
+                .where(keywordCondition, favoriteCondition)
                 .fetchOne();
         return new PageImpl<>(content, PageRequest.of(query.page(), query.size()), totalCount);
     }
@@ -63,6 +67,18 @@ public class ItemQueryAdapter implements ItemQueryPort {
             return null;
         }
         return item.name.contains(keyword);
+    }
+
+    private BooleanExpression favoriteCondition(
+            final QItem item, final boolean favoriteOnly, final Long userId) {
+        if (!favoriteOnly) {
+            return null;
+        }
+        final QItemFavorite itemFavorite = new QItemFavorite("favoriteFilter");
+        return JPAExpressions.selectOne()
+                .from(itemFavorite)
+                .where(itemFavorite.userId.eq(userId), itemFavorite.itemId.eq(item.id))
+                .exists();
     }
 
     private void joinCurrentPrice(

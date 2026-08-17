@@ -29,7 +29,7 @@ public class GetItemQueryUseCase {
     @Transactional(readOnly = true)
     public ItemQueryResult execute(final ItemQuery query, final Long userId) {
         final LocalDate baseDate = publicPriceQueryPort.findLatestPriceDateByRegionId(query.regionId());
-        final Page<Item> itemPage = itemQueryPort.findAll(query);
+        final Page<Item> itemPage = itemQueryPort.findAll(query, userId);
         final List<Long> itemIds = itemPage.getContent().stream().map(Item::id).toList();
         final List<PublicPrice> prices = findPrices(itemIds, query.regionId());
         final Set<Long> favoriteItemIds = findFavoriteItemIds(userId, itemIds);

@@ -167,6 +167,107 @@ class ItemQueryE2ETest {
     }
 
     @Test
+    void favoriteOnly는_현재_ROLE_USER의_찜만_isLiked_true로_조회한다() throws Exception {
+        final User currentUser = saveUser("현재 찜 필터 사용자");
+        final User otherUser = saveUser("다른 찜 필터 사용자");
+        addFavorite(currentUser.id(), firstPotatoId);
+        addFavorite(currentUser.id(), secondPotatoId);
+        addFavorite(otherUser.id(), onionId);
+
+        mockMvc.perform(itemListRequest()
+                        .queryParam("favoriteOnly", "true")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(currentUser))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[*].itemId")
+                        .value(contains(firstPotatoId.intValue(), secondPotatoId.intValue())))
+                .andExpect(jsonPath("$.items[*].isLiked").value(contains(true, true)))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void favoriteOnly는_비로그인과_같은_subject의_ROLE_GUEST에_401을_응답한다() throws Exception {
+        final User user = saveUser("찜 필터 GUEST subject 사용자");
+        addFavorite(user.id(), firstPotatoId);
+
+        mockMvc.perform(itemListRequest().queryParam("favoriteOnly", "true"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(itemListRequest()
+                        .queryParam("favoriteOnly", "true")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(guestAccessToken(user.id()))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void favoriteOnly를_생략하거나_false로_요청하면_기존_공개_조회가_유지된다() throws Exception {
+        final User user = saveUser("공개 조회 사용자");
+        addFavorite(user.id(), firstPotatoId);
+
+        mockMvc.perform(itemListRequest())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(6))
+                .andExpect(jsonPath("$.items[*].isLiked")
+                        .value(contains(false, false, false, false, false, false)));
+
+        mockMvc.perform(itemListRequest().queryParam("favoriteOnly", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(6))
+                .andExpect(jsonPath("$.items[*].isLiked")
+                        .value(contains(false, false, false, false, false, false)));
+    }
+
+    @Test
+    void favoriteOnly는_검색_가격정렬_페이지네이션과_빈_결과의_기준이_된다() throws Exception {
+        final User user = saveUser("찜 필터 조합 사용자");
+        final User otherUser = saveUser("찜 필터 조합 다른 사용자");
+        final Item otherUsersPotato = itemJpaRepository.save(new Item("감자", "1kg"));
+        publicPriceJpaRepository.save(
+                new PublicPrice(otherUsersPotato.id(), REGION_ID, 3500, referenceDate));
+        addFavorite(user.id(), firstPotatoId);
+        addFavorite(user.id(), secondPotatoId);
+        addFavorite(otherUser.id(), otherUsersPotato.id());
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("favoriteOnly", "true")
+                        .queryParam("keyword", "감자")
+                        .queryParam("sort", "PRICE_DESC")
+                        .queryParam("page", "0")
+                        .queryParam("size", "1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[0].itemId").value(firstPotatoId.intValue()))
+                .andExpect(jsonPath("$.items[0].isLiked").value(true))
+                .andExpect(jsonPath("$.hasNext").value(true));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("favoriteOnly", "true")
+                        .queryParam("keyword", "감자")
+                        .queryParam("sort", "PRICE_DESC")
+                        .queryParam("page", "1")
+                        .queryParam("size", "1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[0].itemId").value(secondPotatoId.intValue()))
+                .andExpect(jsonPath("$.items[0].isLiked").value(true))
+                .andExpect(jsonPath("$.hasNext").value(false));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("favoriteOnly", "true")
+                        .queryParam("keyword", "없는품목")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(0))
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
     void 공개_품목과_공공가격_목록을_직접_성공_응답과_가격_변동으로_조회한다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -571,6 +672,10 @@ class ItemQueryE2ETest {
                         .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'keyword')]")
                         .isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'favoriteOnly')]")
+                        .isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'favoriteOnly')].schema.default")
+                        .value(contains(false)))
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[3].name")
                         .value("sort"))
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[3].schema.default")
@@ -587,6 +692,8 @@ class ItemQueryE2ETest {
                         .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['400'].description")
                         .value("조회 조건이 올바르지 않다"))
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['401'].description")
+                        .value("찜한 품목만 조회하려면 로그인이 필요하다"))
                 .andExpect(jsonPath("$.components.schemas.ItemResponse.properties.isLiked.type")
                         .value("boolean"));
     }

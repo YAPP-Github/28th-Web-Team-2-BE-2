@@ -13,6 +13,7 @@ public class ItemQueryRequestConverter {
                 request.page(),
                 request.size(),
                 request.sort(),
-                request.keyword());
+                request.keyword(),
+                request.favoriteOnly());
     }
 }
