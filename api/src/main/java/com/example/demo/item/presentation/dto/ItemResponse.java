@@ -10,4 +10,5 @@ public record ItemResponse(
         @Schema(nullable = true) String defaultUnit,
         Integer price,
         Integer priceGap,
-        BigDecimal priceDiffRate) {}
+        BigDecimal priceDiffRate,
+        boolean isLiked) {}

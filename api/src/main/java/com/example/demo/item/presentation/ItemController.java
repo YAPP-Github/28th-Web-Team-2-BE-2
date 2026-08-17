@@ -1,5 +1,6 @@
 package com.example.demo.item.presentation;
 
+import com.example.demo.auth.domain.UserRole;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.item.application.result.ItemQueryResult;
 import com.example.demo.item.application.usecase.GetItemQueryUseCase;
@@ -12,6 +13,7 @@ import com.example.demo.item.presentation.spec.ItemControllerSpec;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,8 +36,11 @@ public class ItemController implements ItemControllerSpec {
     @GetMapping
     @Override
     public ResponseEntity<ItemPageResponse> getItems(
-        @Valid @ModelAttribute final ItemQueryRequest request) {
-        final ItemQueryResult result = getItemQueryUseCase.execute(itemQueryRequestConverter.toQuery(request));
+            @Valid @ModelAttribute final ItemQueryRequest request,
+            @AuthenticationPrincipal final AuthPrincipal principal,
+            final Authentication authentication) {
+        final ItemQueryResult result = getItemQueryUseCase.execute(
+                itemQueryRequestConverter.toQuery(request), userId(principal, authentication));
         final ItemPageResponse data = itemResultConverter.toResponse(result);
         return ResponseEntity.ok(data);
     }
@@ -56,5 +61,14 @@ public class ItemController implements ItemControllerSpec {
             @AuthenticationPrincipal final AuthPrincipal principal) {
         itemFavoriteUseCase.delete(principal.userId(), itemId);
         return ResponseEntity.noContent().build();
+    }
+
+    private Long userId(final AuthPrincipal principal, final Authentication authentication) {
+        if (principal == null || authentication == null) {
+            return null;
+        }
+        final boolean isUser = authentication.getAuthorities().stream()
+                .anyMatch(authority -> UserRole.USER.authority().equals(authority.getAuthority()));
+        return isUser ? principal.userId() : null;
     }
 }

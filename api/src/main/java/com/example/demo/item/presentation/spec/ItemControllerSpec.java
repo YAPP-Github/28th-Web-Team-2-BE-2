@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 
 public interface ItemControllerSpec {
 
@@ -26,7 +27,10 @@ public interface ItemControllerSpec {
                                 schema = @Schema(implementation = ItemPageResponse.class))),
         @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다")
     })
-    ResponseEntity<ItemPageResponse> getItems(@ParameterObject ItemQueryRequest request);
+    ResponseEntity<ItemPageResponse> getItems(
+            @ParameterObject ItemQueryRequest request,
+            @Parameter(hidden = true) AuthPrincipal principal,
+            @Parameter(hidden = true) Authentication authentication);
 
     @Operation(summary = "품목을 찜한다", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses({
