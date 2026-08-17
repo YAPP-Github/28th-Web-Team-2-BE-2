@@ -6,7 +6,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
+import com.example.demo.external.kakao.KakaoRegion;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Request;
 import feign.Response;
@@ -17,14 +19,16 @@ import org.springframework.http.HttpStatus;
 
 class KakaoResponseDecoderTest {
 
-    private final KakaoResponseDecoder decoder = new KakaoResponseDecoder(new ObjectMapper());
+    private final KakaoResponseDecoder decoder = new KakaoResponseDecoder(
+            new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true));
 
     @Test
     void 지역_코드_응답을_결과로_변환한다() throws Exception {
         final var result = decode(
                 "{\"meta\":{\"total_count\":2},\"documents\":["
                         + "{\"region_type\":\"B\",\"code\":\"4413310500\","
-                        + "\"region_2depth_name\":\"천안시 서북구\",\"region_3depth_name\":\"성성동\"},"
+                        + "\"region_2depth_name\":\"천안시 서북구\",\"region_3depth_name\":\"성성동\","
+                        + "\"region_4depth_name\":\"성성동\",\"x\":\"127.1\",\"y\":\"36.8\"},"
                         + "{\"region_type\":\"H\",\"code\":\"4413357000\","
                         + "\"region_2depth_name\":\"천안시 서북구\",\"region_3depth_name\":\"부성2동\"}]}",
                 KakaoRegionCodeResult.class);
@@ -32,6 +36,8 @@ class KakaoResponseDecoderTest {
         assertThat(result.totalCount()).isEqualTo(2);
         assertThat(result.regions()).hasSize(2);
         assertThat(result.legalRegions()).hasSize(1);
+        assertThat(result.regions()).first().isEqualTo(
+                new KakaoRegion("B", 4413310500L, "천안시 서북구", "성성동"));
     }
 
     @Test
@@ -44,6 +50,7 @@ class KakaoResponseDecoderTest {
                         + "\"road_address_name\":\"서울 강남구 테헤란로 123\","
                         + "\"phone\":\"02-1234-5678\","
                         + "\"place_url\":\"http://place.map.kakao.com/123\","
+                        + "\"category_group_name\":\"대형마트\","
                         + "\"distance\":\"670\"}]}",
                 KakaoCategorySearchResult.class);
 
