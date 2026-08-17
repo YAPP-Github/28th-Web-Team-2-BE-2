@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 
 public interface ItemControllerSpec {
 
@@ -28,7 +29,8 @@ public interface ItemControllerSpec {
     })
     ResponseEntity<ItemPageResponse> getItems(
             @ParameterObject ItemQueryRequest request,
-            @Parameter(hidden = true) AuthPrincipal principal);
+            @Parameter(hidden = true) AuthPrincipal principal,
+            @Parameter(hidden = true) Authentication authentication);
 
     @Operation(summary = "품목을 찜한다", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses({

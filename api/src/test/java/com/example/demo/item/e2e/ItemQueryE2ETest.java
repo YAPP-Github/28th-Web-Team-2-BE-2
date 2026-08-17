@@ -114,13 +114,16 @@ class ItemQueryE2ETest {
 
     @Test
     void 비로그인과_지원하지_않는_GUEST_토큰은_모든_isLiked를_false로_조회한다() throws Exception {
+        final User user = saveUser("GUEST subject 사용자");
+        addFavorite(user.id(), firstPotatoId);
+
         mockMvc.perform(itemListRequest())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[*].isLiked")
                         .value(contains(false, false, false, false, false, false)));
 
         mockMvc.perform(itemListRequest()
-                        .header(HttpHeaders.AUTHORIZATION, bearer(guestAccessToken())))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(guestAccessToken(user.id()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[*].isLiked")
                         .value(contains(false, false, false, false, false, false)));
@@ -613,11 +616,11 @@ class ItemQueryE2ETest {
         return jwtTokenProvider.createAccessToken(user.id(), user.role());
     }
 
-    private String guestAccessToken() {
+    private String guestAccessToken(final Long userId) {
         final Instant now = Instant.now();
         final SecretKey key = Keys.hmacShaKeyFor(accessSecret.getBytes(StandardCharsets.UTF_8));
         return Jwts.builder()
-                .subject("999999")
+                .subject(String.valueOf(userId))
                 .claim("type", "access")
                 .claim("role", "GUEST")
                 .issuedAt(Date.from(now))
