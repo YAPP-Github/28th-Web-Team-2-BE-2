@@ -24,8 +24,18 @@ public class UserRepositoryAdapter implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByNickname(final String nickname) {
+        return userJpaRepository.findByNickname(nickname);
+    }
+
+    @Override
     public Optional<User> findByProviderAndProviderSubject(
             final ProviderType provider, final String providerSubject) {
         return userJpaRepository.findByProviderAndProviderSubject(provider, providerSubject);
+    }
+
+    @Override
+    public User saveAndFlush(final User user) {
+        return userJpaRepository.saveAndFlush(user);
     }
 }
