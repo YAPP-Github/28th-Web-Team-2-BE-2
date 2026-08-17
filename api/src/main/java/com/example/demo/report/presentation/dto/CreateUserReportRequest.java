@@ -26,7 +26,7 @@ public record CreateUserReportRequest(
             @Size(max = 30) String phone,
             @Size(max = 20) String categoryGroupCode,
             @Size(max = 50) String categoryGroupName,
-            @Digits(integer = 3, fraction = 10) BigDecimal x,
-            @Digits(integer = 3, fraction = 10) BigDecimal y,
+            @Digits(integer = 3, fraction = 14) BigDecimal x,
+            @Digits(integer = 3, fraction = 14) BigDecimal y,
             @PositiveOrZero Integer distance) {}
 }

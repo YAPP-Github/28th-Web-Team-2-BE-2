@@ -188,6 +188,29 @@ class ReportControllerTest {
     }
 
     @Test
+    void Kakao_소수점_14자리_좌표를_포함한_가격_제보를_허용한다() throws Exception {
+        when(createUserReportUseCase.execute(any()))
+                .thenReturn(new CreateUserReportResult(42L));
+
+        mockMvc.perform(post(REPORT_PATH)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"price":10000,"unit":"1kg","amount":2,
+                                 "store":{"id":"11840060","placeName":"롯데슈퍼프레시 코엑스점",
+                                 "placeUrl":"http://place.map.kakao.com/11840060",
+                                 "categoryName":"가정,생활 > 슈퍼마켓 > 대형슈퍼 > 롯데슈퍼프레시",
+                                 "addressName":"서울 강남구 삼성동 107-6",
+                                 "roadAddressName":"서울 강남구 봉은사로103길 5",
+                                 "phone":"02-3446-5602","categoryGroupCode":"MT1",
+                                 "categoryGroupName":"대형마트","x":"127.06140867761812",
+                                 "y":"37.51504772738281","distance":711},
+                                 "photoUrl":"http://place.map.kakao.com/11840060"}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void 인증_없이_품목_가격을_제보하면_unauthorized와_v1_오류_응답을_응답한다() throws Exception {
         mockMvc.perform(post(REPORT_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
