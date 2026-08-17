@@ -3,6 +3,7 @@ package com.example.demo.external.kakao.feign;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
+import com.example.demo.external.kakao.KakaoAddressSearchResult;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,6 +53,9 @@ public final class KakaoResponseDecoder implements Decoder {
         if (type == KakaoRegionCodeResult.class) {
             normalized.set("regions", normalizeRegions(documents));
         }
+        if (type == KakaoAddressSearchResult.class) {
+            normalized.set("addresses", normalizeAddresses(documents));
+        }
         if (type == KakaoCategorySearchResult.class) {
             normalized.set("places", normalizePlaces(documents));
         }
@@ -86,6 +90,10 @@ public final class KakaoResponseDecoder implements Decoder {
             validateRegion(document);
             return;
         }
+        if (type == KakaoAddressSearchResult.class) {
+            validateAddress(document);
+            return;
+        }
         if (type == KakaoCategorySearchResult.class) {
             validatePlace(document);
         }
@@ -96,6 +104,20 @@ public final class KakaoResponseDecoder implements Decoder {
         requireLong(region, "code");
         requireText(region, "region_2depth_name");
         requireText(region, "region_3depth_name");
+    }
+
+    private void validateAddress(final JsonNode address) {
+        requireNonBlankText(address, "address_name");
+        requireNonBlankText(address, "address_type");
+        final JsonNode detail = address.get("address");
+        if (detail == null || !detail.isObject()) {
+            throw externalApiException();
+        }
+        requireNonBlankText(detail, "address_name");
+        requireNonBlankText(detail, "region_1depth_name");
+        requireNonBlankText(detail, "region_2depth_name");
+        requireNonBlankText(detail, "region_3depth_name");
+        requireText(detail, "b_code");
     }
 
     private void validatePlace(final JsonNode place) {
@@ -113,6 +135,13 @@ public final class KakaoResponseDecoder implements Decoder {
     private void requireText(final JsonNode document, final String field) {
         final JsonNode value = document.get(field);
         if (value == null || !value.isTextual()) {
+            throw externalApiException();
+        }
+    }
+
+    private void requireNonBlankText(final JsonNode document, final String field) {
+        requireText(document, field);
+        if (document.get(field).textValue().isBlank()) {
             throw externalApiException();
         }
     }
@@ -160,6 +189,28 @@ public final class KakaoResponseDecoder implements Decoder {
             regions.add(region);
         });
         return regions;
+    }
+
+    private JsonNode normalizeAddresses(final JsonNode documents) {
+        final var addresses = objectMapper.createArrayNode();
+        documents.forEach(document -> {
+            final ObjectNode address = document.deepCopy();
+            address.set("addressName", address.remove("address_name"));
+            address.set("addressType", address.remove("address_type"));
+            address.remove("x");
+            address.remove("y");
+            address.remove("road_address");
+            final ObjectNode sourceDetail = (ObjectNode) address.get("address");
+            final ObjectNode detail = objectMapper.createObjectNode();
+            detail.set("addressName", sourceDetail.get("address_name"));
+            detail.set("region1DepthName", sourceDetail.get("region_1depth_name"));
+            detail.set("region2DepthName", sourceDetail.get("region_2depth_name"));
+            detail.set("region3DepthName", sourceDetail.get("region_3depth_name"));
+            detail.set("bCode", sourceDetail.get("b_code"));
+            address.set("address", detail);
+            addresses.add(address);
+        });
+        return addresses;
     }
 
     private JsonNode normalizePlaces(final JsonNode documents) {
