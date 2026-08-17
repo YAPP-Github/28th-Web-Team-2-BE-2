@@ -24,6 +24,8 @@ spring:
 
 springdoc:
   paths-to-exclude: /api/auth/test/**
+  api-docs:
+    version: OPENAPI_3_0
 
 news:
   crawler:
