@@ -8,6 +8,7 @@ import com.example.demo.item.domain.QItem;
 import com.example.demo.item.domain.QItemFavorite;
 import com.example.demo.item.domain.QPublicPrice;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -29,7 +30,8 @@ public class ItemQueryAdapter implements ItemQueryPort {
     public Page<Item> findAll(final ItemQuery query) {
         final QItem item = QItem.item;
         final QPublicPrice currentPrice = new QPublicPrice("currentPrice");
-        final JPAQuery<Item> contentQuery = jpaQueryFactory.selectFrom(item);
+        final BooleanExpression keywordCondition = keywordCondition(item, query.keyword());
+        final JPAQuery<Item> contentQuery = jpaQueryFactory.selectFrom(item).where(keywordCondition);
         if (query.sort() != ItemSort.NAME_ASC) {
             joinCurrentPrice(contentQuery, item, currentPrice, query.regionId());
         }
@@ -38,7 +40,11 @@ public class ItemQueryAdapter implements ItemQueryPort {
                 .offset((long) query.page() * query.size())
                 .limit(query.size())
                 .fetch();
-        final long totalCount = jpaQueryFactory.select(item.count()).from(item).fetchOne();
+        final long totalCount = jpaQueryFactory
+                .select(item.count())
+                .from(item)
+                .where(keywordCondition)
+                .fetchOne();
         return new PageImpl<>(content, PageRequest.of(query.page(), query.size()), totalCount);
     }
 
@@ -50,6 +56,13 @@ public class ItemQueryAdapter implements ItemQueryPort {
                 .from(itemFavorite)
                 .where(itemFavorite.userId.eq(userId), itemFavorite.itemId.in(itemIds))
                 .fetch());
+    }
+
+    private BooleanExpression keywordCondition(final QItem item, final String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        return item.name.contains(keyword);
     }
 
     private void joinCurrentPrice(

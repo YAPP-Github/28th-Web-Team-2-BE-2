@@ -1,12 +1,14 @@
 package com.example.demo.item.application.usecase;
 
-import com.example.demo.item.application.query.ItemQuery;
 import com.example.demo.item.application.port.ItemQueryPort;
 import com.example.demo.item.application.port.PublicPriceQueryPort;
+import com.example.demo.item.application.query.ItemQuery;
 import com.example.demo.item.application.result.ItemPriceResult;
 import com.example.demo.item.application.result.ItemQueryResult;
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.PublicPrice;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -85,18 +87,40 @@ public class GetItemQueryUseCase {
     private ItemPriceResult toResult(
             final Item item, final PublicPrice publicPrice, final PublicPrice previousPrice) {
         if (publicPrice == null) {
-            return new ItemPriceResult(item.id(), item.name(), item.imageUrl(), null, null, false);
+            return new ItemPriceResult(
+                    item.id(), item.name(), item.imageUrl(), item.defaultUnit(), null, null, null, false);
         }
         if (previousPrice == null) {
             return new ItemPriceResult(
-                    item.id(), item.name(), item.imageUrl(), publicPrice.price(), null, false);
+                    item.id(),
+                    item.name(),
+                    item.imageUrl(),
+                    item.defaultUnit(),
+                    publicPrice.price(),
+                    null,
+                    null,
+                    false);
         }
         return new ItemPriceResult(
                 item.id(),
                 item.name(),
                 item.imageUrl(),
+                item.defaultUnit(),
                 publicPrice.price(),
                 publicPrice.price() - previousPrice.price(),
+                calculatePriceDiffRate(publicPrice, previousPrice),
                 false);
+    }
+
+    private BigDecimal calculatePriceDiffRate(
+            final PublicPrice publicPrice, final PublicPrice previousPrice) {
+        if (previousPrice.price() == 0) {
+            return null;
+        }
+        final BigDecimal priceGap = BigDecimal.valueOf(publicPrice.price())
+                .subtract(BigDecimal.valueOf(previousPrice.price()));
+        return priceGap
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(previousPrice.price()), 1, RoundingMode.HALF_UP);
     }
 }
