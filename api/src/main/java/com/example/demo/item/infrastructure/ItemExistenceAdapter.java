@@ -1,0 +1,17 @@
+package com.example.demo.item.infrastructure;
+
+import com.example.demo.item.application.port.ItemExistencePort;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+@Repository
+@RequiredArgsConstructor
+public class ItemExistenceAdapter implements ItemExistencePort {
+
+    private final ItemJpaRepository itemJpaRepository;
+
+    @Override
+    public boolean exists(final Long itemId) {
+        return itemJpaRepository.existsById(itemId);
+    }
+}
