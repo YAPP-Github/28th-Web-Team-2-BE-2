@@ -5,6 +5,7 @@ import com.example.demo.auth.domain.UserRole;
 import com.example.demo.auth.presentation.dto.TokenResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth/test")
+@Profile("swagger-test")
 @ConditionalOnProperty(
         prefix = "jwt.test-token-endpoint",
         name = "enabled",
