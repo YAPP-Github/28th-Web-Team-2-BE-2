@@ -38,17 +38,36 @@ class FlywayMigrationIntegrationTest {
         flyway.clean();
         flyway.migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
         assertThat(countRows("batch_item_errors")).isZero();
         assertThat(countRows("news_articles")).isZero();
         assertThat(countRows("item_favorites")).isZero();
+        assertThat(countRows("stores")).isZero();
+        assertThat(countRows("user_reports")).isZero();
         assertThat(columnNames("item_favorites"))
                 .containsExactly("item_favorite_id", "user_id", "item_id", "created_at");
         assertThat(constraintNames("item_favorites"))
                 .contains("uk_item_favorites_user_item", "fk_item_favorites_user", "fk_item_favorites_item");
+        assertThat(columnNames("stores"))
+                .containsExactly(
+                        "store_id", "kakao_place_id", "place_name", "place_url", "category_name",
+                        "address_name", "road_address_name", "phone", "category_group_code",
+                        "category_group_name", "longitude", "latitude", "distance", "created_at", "updated_at");
+        assertThat(constraintNames("stores"))
+                .contains("stores_pkey", "uk_stores_kakao_place_id");
+        assertThat(columnNames("user_reports"))
+                .containsExactly(
+                        "report_id", "store_id", "item_id", "user_id", "price", "unit", "amount",
+                        "report_date", "public_price_diff", "price_diff_rate", "photo_url", "created_at");
+        assertThat(constraintNames("user_reports"))
+                .contains(
+                        "user_reports_pkey", "fk_user_reports_store", "fk_user_reports_item",
+                        "fk_user_reports_user", "ck_user_reports_price_positive", "ck_user_reports_amount_positive");
+        assertThat(indexNames("user_reports"))
+                .contains("idx_user_reports_item_report_date", "idx_user_reports_user_created_at");
     }
 
     @Test
@@ -62,7 +81,7 @@ class FlywayMigrationIntegrationTest {
 
         flyway().migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -206,6 +225,21 @@ class FlywayMigrationIntegrationTest {
                     constraints.add(resultSet.getString("constraint_name"));
                 }
                 return constraints;
+            }
+        }
+    }
+
+    private List<String> indexNames(final String tableName) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = ?")) {
+            statement.setString(1, tableName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                final ArrayList<String> indexes = new ArrayList<>();
+                while (resultSet.next()) {
+                    indexes.add(resultSet.getString("indexname"));
+                }
+                return indexes;
             }
         }
     }
