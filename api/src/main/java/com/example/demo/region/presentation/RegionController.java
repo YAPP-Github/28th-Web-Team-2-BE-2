@@ -44,6 +44,6 @@ public class RegionController implements RegionControllerSpec {
             @Valid @ModelAttribute final RegionSearchRequest request) {
         final RegionSearchResponse data = regionResultConverter.toRegionSearchResponse(
                 searchRegionsUseCase.execute(regionQueryConverter.toRegionSearchQuery(request)));
-        return ResponseEntity.ok(new ApiV1Response<>("SUCCESS", "성공", data));
+        return ResponseEntity.ok(new ApiV1Response<>("OK", "success", data));
     }
 }

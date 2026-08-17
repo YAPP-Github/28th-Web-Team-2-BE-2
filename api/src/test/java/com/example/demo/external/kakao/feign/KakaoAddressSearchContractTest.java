@@ -67,7 +67,7 @@ class KakaoAddressSearchContractTest {
     }
 
     @Test
-    void 빈_법정동_코드는_EXTERNAL_API_ERROR로_변환한다() {
+    void 빈_법정동_코드도_주소_응답으로_디코딩한다() throws Exception {
         final String body = "{\"meta\":{\"total_count\":1},\"documents\":[{"
                 + "\"address_name\":\"서울특별시 종로구 청운동\","
                 + "\"address_type\":\"REGION\","
@@ -76,9 +76,11 @@ class KakaoAddressSearchContractTest {
                 + "\"region_2depth_name\":\"종로구\","
                 + "\"region_3depth_name\":\"청운동\",\"b_code\":\"\"}}]}";
 
-        assertThatThrownBy(() -> decode(body))
-                .isInstanceOfSatisfying(ApiException.class, exception ->
-                        assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR));
+        final Object result = decode(body);
+        final List<?> addresses = (List<?>) result.getClass().getMethod("addresses").invoke(result);
+        final Object address = addresses.getFirst().getClass().getMethod("address").invoke(addresses.getFirst());
+
+        assertThat(address.getClass().getMethod("bCode").invoke(address)).isEqualTo("");
     }
 
     private Object decode(final String body) throws Exception {

@@ -27,8 +27,12 @@ public class KakaoRegionSearchAdapter implements RegionSearchQueryPort {
     }
 
     private void addRegion(final Map<String, RegionSearchResult.Region> regions, final Address address) {
-        regions.putIfAbsent(address.bCode(), new RegionSearchResult.Region(
-                address.bCode(), address.region1DepthName() + " "
+        final String bCode = address.bCode();
+        if (bCode.isBlank()) {
+            return;
+        }
+        regions.putIfAbsent(bCode, new RegionSearchResult.Region(
+                bCode, address.region1DepthName() + " "
                         + address.region2DepthName() + " " + address.region3DepthName()));
     }
 }

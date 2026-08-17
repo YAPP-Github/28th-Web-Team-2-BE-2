@@ -107,6 +107,8 @@ class RegionControllerTest {
         mockMvc.perform(get("/api/v1/regions/search").queryParam("keyword", "성성동"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value("OK"))
+                .andExpect(jsonPath("$.message").value("success"))
                 .andExpect(jsonPath("$.data.searchResults").isArray())
                 .andExpect(jsonPath("$.data.searchResults[0].regionId").value("4413310500"))
                 .andExpect(jsonPath("$.data.searchResults[0].regionName").value("천안시 서북구 성성동"));

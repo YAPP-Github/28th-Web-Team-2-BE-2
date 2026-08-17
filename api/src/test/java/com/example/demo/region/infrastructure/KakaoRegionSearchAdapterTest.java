@@ -18,9 +18,10 @@ class KakaoRegionSearchAdapterTest {
     private final KakaoRegionSearchAdapter adapter = new KakaoRegionSearchAdapter(kakaoMapClient);
 
     @Test
-    void 주소_검색_결과를_법정동_검색_결과로_변환하고_중복_코드를_제거한다() {
+    void 주소_검색_결과를_법정동_검색_결과로_변환하고_빈_코드와_중복_코드를_제거한다() {
         when(kakaoMapClient.searchAddress("성성", 30))
                 .thenReturn(new KakaoAddressSearchResult(3, List.of(
+                        address("", "서울특별시", "종로구", "청운동"),
                         address("0111010100", "서울특별시", "종로구", "청운동"),
                         address("0111010100", "서울특별시", "종로구", "청운동"),
                         address("4413310500", "충청남도", "천안시 서북구", "성성동"))));

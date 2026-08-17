@@ -117,7 +117,7 @@ public final class KakaoResponseDecoder implements Decoder {
         requireNonBlankText(detail, "region_1depth_name");
         requireNonBlankText(detail, "region_2depth_name");
         requireNonBlankText(detail, "region_3depth_name");
-        requireNonBlankText(detail, "b_code");
+        requireText(detail, "b_code");
     }
 
     private void validatePlace(final JsonNode place) {
