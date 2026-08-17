@@ -25,14 +25,6 @@ public class KakaoNearbyStoreSearchAdapter implements NearbyStoreSearchPort {
 
     @Override
     public NearbyStoreSearchResult search(final NearbyStoreQuery query) {
-        log.info(
-                "[KakaoStoreSearch] request longitude={} latitude={} radius={} category={} sort={} size={}",
-                query.longitude(),
-                query.latitude(),
-                query.radius(),
-                CATEGORY_GROUP_CODE,
-                SORT,
-                SIZE);
         try {
             final KakaoCategorySearchResult result = kakaoMapClient.searchCategory(
                     CATEGORY_GROUP_CODE,
@@ -41,25 +33,9 @@ public class KakaoNearbyStoreSearchAdapter implements NearbyStoreSearchPort {
                     query.radius(),
                     SORT,
                     SIZE);
-            log.info(
-                    "[KakaoStoreSearch] response totalCount={} placeCount={}",
-                    result.totalCount(),
-                    result.places().size());
             final NearbyStoreSearchResult searchResult = toSearchResult(result);
-            log.info(
-                    "[KakaoStoreSearch] mapped totalCount={} storeCount={}",
-                    searchResult.totalCount(),
-                    searchResult.stores().size());
             return searchResult;
         } catch (final RuntimeException exception) {
-            log.error(
-                    "[KakaoStoreSearch] failed longitude={} latitude={} radius={} exceptionType={} message={}",
-                    query.longitude(),
-                    query.latitude(),
-                    query.radius(),
-                    exception.getClass().getSimpleName(),
-                    exception.getMessage(),
-                    exception);
             throw exception;
         }
     }
