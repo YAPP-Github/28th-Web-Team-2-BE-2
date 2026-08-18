@@ -39,7 +39,7 @@ public class KakaoNearbyStoreSearchAdapter implements NearbyStoreSearchPort {
             if (result == null || result.places() == null
                     || result.totalCount() < 0
                     || result.pageableCount() < 0
-                    || result.totalCount() > result.pageableCount()
+                    || result.pageableCount() > result.totalCount()
                     || result.pageableCount() > MAX_PAGEABLE_COUNT
                     || result.places().size() > SIZE) {
                 throw externalApiException();

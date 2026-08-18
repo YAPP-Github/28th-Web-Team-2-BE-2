@@ -13,6 +13,7 @@ import com.example.demo.external.kakao.feign.KakaoMapClient;
 import com.example.demo.store.application.query.NearbyStoreQuery;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class KakaoNearbyStoreSearchAdapterTest {
@@ -57,19 +58,19 @@ class KakaoNearbyStoreSearchAdapterTest {
     }
 
     @Test
-    void provider의_total_count가_pageable_count를_초과하면_502로_실패한다() {
+    void provider의_total_count가_pageable_count를_초과해도_페이지_상한_내_결과면_성공한다() {
         final NearbyStoreQuery query = query();
         when(kakaoMapClient.searchCategory("MT1", query.longitude(), query.latitude(), 1500,
                 "distance", 1, 15))
-                .thenReturn(new KakaoCategorySearchResult(100, 45, true, List.of()));
+                .thenReturn(new KakaoCategorySearchResult(100, 45, false, places(1, 16)));
+        when(kakaoMapClient.searchCategory("MT1", query.longitude(), query.latitude(), 1500,
+                "distance", 2, 15))
+                .thenReturn(new KakaoCategorySearchResult(100, 45, false, places(16, 31)));
+        when(kakaoMapClient.searchCategory("MT1", query.longitude(), query.latitude(), 1500,
+                "distance", 3, 15))
+                .thenReturn(new KakaoCategorySearchResult(100, 45, true, places(31, 46)));
 
-        assertThatThrownBy(() -> adapter.search(query))
-                .isInstanceOf(ApiException.class)
-                .satisfies(exception -> {
-                    final ApiException apiException = (ApiException) exception;
-                    assertThat(apiException.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
-                    assertThat(apiException.httpStatus().value()).isEqualTo(502);
-                });
+        assertThat(adapter.search(query).stores()).hasSize(45);
     }
 
     private NearbyStoreQuery query() {
@@ -93,5 +94,11 @@ class KakaoNearbyStoreSearchAdapterTest {
                 "02-1234-5678",
                 "http://place.map.kakao.com/" + id,
                 distance);
+    }
+
+    private List<KakaoPlace> places(final int startInclusive, final int endExclusive) {
+        return IntStream.range(startInclusive, endExclusive)
+                .mapToObj(id -> place(String.valueOf(id), id * 100))
+                .toList();
     }
 }
