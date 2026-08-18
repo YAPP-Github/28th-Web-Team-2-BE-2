@@ -1,6 +1,7 @@
 package com.example.demo.common.springdoc;
 
 import com.example.demo.common.presentation.ApiResponse;
+import com.example.demo.common.presentation.DirectResponse;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
@@ -19,7 +20,8 @@ public class SuccessResponseCustomizer implements OperationCustomizer {
 
     @Override
     public Operation customize(final Operation operation, final HandlerMethod handlerMethod) {
-        if (isApiV1Controller(handlerMethod)) {
+        if (isApiV1Controller(handlerMethod)
+                && !handlerMethod.hasMethodAnnotation(DirectResponse.class)) {
             wrapSuccessResponseSchemas(operation.getResponses());
         }
         return operation;
