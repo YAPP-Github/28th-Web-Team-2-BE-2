@@ -38,7 +38,8 @@ class FlywayMigrationIntegrationTest {
         flyway.clean();
         flyway.migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
@@ -49,10 +50,12 @@ class FlywayMigrationIntegrationTest {
                 .containsExactly("item_favorite_id", "user_id", "item_id", "created_at");
         assertThat(constraintNames("item_favorites"))
                 .contains("uk_item_favorites_user_item", "fk_item_favorites_user", "fk_item_favorites_item");
+        assertThat(columnNames("users")).contains("nickname");
+        assertThat(constraintNames("users")).contains("uk_users_nickname");
     }
 
     @Test
-    void 기존_V1부터_V8까지의_이력에서_V9와_V10이_추가된다() throws SQLException {
+    void 기존_V1부터_V8까지의_이력에서_V9부터_V11이_추가된다() throws SQLException {
         flyway().clean();
         flyway("8").migrate();
 
@@ -62,7 +65,8 @@ class FlywayMigrationIntegrationTest {
 
         flyway().migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -72,6 +76,31 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRows("batch_item_errors")).isZero();
         assertThat(countRows("news_articles")).isZero();
         assertThat(countRows("item_favorites")).isZero();
+    }
+
+    @Test
+    void nickname은_null을_여러_개_허용하고_중복을_거부한다() throws SQLException {
+        flyway().clean();
+        flyway().migrate();
+
+        executeUpdate("""
+                INSERT INTO users (provider, provider_subject, email, name, role, nickname)
+                VALUES ('KAKAO', 'nickname-1', NULL, '사용자 1', 'USER', '같은이름')
+                """);
+        executeUpdate("""
+                INSERT INTO users (provider, provider_subject, email, name, role, nickname)
+                VALUES ('KAKAO', 'nickname-2', NULL, '사용자 2', 'USER', NULL)
+                """);
+        executeUpdate("""
+                INSERT INTO users (provider, provider_subject, email, name, role, nickname)
+                VALUES ('KAKAO', 'nickname-3', NULL, '사용자 3', 'USER', NULL)
+                """);
+
+        assertThatThrownBy(() -> executeUpdate("""
+                INSERT INTO users (provider, provider_subject, email, name, role, nickname)
+                VALUES ('KAKAO', 'nickname-4', NULL, '사용자 4', 'USER', '같은이름')
+                """))
+                .isInstanceOf(SQLException.class);
     }
 
     @Test
