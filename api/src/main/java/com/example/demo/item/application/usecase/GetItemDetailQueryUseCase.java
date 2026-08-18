@@ -82,7 +82,7 @@ public class GetItemDetailQueryUseCase {
     }
 
     private BigDecimal priceDiffRate(final Integer priceGap, final PublicPrice previousPrice) {
-        if (priceGap == null || previousPrice.price() == 0) {
+        if (priceGap == null || previousPrice == null || previousPrice.price() == 0) {
             return null;
         }
         return BigDecimal.valueOf(priceGap)
