@@ -48,7 +48,7 @@ public class ItemQueryAdapter implements ItemQueryPort {
         }
         final List<Item> content = contentQuery
                 .orderBy(orderBy(query.sort(), item, currentPrice))
-                .offset((long) query.page() * query.size())
+                .offset(offset(query))
                 .limit(query.size())
                 .fetch();
         final long totalCount = jpaQueryFactory
@@ -84,6 +84,13 @@ public class ItemQueryAdapter implements ItemQueryPort {
                 .from(itemFavorite)
                 .where(itemFavorite.userId.eq(userId), itemFavorite.itemId.in(itemIds))
                 .fetch());
+    }
+
+    private long offset(final ItemQuery query) {
+        if (query.offset() != null) {
+            return query.offset();
+        }
+        return (long) query.page() * query.size();
     }
 
     private BooleanExpression keywordCondition(final QItem item, final String keyword) {

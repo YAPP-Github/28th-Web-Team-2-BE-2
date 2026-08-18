@@ -6,6 +6,11 @@ import com.example.demo.item.application.result.ItemQueryResult;
 import com.example.demo.item.presentation.dto.ItemPageResponse;
 import com.example.demo.item.presentation.dto.ItemDetailResponse;
 import com.example.demo.item.presentation.dto.ItemResponse;
+import com.example.demo.item.presentation.dto.ItemSearchItemResponse;
+import com.example.demo.item.presentation.dto.ItemSearchPagination;
+import com.example.demo.item.presentation.dto.ItemSearchRequest;
+import com.example.demo.item.presentation.dto.ItemSearchResponse;
+import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -35,6 +40,29 @@ public class ItemResultConverter {
                 result.page(),
                 result.size(),
                 result.hasNext());
+    }
+
+    public ItemSearchResponse toSearchResponse(
+            final ItemQueryResult result, final ItemSearchRequest request) {
+        final List<ItemSearchItemResponse> items =
+                result.items().stream().map(this::toSearchItemResponse).toList();
+        final ItemSearchPagination pagination = new ItemSearchPagination(
+                request.limit(), request.offset(), hasNext(result, request, items.size()));
+        return new ItemSearchResponse(result.totalCount(), items, pagination);
+    }
+
+    private boolean hasNext(
+            final ItemQueryResult result, final ItemSearchRequest request, final int itemCount) {
+        return request.offset() + itemCount < result.totalCount();
+    }
+
+    private ItemSearchItemResponse toSearchItemResponse(final ItemPriceResult result) {
+        return new ItemSearchItemResponse(
+                result.itemId(),
+                result.itemName(),
+                result.itemImageUrl(),
+                result.price(),
+                result.priceDiffRate());
     }
 
     private ItemResponse toResponse(final ItemPriceResult result) {
