@@ -16,6 +16,7 @@ import com.example.demo.auth.infrastructure.token.JwtTokenProvider;
 import com.example.demo.common.exception.ErrorType;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -127,14 +128,18 @@ class UserRegionHttpTest {
         final User user = saveUser("동시 관심 지역 한도 사용자");
         final String token = accessToken(user);
         final ExecutorService executor = Executors.newFixedThreadPool(4);
+        final CountDownLatch ready = new CountDownLatch(4);
+        final CountDownLatch start = new CountDownLatch(1);
         final List<String> regionIds = List.of(
                 "1121510100", "1121510200", "1121510300", "1121510400");
 
         try {
             final List<Future<Integer>> responses = regionIds.stream()
-                    .map(regionId -> executor.submit(
-                            () -> add(token, regionId).andReturn().getResponse().getStatus()))
+                    .map(regionId -> executor.submit(() -> addConcurrently(
+                            token, regionId, ready, start)))
                     .toList();
+            ready.await();
+            start.countDown();
 
             assertThat(responses.stream().map(this::statusOf).toList())
                     .containsExactlyInAnyOrder(204, 204, 204, 409);
@@ -142,6 +147,16 @@ class UserRegionHttpTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    private int addConcurrently(
+            final String token,
+            final String regionId,
+            final CountDownLatch ready,
+            final CountDownLatch start) throws Exception {
+        ready.countDown();
+        start.await();
+        return add(token, regionId).andReturn().getResponse().getStatus();
     }
 
     @Test
@@ -202,11 +217,13 @@ class UserRegionHttpTest {
         final User firstUser = saveUser("첫 관심 지역 사용자");
         final User secondUser = saveUser("둘째 관심 지역 사용자");
 
-        add(accessToken(firstUser), "1121510100").andExpect(status().isNoContent());
+        final String firstToken = accessToken(firstUser);
+        add(firstToken, "1121510100").andExpect(status().isNoContent());
+        setCurrent(firstToken, "1121510100").andExpect(status().isNoContent());
         setCurrent(accessToken(secondUser), "1121510200").andExpect(status().isNoContent());
 
         assertThat(regionCount(firstUser.id())).isEqualTo(1);
-        assertThat(currentRegionCount(firstUser.id())).isZero();
+        assertThat(currentRegionId(firstUser.id())).isEqualTo("1121510100");
         assertThat(currentRegionId(secondUser.id())).isEqualTo("1121510200");
     }
 
