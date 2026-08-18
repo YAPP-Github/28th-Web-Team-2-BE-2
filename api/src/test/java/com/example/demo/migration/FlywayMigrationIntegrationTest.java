@@ -39,7 +39,7 @@ class FlywayMigrationIntegrationTest {
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
@@ -54,6 +54,16 @@ class FlywayMigrationIntegrationTest {
                 .contains("uk_item_favorites_user_item", "fk_item_favorites_user", "fk_item_favorites_item");
         assertThat(columnNames("users")).contains("nickname");
         assertThat(constraintNames("users")).contains("uk_users_nickname");
+        assertThat(columnNames("items")).contains("category_code");
+        assertThat(countRowsWhere("category_code = 'ROOT_VEGETABLES'")).isEqualTo(5);
+        assertThat(countRowsWhere("category_code = 'LEAFY_GREENS'")).isEqualTo(12);
+        assertThat(countRowsWhere("category_code = 'FRUITING_VEGETABLES'")).isEqualTo(8);
+        assertThat(countRowsWhere("category_code = 'PEPPERS'")).isEqualTo(4);
+        assertThat(countRowsWhere("category_code = 'SEASONINGS'")).isEqualTo(10);
+        assertThat(countRowsWhere("category_code = 'MUSHROOMS'")).isEqualTo(3);
+        assertThat(countRowsWhere("category_code = 'FRUITS'")).isEqualTo(4);
+        assertThat(countRowsWhere("category_code IS NULL")).isZero();
+        assertCategoryMapping();
         assertThat(columnNames("stores"))
                 .containsExactly(
                         "store_id",
@@ -72,7 +82,7 @@ class FlywayMigrationIntegrationTest {
     }
 
     @Test
-    void 기존_V1부터_V8까지의_이력에서_V9부터_V12가_추가된다() throws SQLException {
+    void 기존_V1부터_V8까지의_이력에서_V9부터_V13이_추가된다() throws SQLException {
         flyway().clean();
         flyway("8").migrate();
 
@@ -83,7 +93,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -95,6 +105,49 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRows("item_favorites")).isZero();
         assertThat(countRows("stores")).isZero();
         assertThat(countRows("store_favorites")).isZero();
+        assertThat(countRowsWhere("category_code IS NULL")).isZero();
+    }
+
+    @Test
+    void 기존_V11_이력에_V12_category_mapping을_추가한다() throws SQLException {
+        flyway().clean();
+        flyway("11").migrate();
+
+        assertThat(columnNames("items")).doesNotContain("category_code");
+
+        flyway().migrate();
+
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13");
+        assertCategoryMapping();
+    }
+
+    @Test
+    void 기존_V12_이력에_V13_store_schema를_추가한다() throws SQLException {
+        flyway().clean();
+        flyway("12").migrate();
+
+        assertThat(columnNames("stores")).isEmpty();
+
+        flyway().migrate();
+
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13");
+        assertThat(columnNames("stores"))
+                .containsExactly(
+                        "store_id",
+                        "kakao_place_id",
+                        "store_name",
+                        "latitude",
+                        "longitude",
+                        "address_name",
+                        "road_address_name",
+                        "phone",
+                        "place_url");
+        assertThat(columnNames("store_favorites"))
+                .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
+        assertThat(constraintNames("store_favorites"))
+                .contains("uk_store_favorites_user_store", "fk_store_favorites_user", "fk_store_favorites_store");
     }
 
     @Test
@@ -206,6 +259,79 @@ class FlywayMigrationIntegrationTest {
                 ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM " + tableName)) {
             resultSet.next();
             return resultSet.getInt(1);
+        }
+    }
+
+    private int countRowsWhere(final String predicate) throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(
+                        "SELECT COUNT(*) FROM items WHERE " + predicate)) {
+            resultSet.next();
+            return resultSet.getInt(1);
+        }
+    }
+
+    private void assertCategoryMapping() throws SQLException {
+        assertThat(categoryCodes()).containsExactly(
+                "ROOT_VEGETABLES",
+                "SEASONINGS",
+                "SEASONINGS",
+                "ROOT_VEGETABLES",
+                "ROOT_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "LEAFY_GREENS",
+                "ROOT_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "SEASONINGS",
+                "SEASONINGS",
+                "PEPPERS",
+                "PEPPERS",
+                "PEPPERS",
+                "PEPPERS",
+                "MUSHROOMS",
+                "MUSHROOMS",
+                "MUSHROOMS",
+                "SEASONINGS",
+                "SEASONINGS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "SEASONINGS",
+                "SEASONINGS",
+                "ROOT_VEGETABLES",
+                "SEASONINGS",
+                "SEASONINGS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "FRUITING_VEGETABLES",
+                "FRUITS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "FRUITS",
+                "FRUITS",
+                "FRUITS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS");
+    }
+
+    private List<String> categoryCodes() throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(
+                        "SELECT category_code FROM items ORDER BY item_id")) {
+            final ArrayList<String> categories = new ArrayList<>();
+            while (resultSet.next()) {
+                categories.add(resultSet.getString("category_code"));
+            }
+            return categories;
         }
     }
 

@@ -54,6 +54,7 @@ class BatchJobPersistenceAdapterTest {
         final BatchItemFailure failure = new BatchItemFailure(
                 1L,
                 2,
+                5,
                 new ApiException(
                         "<html>provider raw response</html>",
                         ErrorType.EXTERNAL_API_ERROR,
@@ -67,7 +68,7 @@ class BatchJobPersistenceAdapterTest {
                 "SELECT * FROM batch_item_errors WHERE job_execution_id = ?", jobExecutionId);
         assertThat(row.get("ITEM_ID")).isEqualTo(1L);
         assertThat(row.get("CHANNEL_ID")).isEqualTo(2);
-        assertThat(row.get("ATTEMPT_COUNT")).isEqualTo(1);
+        assertThat(row.get("ATTEMPT_COUNT")).isEqualTo(5);
         assertThat(row.get("ERROR_TYPE")).isEqualTo(ErrorType.EXTERNAL_API_ERROR.name());
         assertThat(row.get("ERROR_MESSAGE")).isEqualTo(ErrorType.EXTERNAL_API_ERROR.description());
         assertThat(row.get("ERROR_MESSAGE")).isNotEqualTo("<html>provider raw response</html>");
