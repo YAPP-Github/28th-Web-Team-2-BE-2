@@ -16,9 +16,7 @@ public class CorsConfig {
             "http://192.168.0.100:3000",
             "http://192.168.0.100:[*]",
             "https://marketgo.kro.kr",
-            "https://marketgo.kro.kr:[*]",
-            "http://180.233.242.210",
-            "http://180.233.242.210:[*]");
+            "https://marketgo.kro.kr:443");
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
