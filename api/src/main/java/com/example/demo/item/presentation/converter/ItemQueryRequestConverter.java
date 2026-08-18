@@ -14,6 +14,7 @@ public class ItemQueryRequestConverter {
                 request.size(),
                 request.sort(),
                 request.keyword(),
+                request.category(),
                 request.favoriteOnly());
     }
 }

@@ -13,6 +13,7 @@ import com.example.demo.auth.domain.User;
 import com.example.demo.auth.infrastructure.persistence.UserJpaRepository;
 import com.example.demo.auth.infrastructure.token.JwtTokenProvider;
 import com.example.demo.item.domain.Item;
+import com.example.demo.item.domain.ItemCategory;
 import com.example.demo.item.domain.PublicPrice;
 import com.example.demo.item.infrastructure.ItemJpaRepository;
 import com.example.demo.item.infrastructure.PublicPriceJpaRepository;
@@ -89,12 +90,18 @@ class ItemQueryE2ETest {
         userJpaRepository.deleteAll();
         referenceDate = LocalDate.now();
 
-        final Item potato = itemJpaRepository.save(new Item("감자", "1kg"));
-        final Item onion = itemJpaRepository.save(new Item("양파", "1kg"));
-        final Item greenOnion = itemJpaRepository.save(new Item("대파", "1단"));
-        final Item carrot = itemJpaRepository.save(new Item("당근", "1kg"));
-        itemJpaRepository.save(new Item("양배추", null));
-        final Item secondPotato = itemJpaRepository.save(new Item("감자", "1kg"));
+        final Item potato = itemJpaRepository.save(
+                new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES));
+        final Item onion = itemJpaRepository.save(
+                new Item("양파", "1kg", null, ItemCategory.SEASONINGS));
+        final Item greenOnion = itemJpaRepository.save(
+                new Item("대파", "1단", null, ItemCategory.SEASONINGS));
+        final Item carrot = itemJpaRepository.save(
+                new Item("당근", "1kg", null, ItemCategory.ROOT_VEGETABLES));
+        itemJpaRepository.save(
+                new Item("양배추", null, null, ItemCategory.LEAFY_GREENS));
+        final Item secondPotato = itemJpaRepository.save(
+                new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES));
         firstPotatoId = potato.id();
         secondPotatoId = secondPotato.id();
         onionId = onion.id();
@@ -163,7 +170,7 @@ class ItemQueryE2ETest {
                 .andExpect(jsonPath("$.items[*].isLiked")
                         .value(contains(true, true, true, true, true, true)));
 
-        assertThat(statistics.getPrepareStatementCount()).isEqualTo(5);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(6);
     }
 
     @Test
@@ -458,6 +465,35 @@ class ItemQueryE2ETest {
     }
 
     @Test
+    void category와_검색어를_함께_필터링하고_전체_카테고리_건수를_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("category", "ROOT_VEGETABLES")
+                        .queryParam("keyword", "감자"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[*].itemName").value(contains("감자", "감자")))
+                .andExpect(jsonPath("$.categoryCounts.ROOT_VEGETABLES").value(3))
+                .andExpect(jsonPath("$.categoryCounts.LEAFY_GREENS").value(1))
+                .andExpect(jsonPath("$.categoryCounts.FRUITING_VEGETABLES").value(0))
+                .andExpect(jsonPath("$.categoryCounts.PEPPERS").value(0))
+                .andExpect(jsonPath("$.categoryCounts.SEASONINGS").value(2))
+                .andExpect(jsonPath("$.categoryCounts.MUSHROOMS").value(0))
+                .andExpect(jsonPath("$.categoryCounts.FRUITS").value(0));
+    }
+
+    @Test
+    void 지원하지_않는_category는_기존_400_오류_계약을_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("category", "UNKNOWN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_ERROR"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
     void 지역_전체_최신일과_품목별_최신일이_달라도_품목별_가격과_priceGap으로_정렬한다()
             throws Exception {
         final LocalDate today = referenceDate;
@@ -672,6 +708,8 @@ class ItemQueryE2ETest {
                         .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'keyword')]")
                         .isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'category')]")
+                        .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'favoriteOnly')]")
                         .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'favoriteOnly')].schema.default")
@@ -695,7 +733,9 @@ class ItemQueryE2ETest {
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['401'].description")
                         .value("찜한 품목만 조회하려면 로그인이 필요하다"))
                 .andExpect(jsonPath("$.components.schemas.ItemResponse.properties.isLiked.type")
-                        .value("boolean"));
+                        .value("boolean"))
+                .andExpect(jsonPath("$.components.schemas.ItemPageResponse.properties.categoryCounts")
+                        .exists());
     }
 
     private MockHttpServletRequestBuilder itemListRequest() {

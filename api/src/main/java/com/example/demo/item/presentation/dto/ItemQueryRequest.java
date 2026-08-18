@@ -1,6 +1,7 @@
 package com.example.demo.item.presentation.dto;
 
 import com.example.demo.item.application.query.ItemSort;
+import com.example.demo.item.domain.ItemCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -19,6 +20,7 @@ public record ItemQueryRequest(
                         defaultValue = "NAME_ASC")
                 ItemSort sort,
         @Schema(description = "품목명 검색어", example = "감자") String keyword,
+        @Schema(description = "품목 카테고리", example = "ROOT_VEGETABLES") ItemCategory category,
         @Schema(description = "찜한 품목만 조회", defaultValue = "false") Boolean favoriteOnly) {
 
     private static final int DEFAULT_PAGE = 0;
@@ -37,7 +39,7 @@ public record ItemQueryRequest(
             final Integer page,
             final Integer size,
             final ItemSort sort) {
-        this(regionId, page, size, sort, null, false);
+        this(regionId, page, size, sort, null, null, false);
     }
 
     public ItemQueryRequest(
@@ -46,11 +48,11 @@ public record ItemQueryRequest(
             final Integer size,
             final ItemSort sort,
             final String keyword) {
-        this(regionId, page, size, sort, keyword, false);
+        this(regionId, page, size, sort, keyword, null, false);
     }
 
     public ItemQueryRequest(final String regionId, final Integer page, final Integer size) {
-        this(regionId, page, size, ItemSort.NAME_ASC);
+        this(regionId, page, size, ItemSort.NAME_ASC, null, null, false);
     }
 
     private static int defaultValue(final Integer value, final int defaultValue) {
