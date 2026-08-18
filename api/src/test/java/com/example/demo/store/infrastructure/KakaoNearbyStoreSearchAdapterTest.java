@@ -3,6 +3,7 @@ package com.example.demo.store.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
@@ -20,6 +21,30 @@ class KakaoNearbyStoreSearchAdapterTest {
 
     private final KakaoMapClient kakaoMapClient = mock(KakaoMapClient.class);
     private final KakaoNearbyStoreSearchAdapter adapter = new KakaoNearbyStoreSearchAdapter(kakaoMapClient);
+
+    @Test
+    void keyword가_있으면_요청_좌표와_반경으로_거리순_keyword_검색을_호출한다() {
+        final NearbyStoreQuery query = query("강남 마트");
+        when(kakaoMapClient.searchKeyword("강남 마트", "MT1", query.longitude(), query.latitude(),
+                1500, "distance", 1, 15))
+                .thenReturn(new KakaoCategorySearchResult(1, 1, true, List.of(place("1", 100))));
+
+        assertThat(adapter.search(query).stores()).extracting("kakaoPlaceId").containsExactly("1");
+        verify(kakaoMapClient).searchKeyword("강남 마트", "MT1", query.longitude(), query.latitude(),
+                1500, "distance", 1, 15);
+    }
+
+    @Test
+    void 빈_keyword는_기존_category_검색을_호출한다() {
+        final NearbyStoreQuery query = query("");
+        when(kakaoMapClient.searchCategory("MT1", query.longitude(), query.latitude(), 1500,
+                "distance", 1, 15))
+                .thenReturn(new KakaoCategorySearchResult(0, 0, true, List.of()));
+
+        assertThat(adapter.search(query).stores()).isEmpty();
+        verify(kakaoMapClient).searchCategory("MT1", query.longitude(), query.latitude(), 1500,
+                "distance", 1, 15);
+    }
 
     @Test
     void provider_페이지의_중복_place는_502로_실패한다() {
@@ -74,13 +99,18 @@ class KakaoNearbyStoreSearchAdapterTest {
     }
 
     private NearbyStoreQuery query() {
+        return query(null);
+    }
+
+    private NearbyStoreQuery query(final String keyword) {
         return new NearbyStoreQuery(
                 new BigDecimal("37.4979"),
                 new BigDecimal("127.0276"),
                 1500,
                 false,
                 false,
-                null);
+                null,
+                keyword);
     }
 
     private KakaoPlace place(final String id, final int distance) {

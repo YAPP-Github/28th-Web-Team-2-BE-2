@@ -3,7 +3,9 @@ package com.example.demo.store.presentation;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -27,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -116,6 +119,21 @@ class StoreControllerTest {
     }
 
     @Test
+    void keyword는_앞뒤_공백을_제거해_조회_쿼리로_전달한다() throws Exception {
+        clearInvocations(nearbyStoreSearchPort);
+        mockMvc.perform(get("/api/v1/stores/nearby")
+                        .queryParam("latitude", "37.5")
+                        .queryParam("longitude", "127.0")
+                        .queryParam("keyword", "  장보고 마트  "))
+                .andExpect(status().isOk());
+
+        final ArgumentCaptor<NearbyStoreQuery> queryCaptor =
+                ArgumentCaptor.forClass(NearbyStoreQuery.class);
+        verify(nearbyStoreSearchPort).search(queryCaptor.capture());
+        assertThat(queryCaptor.getValue().keyword()).isEqualTo("장보고 마트");
+    }
+
+    @Test
     void 좌표와_반경이_잘못되면_공통_400_오류를_반환한다() throws Exception {
         mockMvc.perform(get("/api/v1/stores/nearby")
                         .queryParam("latitude", "91")
@@ -161,7 +179,8 @@ class StoreControllerTest {
                 new BigDecimal("37"),
                 new BigDecimal("127"),
                 2000,
-                false);
+                false,
+                null);
         final var authentication = new UsernamePasswordAuthenticationToken(
                 new AuthPrincipal(7L),
                 null,

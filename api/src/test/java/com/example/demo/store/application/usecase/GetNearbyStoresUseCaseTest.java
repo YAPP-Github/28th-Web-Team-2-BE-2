@@ -137,7 +137,8 @@ class GetNearbyStoresUseCaseTest {
                 2000,
                 onlyLiked,
                 roleUser,
-                userId);
+                userId,
+                null);
     }
 
     private NearbyStoreCandidate candidate(final String kakaoPlaceId, final int distance) {
