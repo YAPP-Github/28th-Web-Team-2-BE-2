@@ -31,6 +31,7 @@ public class ResponseWrapper implements ResponseBodyAdvice<Object> {
             final ServerHttpResponse response) {
         final String path = request.getURI().getPath();
         if (body == null
+                || returnType.hasMethodAnnotation(DirectResponse.class)
                 || !isApiV1Path(path)
                 || isDocumentationPath(path)
                 || body instanceof ApiResponse<?>) {

@@ -17,6 +17,11 @@ public interface OnlinePriceJpaRepository extends JpaRepository<OnlinePrice, Lon
     Optional<OnlinePrice> findFirstByItemIdAndChannelIdAndCreatedAtAndUnitOrderByPriceAscIdAsc(
             Long itemId, Integer channelId, LocalDate createdAt, Integer unit);
 
+    Optional<OnlinePrice> findFirstByItemIdOrderByCreatedAtDescIdDesc(Long itemId);
+
+    Optional<OnlinePrice> findFirstByItemIdAndCreatedAtAndUnitOrderByPriceAscIdAsc(
+            Long itemId, LocalDate createdAt, Integer unit);
+
     @Transactional
     @Modifying
     @Query("""
