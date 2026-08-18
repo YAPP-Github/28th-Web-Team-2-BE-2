@@ -1,7 +1,10 @@
 package com.example.demo.item.infrastructure.crawler.elevenst.parser;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.infrastructure.crawler.elevenst.ElevenStProduct;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
@@ -27,8 +30,13 @@ class ElevenStSearchPageParserTest {
     }
 
     @Test
-    void returnsEmptyForInvalidResponse() {
-        assertThat(parser.parse("not-json")).isEmpty();
+    void throwsForInvalidResponse() {
+        assertThatThrownBy(() -> parser.parse("not-json"))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.UNKNOWN_ERROR);
+                    assertThat(exception.errorMessage()).isEqualTo(ErrorType.UNKNOWN_ERROR.description());
+                    assertThat(exception.getCause()).isNull();
+                });
     }
 
     @Test

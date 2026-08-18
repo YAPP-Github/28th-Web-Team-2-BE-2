@@ -10,7 +10,10 @@ import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.command.CrawlOnlinePriceCommand;
 import com.example.demo.item.application.contract.BatchItemFailure;
 import com.example.demo.item.application.contract.BatchJobCompletion;
+import com.example.demo.item.application.port.BatchExecutionOutcome;
 import com.example.demo.item.application.port.BatchJobPersistencePort;
+import com.example.demo.item.application.port.BatchMetricsPort;
+import com.example.demo.item.application.port.BatchRetryDelayPort;
 import com.example.demo.item.application.port.OnlineChannelQueryPort;
 import com.example.demo.item.application.port.OnlineItemQueryPort;
 import com.example.demo.item.application.port.OnlinePriceCrawlerPort;
@@ -21,8 +24,11 @@ import com.example.demo.item.application.result.OnlinePriceCrawlResult;
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.OnlineChannel;
 import com.example.demo.item.domain.OnlinePrice;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -172,9 +178,310 @@ class CollectOnlinePriceUseCaseTest {
         assertThat(jobs.itemFailures()).singleElement().satisfies(failure -> {
             assertThat(failure.itemId()).isEqualTo(1L);
             assertThat(failure.channelId()).isEqualTo(1);
-            assertThat(failure.attemptCount()).isEqualTo(1);
+            assertThat(failure.attemptCount()).isEqualTo(5);
             assertThat(failure.cause()).isInstanceOf(ApiException.class);
         });
+    }
+
+    @Test
+    void 재시도_가능한_503_오류는_다섯번째_시도에서_성공하면_가격을_저장한다() {
+        final List<Integer> attempts = new ArrayList<>();
+        final InMemoryOnlinePricePersistence persistence = new InMemoryOnlinePricePersistence();
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                persistence,
+                List.of(new StubCrawler("오아시스", name -> {
+                    attempts.add(1);
+                    if (attempts.size() < 5) {
+                        throw new ApiException(
+                                "provider unavailable",
+                                ErrorType.EXTERNAL_API_ERROR,
+                                HttpStatus.SERVICE_UNAVAILABLE);
+                    }
+                    return List.of(crawlResult(name, "신규 상품", 200));
+                })),
+                jobs);
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(attempts).hasSize(5);
+        assertThat(result.succeededTaskCount()).isEqualTo(1);
+        assertThat(result.failedTaskCount()).isZero();
+        assertThat(persistence.savedPrices()).containsKey(new Scope(1L, 1, COLLECTION_DATE));
+        assertThat(jobs.itemFailures()).isEmpty();
+    }
+
+    @Test
+    void 재시도_가능한_503_오류가_다섯번_실패하면_시도횟수_5의_실패를_기록한다() {
+        final List<Integer> attempts = new ArrayList<>();
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    attempts.add(1);
+                    throw new ApiException(
+                            "provider unavailable",
+                            ErrorType.EXTERNAL_API_ERROR,
+                            HttpStatus.SERVICE_UNAVAILABLE);
+                })),
+                jobs);
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(attempts).hasSize(5);
+        assertThat(result.failedTaskCount()).isEqualTo(1);
+        assertThat(jobs.itemFailures()).singleElement().satisfies(failure -> {
+            assertThat(failure.attemptCount()).isEqualTo(5);
+            assertThat(failure.cause()).isInstanceOf(ApiException.class);
+        });
+    }
+
+    @Test
+    void 네번의_503_실패_뒤_성공하면_1분_2분_4분_8분_순서로_대기한다() {
+        final List<Integer> attempts = new ArrayList<>();
+        final RecordingRetryDelay retryDelay = new RecordingRetryDelay();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    attempts.add(1);
+                    if (attempts.size() <= 4) {
+                        throw unavailable();
+                    }
+                    return List.of(crawlResult(name, "신규 상품", 200));
+                })),
+                new InMemoryBatchJobPersistence(),
+                retryDelay,
+                new RecordingBatchMetrics());
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.succeededTaskCount()).isEqualTo(1);
+        assertThat(attempts).hasSize(5);
+        assertThat(retryDelay.delays()).containsExactly(
+                Duration.ofMinutes(1),
+                Duration.ofMinutes(2),
+                Duration.ofMinutes(4),
+                Duration.ofMinutes(8));
+    }
+
+    @Test
+    void http_429_오류는_한번_대기한_뒤_재시도한다() {
+        final List<Integer> attempts = new ArrayList<>();
+        final RecordingRetryDelay retryDelay = new RecordingRetryDelay();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    attempts.add(1);
+                    if (attempts.size() == 1) {
+                        throw new ApiException("rate limited", ErrorType.EXTERNAL_API_ERROR, HttpStatus.TOO_MANY_REQUESTS);
+                    }
+                    return List.of(crawlResult(name, "신규 상품", 200));
+                })),
+                new InMemoryBatchJobPersistence(),
+                retryDelay,
+                new RecordingBatchMetrics());
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.succeededTaskCount()).isEqualTo(1);
+        assertThat(attempts).hasSize(2);
+        assertThat(retryDelay.delays()).containsExactly(Duration.ofMinutes(1));
+    }
+
+    @Test
+    void SocketTimeoutException을_감싼_예외는_재시도한다() {
+        final List<Integer> attempts = new ArrayList<>();
+        final RecordingRetryDelay retryDelay = new RecordingRetryDelay();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    attempts.add(1);
+                    if (attempts.size() == 1) {
+                        throw new RuntimeException(new SocketTimeoutException("timed out"));
+                    }
+                    return List.of(crawlResult(name, "신규 상품", 200));
+                })),
+                new InMemoryBatchJobPersistence(),
+                retryDelay,
+                new RecordingBatchMetrics());
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.succeededTaskCount()).isEqualTo(1);
+        assertThat(attempts).hasSize(2);
+        assertThat(retryDelay.delays()).containsExactly(Duration.ofMinutes(1));
+    }
+
+    @Test
+    void IOException을_감싼_예외는_재시도한다() {
+        final List<Integer> attempts = new ArrayList<>();
+        final RecordingRetryDelay retryDelay = new RecordingRetryDelay();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    attempts.add(1);
+                    if (attempts.size() == 1) {
+                        throw new RuntimeException(new IOException("connection reset"));
+                    }
+                    return List.of(crawlResult(name, "신규 상품", 200));
+                })),
+                new InMemoryBatchJobPersistence(),
+                retryDelay,
+                new RecordingBatchMetrics());
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.succeededTaskCount()).isEqualTo(1);
+        assertThat(attempts).hasSize(2);
+        assertThat(retryDelay.delays()).containsExactly(Duration.ofMinutes(1));
+    }
+
+    @Test
+    void 네트워크_최종_실패는_안전한_외부_API_오류로_정규화한다() {
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name ->
+                        throwNetworkFailure())),
+                jobs);
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.failedTaskCount()).isEqualTo(1);
+        assertThat(jobs.itemFailures()).singleElement().satisfies(failure -> {
+            assertThat(failure.attemptCount()).isEqualTo(5);
+            assertThat(failure.cause()).isInstanceOfSatisfying(ApiException.class, exception -> {
+                assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                assertThat(exception.errorMessage()).isEqualTo(ErrorType.EXTERNAL_API_ERROR.description());
+            });
+        });
+    }
+
+    @Test
+    void http_400_오류는_재시도하지_않는다() {
+        final List<Integer> attempts = new ArrayList<>();
+        final RecordingRetryDelay retryDelay = new RecordingRetryDelay();
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    attempts.add(1);
+                    throw new ApiException("invalid request", ErrorType.EXTERNAL_API_ERROR, HttpStatus.BAD_REQUEST);
+                })),
+                jobs,
+                retryDelay,
+                new RecordingBatchMetrics());
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.failedTaskCount()).isEqualTo(1);
+        assertThat(attempts).hasSize(1);
+        assertThat(retryDelay.delays()).isEmpty();
+        assertThat(jobs.itemFailures()).singleElement()
+                .extracting(BatchItemFailure::attemptCount)
+                .isEqualTo(1);
+    }
+
+    @Test
+    void 빈_성공_결과에는_재시도하지_않고_낮은_카디널리티_메트릭만_기록한다() {
+        final List<Integer> attempts = new ArrayList<>();
+        final RecordingRetryDelay retryDelay = new RecordingRetryDelay();
+        final RecordingBatchMetrics metrics = new RecordingBatchMetrics();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    attempts.add(1);
+                    return List.of();
+                })),
+                new InMemoryBatchJobPersistence(),
+                retryDelay,
+                metrics);
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.succeededTaskCount()).isEqualTo(1);
+        assertThat(attempts).hasSize(1);
+        assertThat(retryDelay.delays()).isEmpty();
+        assertThat(metrics.executions()).containsExactly(
+                new ExecutionMetric("ONLINE_PRICE_COLLECTION", "오아시스", BatchExecutionOutcome.SUCCESS));
+        assertThat(metrics.retries()).containsExactly(new RetryMetric("ONLINE_PRICE_COLLECTION", "오아시스", 0));
+        assertThat(metrics.durations()).hasSize(1);
+        assertThat(metrics.durations().get(0).job()).isEqualTo("ONLINE_PRICE_COLLECTION");
+        assertThat(metrics.durations().get(0).channel()).isEqualTo("오아시스");
+    }
+
+    @Test
+    void parsing_오류는_최초_실패만_기록하고_재시도하지_않는다() {
+        final List<Integer> attempts = new ArrayList<>();
+        final RecordingRetryDelay retryDelay = new RecordingRetryDelay();
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "감자")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    attempts.add(1);
+                    throw new ApiException(
+                            ErrorType.UNKNOWN_ERROR.description(),
+                            ErrorType.UNKNOWN_ERROR,
+                            HttpStatus.INTERNAL_SERVER_ERROR);
+                })),
+                jobs,
+                retryDelay,
+                new RecordingBatchMetrics());
+
+        final OnlinePriceCollectionResult result = useCase.execute(COLLECTION_DATE);
+
+        assertThat(result.failedTaskCount()).isEqualTo(1);
+        assertThat(attempts).hasSize(1);
+        assertThat(retryDelay.delays()).isEmpty();
+        assertThat(jobs.itemFailures()).singleElement()
+                .extracting(BatchItemFailure::attemptCount)
+                .isEqualTo(1);
+    }
+
+    @Test
+    void retry_대기_실패는_현재_작업과_남은_작업을_중단하고_job을_FAILED로_종료한다() {
+        final List<String> crawledItems = new ArrayList<>();
+        final InMemoryBatchJobPersistence jobs = new InMemoryBatchJobPersistence();
+        final CollectOnlinePriceUseCase useCase = useCase(
+                List.of(item(1L, "첫 품목"), item(2L, "둘째 품목")),
+                List.of(channel(1, "오아시스")),
+                new InMemoryOnlinePricePersistence(),
+                List.of(new StubCrawler("오아시스", name -> {
+                    crawledItems.add(name);
+                    throw unavailable();
+                })),
+                jobs,
+                duration -> {
+                    throw new IllegalStateException("retry delay interrupted");
+                },
+                new RecordingBatchMetrics());
+
+        assertThatThrownBy(() -> useCase.execute(COLLECTION_DATE))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("retry delay interrupted");
+        assertThat(crawledItems).containsExactly("첫 품목");
+        assertThat(jobs.execution().status()).isEqualTo(BatchJobStatus.FAILED);
+        assertThat(jobs.itemFailures()).isEmpty();
     }
 
     @Test
@@ -277,7 +584,38 @@ class CollectOnlinePriceUseCaseTest {
                 channelQueryPort,
                 crawlers,
                 replaceUseCase,
-                batchJobPersistencePort);
+                batchJobPersistencePort,
+                duration -> {},
+                new RecordingBatchMetrics());
+    }
+
+    private CollectOnlinePriceUseCase useCase(
+            final List<Item> items,
+            final List<OnlineChannel> channels,
+            final InMemoryOnlinePricePersistence persistence,
+            final List<OnlinePriceCrawlerPort> crawlers,
+            final BatchJobPersistencePort batchJobPersistencePort,
+            final BatchRetryDelayPort retryDelayPort,
+            final BatchMetricsPort metricsPort) {
+        final OnlineItemQueryPort itemQueryPort = () -> items;
+        final OnlineChannelQueryPort channelQueryPort = () -> channels;
+        final ReplaceOnlinePriceUseCase replaceUseCase = new ReplaceOnlinePriceUseCase(persistence);
+        return new CollectOnlinePriceUseCase(
+                itemQueryPort,
+                channelQueryPort,
+                crawlers,
+                replaceUseCase,
+                batchJobPersistencePort,
+                retryDelayPort,
+                metricsPort);
+    }
+
+    private ApiException unavailable() {
+        return new ApiException("provider unavailable", ErrorType.EXTERNAL_API_ERROR, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    private List<OnlinePriceCrawlResult> throwNetworkFailure() {
+        throw new RuntimeException(new IOException("raw provider response"));
     }
 
     private List<OnlinePriceCrawlerPort> crawlers() {
@@ -454,4 +792,61 @@ class CollectOnlinePriceUseCaseTest {
             failOnStart = true;
         }
     }
+
+    private static final class RecordingRetryDelay implements BatchRetryDelayPort {
+
+        private final List<Duration> delays = new ArrayList<>();
+
+        @Override
+        public void delay(final Duration duration) {
+            delays.add(duration);
+        }
+
+        private List<Duration> delays() {
+            return delays;
+        }
+    }
+
+    private static final class RecordingBatchMetrics implements BatchMetricsPort {
+
+        private final List<ExecutionMetric> executions = new ArrayList<>();
+        private final List<RetryMetric> retries = new ArrayList<>();
+        private final List<DurationMetric> durations = new ArrayList<>();
+
+        @Override
+        public void recordExecution(
+                final String job,
+                final String channel,
+                final BatchExecutionOutcome outcome) {
+            executions.add(new ExecutionMetric(job, channel, outcome));
+        }
+
+        @Override
+        public void recordRetries(final String job, final String channel, final int retryCount) {
+            retries.add(new RetryMetric(job, channel, retryCount));
+        }
+
+        @Override
+        public void recordDuration(final String job, final String channel, final Duration duration) {
+            durations.add(new DurationMetric(job, channel, duration));
+        }
+
+        private List<ExecutionMetric> executions() {
+            return executions;
+        }
+
+        private List<RetryMetric> retries() {
+            return retries;
+        }
+
+        private List<DurationMetric> durations() {
+            return durations;
+        }
+    }
+
+    private record ExecutionMetric(String job, String channel, BatchExecutionOutcome outcome) {}
+
+    private record RetryMetric(String job, String channel, int retryCount) {}
+
+    private record DurationMetric(String job, String channel, Duration duration) {}
 }
