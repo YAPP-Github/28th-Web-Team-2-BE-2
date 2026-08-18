@@ -2,6 +2,8 @@ package com.example.demo.region.presentation.spec;
 
 import com.example.demo.region.presentation.dto.NearbyRegionRequest;
 import com.example.demo.region.presentation.dto.NearbyRegionResponse;
+import com.example.demo.region.presentation.dto.RegionSearchRequest;
+import com.example.demo.region.presentation.dto.RegionSearchResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -27,7 +29,6 @@ public interface RegionControllerSpec {
     })
     ResponseEntity<List<NearbyRegionResponse>> getNearbyRegions(
             @ParameterObject NearbyRegionRequest request);
-    ResponseEntity<List<NearbyRegionResponse>> getNearbyRegions(NearbyRegionRequest request);
 
     @Operation(summary = "동 이름으로 법정동을 검색한다")
     @ApiResponses({
