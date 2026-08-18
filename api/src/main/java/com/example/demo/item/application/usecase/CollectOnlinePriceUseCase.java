@@ -28,13 +28,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CollectOnlinePriceUseCase {
 
     private static final int MAX_RESULT_COUNT = 5;
@@ -53,24 +54,6 @@ public class CollectOnlinePriceUseCase {
     private final BatchJobPersistencePort batchJobPersistencePort;
     private final BatchRetryDelayPort retryDelayPort;
     private final BatchMetricsPort metricsPort;
-
-    @Autowired
-    public CollectOnlinePriceUseCase(
-            final OnlineItemQueryPort onlineItemQueryPort,
-            final OnlineChannelQueryPort onlineChannelQueryPort,
-            final List<OnlinePriceCrawlerPort> crawlers,
-            final ReplaceOnlinePriceUseCase replaceOnlinePriceUseCase,
-            final BatchJobPersistencePort batchJobPersistencePort,
-            final BatchRetryDelayPort retryDelayPort,
-            final BatchMetricsPort metricsPort) {
-        this.onlineItemQueryPort = onlineItemQueryPort;
-        this.onlineChannelQueryPort = onlineChannelQueryPort;
-        this.crawlers = crawlers;
-        this.replaceOnlinePriceUseCase = replaceOnlinePriceUseCase;
-        this.batchJobPersistencePort = batchJobPersistencePort;
-        this.retryDelayPort = retryDelayPort;
-        this.metricsPort = metricsPort;
-    }
 
     public OnlinePriceCollectionResult execute(final LocalDate collectionDate) {
         Objects.requireNonNull(collectionDate, "collectionDate must not be null");
