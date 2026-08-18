@@ -26,6 +26,7 @@ public interface KakaoMapClient {
             @RequestParam("y") BigDecimal latitude,
             @RequestParam("radius") int radius,
             @RequestParam("sort") String sort,
+            @RequestParam("page") int page,
             @RequestParam("size") int size);
 
     @GetMapping("/v2/local/geo/coord2regioncode.json")

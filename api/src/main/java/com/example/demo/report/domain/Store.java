@@ -78,4 +78,23 @@ public class Store {
         this.latitude = latitude;
         this.distance = distance;
     }
+
+    public void updateNearbyProviderFields(
+            final String placeName,
+            final String placeUrl,
+            final String addressName,
+            final String roadAddressName,
+            final String phone,
+            final BigDecimal longitude,
+            final BigDecimal latitude,
+            final Integer distance) {
+        this.placeName = placeName;
+        this.placeUrl = placeUrl;
+        this.addressName = addressName;
+        this.roadAddressName = roadAddressName;
+        this.phone = phone;
+        this.longitude = longitude;
+        this.latitude = latitude;
+        this.distance = distance;
+    }
 }

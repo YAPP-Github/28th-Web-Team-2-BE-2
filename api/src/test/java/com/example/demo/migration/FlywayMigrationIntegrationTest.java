@@ -39,7 +39,7 @@ class FlywayMigrationIntegrationTest {
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
@@ -48,6 +48,7 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRows("item_favorites")).isZero();
         assertThat(countRows("stores")).isZero();
         assertThat(countRows("user_reports")).isZero();
+        assertThat(countRows("store_favorites")).isZero();
         assertThat(columnNames("item_favorites"))
                 .containsExactly("item_favorite_id", "user_id", "item_id", "created_at");
         assertThat(constraintNames("item_favorites"))
@@ -81,10 +82,14 @@ class FlywayMigrationIntegrationTest {
                         "fk_user_reports_user", "ck_user_reports_price_positive", "ck_user_reports_amount_positive");
         assertThat(indexNames("user_reports"))
                 .contains("idx_user_reports_item_report_date", "idx_user_reports_user_created_at");
+        assertThat(columnNames("store_favorites"))
+                .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
+        assertThat(constraintNames("store_favorites"))
+                .contains("uk_store_favorites_user_store", "fk_store_favorites_user", "fk_store_favorites_store");
     }
 
     @Test
-    void 기존_V1부터_V8까지의_이력에서_V9부터_V13이_추가된다() throws SQLException {
+    void 기존_V1부터_V8까지의_이력에서_V9부터_V14가_추가된다() throws SQLException {
         flyway().clean();
         flyway("8").migrate();
 
@@ -95,7 +100,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -105,11 +110,14 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRows("batch_item_errors")).isZero();
         assertThat(countRows("news_articles")).isZero();
         assertThat(countRows("item_favorites")).isZero();
+        assertThat(countRows("stores")).isZero();
+        assertThat(countRows("user_reports")).isZero();
+        assertThat(countRows("store_favorites")).isZero();
         assertThat(countRowsWhere("category_code IS NULL")).isZero();
     }
 
     @Test
-    void 기존_V11_이력에_V12와_V13_migration을_추가한다() throws SQLException {
+    void 기존_V11_이력에_V12부터_V14_migration을_추가한다() throws SQLException {
         flyway().clean();
         flyway("11").migrate();
 
@@ -118,8 +126,28 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14");
         assertCategoryMapping();
+        assertThat(countRows("stores")).isZero();
+        assertThat(countRows("user_reports")).isZero();
+        assertThat(countRows("store_favorites")).isZero();
+    }
+
+    @Test
+    void 기존_V13_이력에_V14_store_favorites를_추가한다() throws SQLException {
+        flyway().clean();
+        flyway("13").migrate();
+
+        assertThat(columnNames("store_favorites")).isEmpty();
+
+        flyway().migrate();
+
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14");
+        assertThat(columnNames("store_favorites"))
+                .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
+        assertThat(constraintNames("store_favorites"))
+                .contains("uk_store_favorites_user_store", "fk_store_favorites_user", "fk_store_favorites_store");
     }
 
     @Test

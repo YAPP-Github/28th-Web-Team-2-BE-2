@@ -20,21 +20,16 @@ public record NearbyStoreRequest(
         @Schema(description = "지도 중심 경도", example = "127.0632")
         BigDecimal longitude,
         @Min(0)
-        @Max(20000)
+        @Max(5000)
         @Schema(description = "검색 반경(미터)", example = "2000", defaultValue = "2000")
-        Integer radius) {
+        Integer radius,
+        @Schema(description = "단골 가게만 조회할지 여부", defaultValue = "false")
+        Boolean onlyLiked) {
 
     private static final int DEFAULT_RADIUS = 2000;
 
     public NearbyStoreRequest {
-        radius = defaultRadius(radius);
+        radius = radius == null ? DEFAULT_RADIUS : radius;
+        onlyLiked = onlyLiked != null && onlyLiked;
     }
-
-    private static int defaultRadius(final Integer radius) {
-        if (radius == null) {
-            return DEFAULT_RADIUS;
-        }
-        return radius;
-    }
-
 }

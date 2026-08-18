@@ -19,6 +19,8 @@ public final class KakaoResponseDecoder implements Decoder {
 
     private static final String META = "meta";
     private static final String TOTAL_COUNT = "total_count";
+    private static final String PAGEABLE_COUNT = "pageable_count";
+    private static final long MAX_PAGEABLE_COUNT = 45;
     private static final String DOCUMENTS = "documents";
     private static final String TOTAL_COUNT_CAMEL_CASE = "totalCount";
     private final ObjectMapper objectMapper;
@@ -44,11 +46,12 @@ public final class KakaoResponseDecoder implements Decoder {
     }
 
     private ObjectNode normalize(final JsonNode root, final Type type) {
-        validateEnvelope(root);
+        validateEnvelope(root, type);
         final JsonNode documents = root.get(DOCUMENTS);
         validateDocuments(documents, type);
         final ObjectNode normalized = root.deepCopy();
-        normalized.set(TOTAL_COUNT_CAMEL_CASE, root.get(META).get(TOTAL_COUNT));
+        final JsonNode meta = root.get(META);
+        normalized.set(TOTAL_COUNT_CAMEL_CASE, meta.get(TOTAL_COUNT));
         normalized.remove(META);
         if (type == KakaoRegionCodeResult.class) {
             normalized.set("regions", normalizeRegions(documents));
@@ -57,13 +60,15 @@ public final class KakaoResponseDecoder implements Decoder {
             normalized.set("addresses", normalizeAddresses(documents));
         }
         if (type == KakaoCategorySearchResult.class) {
+            normalized.set("pageableCount", meta.get(PAGEABLE_COUNT));
+            normalized.set("end", meta.get("is_end"));
             normalized.set("places", normalizePlaces(documents));
         }
         normalized.remove(DOCUMENTS);
         return normalized;
     }
 
-    private void validateEnvelope(final JsonNode root) {
+    private void validateEnvelope(final JsonNode root, final Type type) {
         if (root == null || !root.isObject()) {
             throw externalApiException();
         }
@@ -75,6 +80,19 @@ public final class KakaoResponseDecoder implements Decoder {
         final JsonNode totalCount = meta.get(TOTAL_COUNT);
         if (totalCount == null || !totalCount.isIntegralNumber() || totalCount.longValue() < 0) {
             throw externalApiException();
+        }
+        if (type == KakaoCategorySearchResult.class) {
+            final JsonNode pageableCount = meta.get(PAGEABLE_COUNT);
+            final JsonNode isEnd = meta.get("is_end");
+            if (pageableCount == null
+                    || !pageableCount.isIntegralNumber()
+                    || pageableCount.longValue() < 0
+                    || pageableCount.longValue() > MAX_PAGEABLE_COUNT
+                    || pageableCount.longValue() > totalCount.longValue()
+                    || isEnd == null
+                    || !isEnd.isBoolean()) {
+                throw externalApiException();
+            }
         }
     }
 

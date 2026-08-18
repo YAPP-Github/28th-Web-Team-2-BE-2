@@ -1,9 +1,9 @@
-package com.example.demo.store.presentation.dto;
+package com.example.demo.store.application.result;
 
 import java.math.BigDecimal;
 
-public record NearbyStoreResponse(
-        Long storeId,
+public record NearbyStoreCandidate(
+        String kakaoPlaceId,
         String storeName,
         BigDecimal latitude,
         BigDecimal longitude,
@@ -11,5 +11,4 @@ public record NearbyStoreResponse(
         String roadAddressName,
         String phone,
         String placeUrl,
-        Integer distanceMeters,
-        boolean isLiked) {}
+        Integer distanceMeters) {}

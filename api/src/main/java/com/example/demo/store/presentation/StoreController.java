@@ -1,14 +1,22 @@
 package com.example.demo.store.presentation;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
+import com.example.demo.common.security.AuthPrincipal;
+import com.example.demo.common.security.JwtAuthenticationFilter;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
 import com.example.demo.store.presentation.converter.StoreResultConverter;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
 import com.example.demo.store.presentation.dto.NearbyStoresResponse;
 import com.example.demo.store.presentation.spec.StoreControllerSpec;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,9 +34,24 @@ public class StoreController implements StoreControllerSpec {
     @GetMapping("/nearby")
     @Override
     public ResponseEntity<NearbyStoresResponse> getNearbyStores(
-            @Valid @ModelAttribute final NearbyStoreRequest request) {
+            @Valid @ModelAttribute final NearbyStoreRequest request,
+            @AuthenticationPrincipal(errorOnInvalidType = false) final AuthPrincipal principal,
+            final Authentication authentication,
+            final HttpServletRequest servletRequest) {
+        rejectInvalidToken(servletRequest);
         final NearbyStoresResponse response = storeResultConverter.toNearbyStoresResponse(
-                getNearbyStoresUseCase.execute(storeQueryConverter.toNearbyStoreQuery(request)));
+                getNearbyStoresUseCase.execute(
+                        storeQueryConverter.toNearbyStoreQuery(request, principal, authentication)));
         return ResponseEntity.ok(response);
+    }
+
+    private void rejectInvalidToken(final HttpServletRequest request) {
+        if (request.getAttribute(JwtAuthenticationFilter.TOKEN_ERROR_ATTRIBUTE)
+                instanceof ErrorType errorType) {
+            throw new ApiException(
+                    errorType.description(),
+                    errorType,
+                    HttpStatus.UNAUTHORIZED);
+        }
     }
 }
