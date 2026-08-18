@@ -111,6 +111,7 @@ class StoreControllerUserTest {
                             .principal(authentication)
                             .queryParam("latitude", "37.5")
                             .queryParam("longitude", "127.0")
+                            .queryParam("keyword", "장보고")
                             .queryParam("onlyLiked", "true"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalCount").value(1))

@@ -29,6 +29,17 @@ public interface KakaoMapClient {
             @RequestParam("page") int page,
             @RequestParam("size") int size);
 
+    @GetMapping("/v2/local/search/keyword.json")
+    KakaoCategorySearchResult searchKeyword(
+            @RequestParam("query") String query,
+            @RequestParam("category_group_code") String categoryGroupCode,
+            @RequestParam("x") BigDecimal longitude,
+            @RequestParam("y") BigDecimal latitude,
+            @RequestParam("radius") int radius,
+            @RequestParam("sort") String sort,
+            @RequestParam("page") int page,
+            @RequestParam("size") int size);
+
     @GetMapping("/v2/local/geo/coord2regioncode.json")
     KakaoRegionCodeResult searchRegionCode(
             @RequestParam("x") BigDecimal longitude,

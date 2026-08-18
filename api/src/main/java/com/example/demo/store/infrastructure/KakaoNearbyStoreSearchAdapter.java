@@ -71,6 +71,17 @@ public class KakaoNearbyStoreSearchAdapter implements NearbyStoreSearchPort {
 
     private KakaoCategorySearchResult searchPage(final NearbyStoreQuery query, final int page) {
         try {
+            if (query.hasKeyword()) {
+                return kakaoMapClient.searchKeyword(
+                        query.keyword(),
+                        CATEGORY_GROUP_CODE,
+                        query.longitude(),
+                        query.latitude(),
+                        query.radius(),
+                        SORT,
+                        page,
+                        SIZE);
+            }
             return kakaoMapClient.searchCategory(
                     CATEGORY_GROUP_CODE,
                     query.longitude(),

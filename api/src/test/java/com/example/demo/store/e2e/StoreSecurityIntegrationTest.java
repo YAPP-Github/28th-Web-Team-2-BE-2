@@ -64,6 +64,9 @@ class StoreSecurityIntegrationTest {
     void OpenAPI에_로컬_동기화_500_오류를_노출한다() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath(
+                                "$.paths['/api/v1/stores/nearby'].get.parameters[?(@.name == 'keyword')]")
+                        .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/stores/nearby'].get.responses['500']").exists());
     }
 }

@@ -8,4 +8,10 @@ public record NearbyStoreQuery(
         Integer radius,
         boolean onlyLiked,
         boolean roleUser,
-        Long userId) {}
+        Long userId,
+        String keyword) {
+
+    public boolean hasKeyword() {
+        return keyword != null && !keyword.isEmpty();
+    }
+}

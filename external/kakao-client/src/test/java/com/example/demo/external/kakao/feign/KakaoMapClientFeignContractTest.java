@@ -28,6 +28,7 @@ class KakaoMapClientFeignContractTest {
         assertThat(annotation.configuration()).containsExactly(KakaoMapClientConfiguration.class);
         assertThat(returnTypes)
                 .containsEntry("searchCategory", KakaoCategorySearchResult.class)
+                .containsEntry("searchKeyword", KakaoCategorySearchResult.class)
                 .containsEntry("searchAddress", KakaoAddressSearchResult.class)
                 .containsEntry("searchRegionCode", KakaoRegionCodeResult.class);
     }

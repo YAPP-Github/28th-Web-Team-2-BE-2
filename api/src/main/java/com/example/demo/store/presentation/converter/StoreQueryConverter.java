@@ -24,6 +24,7 @@ public class StoreQueryConverter {
                 request.radius(),
                 request.onlyLiked(),
                 roleUser,
-                userId);
+                userId,
+                request.keyword());
     }
 }
