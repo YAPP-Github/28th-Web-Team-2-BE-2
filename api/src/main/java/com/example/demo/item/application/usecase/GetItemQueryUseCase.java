@@ -1,16 +1,19 @@
 package com.example.demo.item.application.usecase;
 
+import com.example.demo.common.exception.AuthenticationRequiredException;
 import com.example.demo.item.application.port.ItemQueryPort;
 import com.example.demo.item.application.port.PublicPriceQueryPort;
 import com.example.demo.item.application.query.ItemQuery;
 import com.example.demo.item.application.result.ItemPriceResult;
 import com.example.demo.item.application.result.ItemQueryResult;
 import com.example.demo.item.domain.Item;
+import com.example.demo.item.domain.ItemCategory;
 import com.example.demo.item.domain.PublicPrice;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,8 +31,10 @@ public class GetItemQueryUseCase {
 
     @Transactional(readOnly = true)
     public ItemQueryResult execute(final ItemQuery query, final Long userId) {
+        validateFavoriteOnly(query, userId);
         final LocalDate baseDate = publicPriceQueryPort.findLatestPriceDateByRegionId(query.regionId());
-        final Page<Item> itemPage = itemQueryPort.findAll(query);
+        final Page<Item> itemPage = itemQueryPort.findAll(query, userId);
+        final Map<String, Long> categoryCounts = categoryCounts(itemQueryPort.countByCategory());
         final List<Long> itemIds = itemPage.getContent().stream().map(Item::id).toList();
         final List<PublicPrice> prices = findPrices(itemIds, query.regionId());
         final Set<Long> favoriteItemIds = findFavoriteItemIds(userId, itemIds);
@@ -45,10 +50,25 @@ public class GetItemQueryUseCase {
         return new ItemQueryResult(
                 baseDate,
                 itemPage.getTotalElements(),
+                categoryCounts,
                 items,
                 query.page(),
                 query.size(),
                 itemPage.hasNext());
+    }
+
+    private Map<String, Long> categoryCounts(final Map<ItemCategory, Long> counts) {
+        final Map<String, Long> result = new LinkedHashMap<>();
+        for (final ItemCategory category : ItemCategory.values()) {
+            result.put(category.code(), counts.getOrDefault(category, 0L));
+        }
+        return result;
+    }
+
+    private void validateFavoriteOnly(final ItemQuery query, final Long userId) {
+        if (query.favoriteOnly() && userId == null) {
+            throw new AuthenticationRequiredException();
+        }
     }
 
     private List<PublicPrice> findPrices(final List<Long> itemIds, final String regionId) {

@@ -3,6 +3,7 @@ package com.example.demo.item.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.demo.item.domain.Item;
+import com.example.demo.item.domain.ItemCategory;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,8 +32,8 @@ class OnlineItemQueryAdapterTest {
     @Test
     void 품목을_ID_오름차순으로_조회한다() {
         itemJpaRepository.saveAll(List.of(
-                new Item("감자", "1kg"),
-                new Item("양파", "1kg")));
+                new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES),
+                new Item("양파", "1kg", null, ItemCategory.SEASONINGS)));
 
         final List<Item> items = onlineItemQueryAdapter.findAll();
 

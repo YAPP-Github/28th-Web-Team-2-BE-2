@@ -29,6 +29,16 @@ public class GlobalExceptionHandler {
                 .body(new ApiErrorResponse(exception.errorType().name(), exception.errorMessage()));
     }
 
+    @ExceptionHandler(AuthenticationRequiredException.class)
+    public ResponseEntity<?> handleAuthenticationRequired(final HttpServletRequest request) {
+        return handleApiException(
+                new ApiException(
+                        ErrorType.UNAUTHORIZED.description(),
+                        ErrorType.UNAUTHORIZED,
+                        HttpStatus.UNAUTHORIZED),
+                request);
+    }
+
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<?> handleFeignException(
             final FeignException exception,
