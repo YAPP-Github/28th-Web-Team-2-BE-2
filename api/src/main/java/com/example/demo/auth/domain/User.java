@@ -17,9 +17,12 @@ import lombok.experimental.Accessors;
 @Entity
 @Table(
         name = "users",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_users_provider_subject",
-                columnNames = {"provider", "provider_subject"}))
+        uniqueConstraints = {
+            @UniqueConstraint(
+                    name = "uk_users_provider_subject",
+                    columnNames = {"provider", "provider_subject"}),
+            @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname")
+        })
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 @Accessors(fluent = true)
@@ -41,6 +44,9 @@ public class User {
 
     @Column(nullable = false, length = 100)
     private String name;
+
+    @Column(length = 10)
+    private String nickname;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -70,5 +76,13 @@ public class User {
 
     public UserRole role() {
         return role;
+    }
+
+    public void changeNickname(final String nickname) {
+        this.nickname = nickname;
+    }
+
+    public String nickname() {
+        return nickname;
     }
 }

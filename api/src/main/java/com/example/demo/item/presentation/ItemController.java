@@ -39,8 +39,9 @@ public class ItemController implements ItemControllerSpec {
             @Valid @ModelAttribute final ItemQueryRequest request,
             @AuthenticationPrincipal final AuthPrincipal principal,
             final Authentication authentication) {
+        final Long userId = userId(principal, authentication);
         final ItemQueryResult result = getItemQueryUseCase.execute(
-                itemQueryRequestConverter.toQuery(request), userId(principal, authentication));
+                itemQueryRequestConverter.toQuery(request), userId);
         final ItemPageResponse data = itemResultConverter.toResponse(result);
         return ResponseEntity.ok(data);
     }

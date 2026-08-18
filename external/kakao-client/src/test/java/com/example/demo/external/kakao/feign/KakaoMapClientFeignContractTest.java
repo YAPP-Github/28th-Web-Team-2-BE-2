@@ -3,6 +3,7 @@ package com.example.demo.external.kakao.feign;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
+import com.example.demo.external.kakao.KakaoAddressSearchResult;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
@@ -27,6 +28,7 @@ class KakaoMapClientFeignContractTest {
         assertThat(annotation.configuration()).containsExactly(KakaoMapClientConfiguration.class);
         assertThat(returnTypes)
                 .containsEntry("searchCategory", KakaoCategorySearchResult.class)
+                .containsEntry("searchAddress", KakaoAddressSearchResult.class)
                 .containsEntry("searchRegionCode", KakaoRegionCodeResult.class);
     }
 

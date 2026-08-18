@@ -13,6 +13,7 @@ import com.example.demo.auth.domain.User;
 import com.example.demo.auth.infrastructure.persistence.UserJpaRepository;
 import com.example.demo.auth.infrastructure.token.JwtTokenProvider;
 import com.example.demo.item.domain.Item;
+import com.example.demo.item.domain.ItemCategory;
 import com.example.demo.item.domain.PublicPrice;
 import com.example.demo.item.infrastructure.ItemJpaRepository;
 import com.example.demo.item.infrastructure.PublicPriceJpaRepository;
@@ -89,12 +90,18 @@ class ItemQueryE2ETest {
         userJpaRepository.deleteAll();
         referenceDate = LocalDate.now();
 
-        final Item potato = itemJpaRepository.save(new Item("감자", "1kg"));
-        final Item onion = itemJpaRepository.save(new Item("양파", "1kg"));
-        final Item greenOnion = itemJpaRepository.save(new Item("대파", "1단"));
-        final Item carrot = itemJpaRepository.save(new Item("당근", "1kg"));
-        itemJpaRepository.save(new Item("양배추", null));
-        final Item secondPotato = itemJpaRepository.save(new Item("감자", "1kg"));
+        final Item potato = itemJpaRepository.save(
+                new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES));
+        final Item onion = itemJpaRepository.save(
+                new Item("양파", "1kg", null, ItemCategory.SEASONINGS));
+        final Item greenOnion = itemJpaRepository.save(
+                new Item("대파", "1단", null, ItemCategory.SEASONINGS));
+        final Item carrot = itemJpaRepository.save(
+                new Item("당근", "1kg", null, ItemCategory.ROOT_VEGETABLES));
+        itemJpaRepository.save(
+                new Item("양배추", null, null, ItemCategory.LEAFY_GREENS));
+        final Item secondPotato = itemJpaRepository.save(
+                new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES));
         firstPotatoId = potato.id();
         secondPotatoId = secondPotato.id();
         onionId = onion.id();
@@ -163,7 +170,109 @@ class ItemQueryE2ETest {
                 .andExpect(jsonPath("$.items[*].isLiked")
                         .value(contains(true, true, true, true, true, true)));
 
-        assertThat(statistics.getPrepareStatementCount()).isEqualTo(5);
+        assertThat(statistics.getPrepareStatementCount()).isEqualTo(6);
+    }
+
+    @Test
+    void favoriteOnly는_현재_ROLE_USER의_찜만_isLiked_true로_조회한다() throws Exception {
+        final User currentUser = saveUser("현재 찜 필터 사용자");
+        final User otherUser = saveUser("다른 찜 필터 사용자");
+        addFavorite(currentUser.id(), firstPotatoId);
+        addFavorite(currentUser.id(), secondPotatoId);
+        addFavorite(otherUser.id(), onionId);
+
+        mockMvc.perform(itemListRequest()
+                        .queryParam("favoriteOnly", "true")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(currentUser))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[*].itemId")
+                        .value(contains(firstPotatoId.intValue(), secondPotatoId.intValue())))
+                .andExpect(jsonPath("$.items[*].isLiked").value(contains(true, true)))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void favoriteOnly는_비로그인과_같은_subject의_ROLE_GUEST에_401을_응답한다() throws Exception {
+        final User user = saveUser("찜 필터 GUEST subject 사용자");
+        addFavorite(user.id(), firstPotatoId);
+
+        mockMvc.perform(itemListRequest().queryParam("favoriteOnly", "true"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(itemListRequest()
+                        .queryParam("favoriteOnly", "true")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(guestAccessToken(user.id()))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void favoriteOnly를_생략하거나_false로_요청하면_기존_공개_조회가_유지된다() throws Exception {
+        final User user = saveUser("공개 조회 사용자");
+        addFavorite(user.id(), firstPotatoId);
+
+        mockMvc.perform(itemListRequest())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(6))
+                .andExpect(jsonPath("$.items[*].isLiked")
+                        .value(contains(false, false, false, false, false, false)));
+
+        mockMvc.perform(itemListRequest().queryParam("favoriteOnly", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(6))
+                .andExpect(jsonPath("$.items[*].isLiked")
+                        .value(contains(false, false, false, false, false, false)));
+    }
+
+    @Test
+    void favoriteOnly는_검색_가격정렬_페이지네이션과_빈_결과의_기준이_된다() throws Exception {
+        final User user = saveUser("찜 필터 조합 사용자");
+        final User otherUser = saveUser("찜 필터 조합 다른 사용자");
+        final Item otherUsersPotato = itemJpaRepository.save(
+                new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES));
+        publicPriceJpaRepository.save(
+                new PublicPrice(otherUsersPotato.id(), REGION_ID, 3500, referenceDate));
+        addFavorite(user.id(), firstPotatoId);
+        addFavorite(user.id(), secondPotatoId);
+        addFavorite(otherUser.id(), otherUsersPotato.id());
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("favoriteOnly", "true")
+                        .queryParam("keyword", "감자")
+                        .queryParam("sort", "PRICE_DESC")
+                        .queryParam("page", "0")
+                        .queryParam("size", "1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[0].itemId").value(firstPotatoId.intValue()))
+                .andExpect(jsonPath("$.items[0].isLiked").value(true))
+                .andExpect(jsonPath("$.hasNext").value(true));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("favoriteOnly", "true")
+                        .queryParam("keyword", "감자")
+                        .queryParam("sort", "PRICE_DESC")
+                        .queryParam("page", "1")
+                        .queryParam("size", "1")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[0].itemId").value(secondPotatoId.intValue()))
+                .andExpect(jsonPath("$.items[0].isLiked").value(true))
+                .andExpect(jsonPath("$.hasNext").value(false));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("favoriteOnly", "true")
+                        .queryParam("keyword", "없는품목")
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(0))
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.hasNext").value(false));
     }
 
     @Test
@@ -357,13 +466,61 @@ class ItemQueryE2ETest {
     }
 
     @Test
+    void category와_검색어를_함께_필터링하고_전체_카테고리_건수를_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("category", "ROOT_VEGETABLES")
+                        .queryParam("keyword", "감자"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(2))
+                .andExpect(jsonPath("$.items[*].itemName").value(contains("감자", "감자")))
+                .andExpect(jsonPath("$.categoryCounts.ROOT_VEGETABLES").value(3))
+                .andExpect(jsonPath("$.categoryCounts.LEAFY_GREENS").value(1))
+                .andExpect(jsonPath("$.categoryCounts.FRUITING_VEGETABLES").value(0))
+                .andExpect(jsonPath("$.categoryCounts.PEPPERS").value(0))
+                .andExpect(jsonPath("$.categoryCounts.SEASONINGS").value(2))
+                .andExpect(jsonPath("$.categoryCounts.MUSHROOMS").value(0))
+                .andExpect(jsonPath("$.categoryCounts.FRUITS").value(0));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("category", "ROOT_VEGETABLES")
+                        .queryParam("keyword", "없는품목"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(0))
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.categoryCounts.ROOT_VEGETABLES").value(3))
+                .andExpect(jsonPath("$.categoryCounts.LEAFY_GREENS").value(1))
+                .andExpect(jsonPath("$.categoryCounts.FRUITING_VEGETABLES").value(0))
+                .andExpect(jsonPath("$.categoryCounts.PEPPERS").value(0))
+                .andExpect(jsonPath("$.categoryCounts.SEASONINGS").value(2))
+                .andExpect(jsonPath("$.categoryCounts.MUSHROOMS").value(0))
+                .andExpect(jsonPath("$.categoryCounts.FRUITS").value(0));
+    }
+
+    @Test
+    void 지원하지_않는_category는_기존_400_오류_계약을_응답한다() throws Exception {
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("category", "UNKNOWN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_ERROR"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
     void 지역_전체_최신일과_품목별_최신일이_달라도_품목별_가격과_priceGap으로_정렬한다()
             throws Exception {
         final LocalDate today = referenceDate;
-        final Item itemWithOlderLatestPrice = itemJpaRepository.save(new Item("시금치", "1단"));
-        final Item itemWithRegionLatestPrice = itemJpaRepository.save(new Item("토마토", "1kg"));
-        final Item apple = itemJpaRepository.save(new Item("사과", "1kg"));
-        final Item cucumber = itemJpaRepository.save(new Item("오이", "1개"));
+        final Item itemWithOlderLatestPrice = itemJpaRepository.save(
+                new Item("시금치", "1단", null, ItemCategory.LEAFY_GREENS));
+        final Item itemWithRegionLatestPrice = itemJpaRepository.save(
+                new Item("토마토", "1kg", null, ItemCategory.FRUITING_VEGETABLES));
+        final Item apple = itemJpaRepository.save(
+                new Item("사과", "1kg", null, ItemCategory.FRUITS));
+        final Item cucumber = itemJpaRepository.save(
+                new Item("오이", "1개", null, ItemCategory.FRUITING_VEGETABLES));
 
         publicPriceJpaRepository.save(new PublicPrice(
                 itemWithOlderLatestPrice.id(), REGION_ID, 1500, today.minusDays(2)));
@@ -419,8 +576,10 @@ class ItemQueryE2ETest {
     void 같은_날짜의_공공가격은_가장_큰_ID를_현재가로_사용하고_직전_같은날짜_가격과_priceGap을_계산한다()
             throws Exception {
         final LocalDate today = referenceDate;
-        final Item item = itemJpaRepository.save(new Item("동일날짜품목", "1개"));
-        final Item anotherItem = itemJpaRepository.save(new Item("동일날짜보조품목", "1개"));
+        final Item item = itemJpaRepository.save(
+                new Item("동일날짜품목", "1개", null, ItemCategory.ROOT_VEGETABLES));
+        final Item anotherItem = itemJpaRepository.save(
+                new Item("동일날짜보조품목", "1개", null, ItemCategory.ROOT_VEGETABLES));
         publicPriceJpaRepository.save(new PublicPrice(
                 item.id(), SAME_DATE_PRICE_REGION_ID, 1000, today));
         publicPriceJpaRepository.save(new PublicPrice(
@@ -446,7 +605,8 @@ class ItemQueryE2ETest {
 
     @Test
     void 직전_공공가격이_0이면_변동률은_null이다() throws Exception {
-        final Item item = itemJpaRepository.save(new Item("직전가격0품목", "1개"));
+        final Item item = itemJpaRepository.save(
+                new Item("직전가격0품목", "1개", null, ItemCategory.ROOT_VEGETABLES));
         publicPriceJpaRepository.save(
                 new PublicPrice(item.id(), SAME_DATE_PRICE_REGION_ID, 0, referenceDate.minusDays(1)));
         publicPriceJpaRepository.save(
@@ -571,6 +731,12 @@ class ItemQueryE2ETest {
                         .isNotEmpty())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'keyword')]")
                         .isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'category')]")
+                        .isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'favoriteOnly')]")
+                        .isNotEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[?(@.name == 'favoriteOnly')].schema.default")
+                        .value(contains(false)))
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[3].name")
                         .value("sort"))
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[3].schema.default")
@@ -587,8 +753,12 @@ class ItemQueryE2ETest {
                         .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['400'].description")
                         .value("조회 조건이 올바르지 않다"))
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['401'].description")
+                        .value("찜한 품목만 조회하려면 로그인이 필요하다"))
                 .andExpect(jsonPath("$.components.schemas.ItemResponse.properties.isLiked.type")
-                        .value("boolean"));
+                        .value("boolean"))
+                .andExpect(jsonPath("$.components.schemas.ItemPageResponse.properties.categoryCounts")
+                        .exists());
     }
 
     private MockHttpServletRequestBuilder itemListRequest() {
