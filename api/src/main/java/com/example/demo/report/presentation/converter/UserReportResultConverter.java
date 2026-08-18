@@ -7,6 +7,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserReportResultConverter {
     public CreateUserReportResponse toResponse(final CreateUserReportResult result) {
-        return new CreateUserReportResponse(result.reportId());
+        return new CreateUserReportResponse(result.reportId(), result.itemId(), result.storeId(), result.reportedAt());
     }
 }

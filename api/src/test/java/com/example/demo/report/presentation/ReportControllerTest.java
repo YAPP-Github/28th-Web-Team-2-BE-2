@@ -22,9 +22,11 @@ import com.example.demo.common.security.SecurityErrorResponseWriter;
 import com.example.demo.report.application.command.CreateUserReportCommand;
 import com.example.demo.report.application.result.CreateUserReportResult;
 import com.example.demo.report.application.usecase.CreateUserReportUseCase;
+import com.example.demo.report.domain.ReportType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.demo.report.presentation.converter.UserReportCommandConverter;
 import com.example.demo.report.presentation.converter.UserReportResultConverter;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -66,21 +68,84 @@ class ReportControllerTest {
         when(tokenProvider.parseAccessTokenPayload("access-token"))
                 .thenReturn(new AccessTokenPayload(1L, UserRole.USER));
         when(createUserReportUseCase.execute(any()))
-                .thenReturn(new CreateUserReportResult(42L));
+                .thenReturn(new CreateUserReportResult(42L, 1L, 2L, Instant.parse("2026-08-18T00:00:00Z")));
     }
 
     @Test
-    void 인증한_사용자가_품목_가격을_제보하면_created와_reportId를_응답한다() throws Exception {
+    void 인증한_사용자가_품목_가격을_제보하면_created와_생성_메타데이터를_응답한다() throws Exception {
         mockMvc.perform(post(REPORT_PATH)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"price":3500,"unit":"1kg","amount":2,"store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"},
+                                {"regionId":"1121510100","reportType":"PURCHASE","price":3500,"unit":"1kg","amount":2,"store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"},
                                 "photoUrl":"https://images.example.com/reports/receipt.jpg"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.reportId").isNumber())
+                .andExpect(jsonPath("$.itemId").value(1))
+                .andExpect(jsonPath("$.storeId").value(2))
+                .andExpect(jsonPath("$.reportedAt").isNotEmpty());
+    }
+
+    @Test
+    void regionId가_누락되면_bad_request를_응답한다() throws Exception {
+        mockMvc.perform(post(REPORT_PATH)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"reportType":"PURCHASE","price":3500,"unit":"1kg","amount":2,
+                                 "store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"}}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
+    }
+
+    @Test
+    void reportType이_누락되면_bad_request를_응답한다() throws Exception {
+        mockMvc.perform(post(REPORT_PATH)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"regionId":"1121510100","price":3500,"unit":"1kg","amount":2,
+                                 "store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"}}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
+    }
+
+    @Test
+    void 지원하지_않는_reportType이면_bad_request를_응답한다() throws Exception {
+        mockMvc.perform(post(REPORT_PATH)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"regionId":"1121510100","reportType":"UNKNOWN","price":3500,
+                                 "unit":"1kg","amount":2,
+                                 "store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"}}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
+    }
+
+    @Test
+    void 매장_없이도_지역과_제보_유형을_포함하면_가격을_제보한다() throws Exception {
+        mockMvc.perform(post(REPORT_PATH)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"regionId":"1121510100","reportType":"OBSERVED","price":3500,
+                                 "unit":"1kg","amount":2}
+                                """))
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.reportId").isNumber());
+
+        final ArgumentCaptor<CreateUserReportCommand> captor = ArgumentCaptor.forClass(CreateUserReportCommand.class);
+        verify(createUserReportUseCase).execute(captor.capture());
+        final CreateUserReportCommand command = captor.getValue();
+        assertThat(command.regionId()).isEqualTo("1121510100");
+        assertThat(command.reportType()).isEqualTo(ReportType.OBSERVED);
+        assertThat(command.store()).isNull();
     }
 
     @Test
@@ -93,6 +158,8 @@ class ReportControllerTest {
                                   "price": 3500,
                                   "unit": "kg",
                                   "amount": 1.25,
+                                  "regionId": "1121510100",
+                                  "reportType": "OBSERVED",
                                   "store": {
                                     "id": "16618597",
                                     "placeName": "장생당약국",
@@ -117,6 +184,8 @@ class ReportControllerTest {
         final CreateUserReportCommand command = captor.getValue();
         assertThat(command.itemId()).isEqualTo(1L);
         assertThat(command.userId()).isEqualTo(1L);
+        assertThat(command.regionId()).isEqualTo("1121510100");
+        assertThat(command.reportType()).isEqualTo(ReportType.OBSERVED);
         assertThat(command.amount()).isEqualByComparingTo("1.25");
         assertThat(command.store().kakaoPlaceId()).isEqualTo("16618597");
         assertThat(command.store().placeName()).isEqualTo("장생당약국");
@@ -131,7 +200,7 @@ class ReportControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"unit":"1kg","amount":2,"store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"},
+                                {"regionId":"1121510100","reportType":"PURCHASE","unit":"1kg","amount":2,"store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"},
                                 "photoUrl":"https://images.example.com/reports/receipt.jpg"}
                                 """))
                 .andExpect(status().isBadRequest())
@@ -146,7 +215,7 @@ class ReportControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"price":3500,"unit":"kg","amount":1,
+                                {"regionId":"1121510100","reportType":"PURCHASE","price":3500,"unit":"kg","amount":1,
                                  "store":{"id":"1234567890123456789012345678901","placeName":"장보고 마트","addressName":"서울"}}
                                 """))
                 .andExpect(status().isBadRequest())
@@ -159,7 +228,7 @@ class ReportControllerTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"price":-1,"unit":"   ","amount":0,
+                                {"regionId":"1121510100","reportType":"PURCHASE","price":-1,"unit":"   ","amount":0,
                                  "store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"}}
                                 """))
                 .andExpect(status().isBadRequest())
@@ -169,13 +238,13 @@ class ReportControllerTest {
     @Test
     void Kakao_소수점_14자리_좌표를_포함한_가격_제보를_허용한다() throws Exception {
         when(createUserReportUseCase.execute(any()))
-                .thenReturn(new CreateUserReportResult(42L));
+                .thenReturn(new CreateUserReportResult(42L, 1L, 2L, Instant.parse("2026-08-18T00:00:00Z")));
 
         mockMvc.perform(post(REPORT_PATH)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"price":10000,"unit":"1kg","amount":2,
+                                {"regionId":"1121510100","reportType":"PURCHASE","price":10000,"unit":"1kg","amount":2,
                                  "store":{"id":"11840060","placeName":"롯데슈퍼프레시 코엑스점",
                                  "placeUrl":"http://place.map.kakao.com/11840060",
                                  "categoryName":"가정,생활 > 슈퍼마켓 > 대형슈퍼 > 롯데슈퍼프레시",
@@ -194,7 +263,7 @@ class ReportControllerTest {
         mockMvc.perform(post(REPORT_PATH)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"price":3500,"unit":"1kg","amount":2,"store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"},
+                                {"regionId":"1121510100","reportType":"PURCHASE","price":3500,"unit":"1kg","amount":2,"store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"},
                                 "photoUrl":"https://images.example.com/reports/receipt.jpg"}
                                 """))
                 .andExpect(status().isUnauthorized())

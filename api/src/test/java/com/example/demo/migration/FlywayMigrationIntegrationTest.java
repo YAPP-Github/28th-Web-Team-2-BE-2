@@ -39,7 +39,7 @@ class FlywayMigrationIntegrationTest {
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
@@ -75,13 +75,19 @@ class FlywayMigrationIntegrationTest {
         assertThat(columnNames("user_reports"))
                 .containsExactly(
                         "report_id", "store_id", "item_id", "user_id", "price", "unit", "amount",
-                        "report_date", "public_price_diff", "price_diff_rate", "photo_url", "created_at");
+                        "report_date", "public_price_diff", "price_diff_rate", "photo_url", "created_at",
+                        "region_id", "report_type");
         assertThat(constraintNames("user_reports"))
                 .contains(
                         "user_reports_pkey", "fk_user_reports_store", "fk_user_reports_item",
-                        "fk_user_reports_user", "ck_user_reports_price_positive", "ck_user_reports_amount_positive");
+                        "fk_user_reports_user", "ck_user_reports_price_positive", "ck_user_reports_amount_positive",
+                        "ck_user_reports_report_type");
         assertThat(indexNames("user_reports"))
-                .contains("idx_user_reports_item_report_date", "idx_user_reports_user_created_at");
+                .contains(
+                        "idx_user_reports_item_report_date",
+                        "idx_user_reports_user_created_at",
+                        "uk_user_reports_submission");
+        assertThat(columnNumericPrecision("user_reports", "price_diff_rate")).isEqualTo(14);
         assertThat(columnNames("store_favorites"))
                 .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
         assertThat(constraintNames("store_favorites"))
@@ -100,7 +106,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -126,7 +132,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
         assertCategoryMapping();
         assertThat(countRows("stores")).isZero();
         assertThat(countRows("user_reports")).isZero();
@@ -143,11 +149,46 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
         assertThat(columnNames("store_favorites"))
                 .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
         assertThat(constraintNames("store_favorites"))
                 .contains("uk_store_favorites_user_store", "fk_store_favorites_user", "fk_store_favorites_store");
+    }
+
+    @Test
+    void 기존_V14_제보_이력을_보존하면서_V15_지역과_제보_유형을_추가한다() throws SQLException {
+        flyway().clean();
+        flyway("14").migrate();
+        executeUpdate("""
+                INSERT INTO users (provider, provider_subject, name, role)
+                VALUES ('KAKAO', 'migration-user', 'migration user', 'USER')
+                """);
+        executeUpdate("""
+                INSERT INTO stores (kakao_place_id, place_name, address_name)
+                VALUES ('migration-store', 'migration store', 'migration address')
+                """);
+        executeUpdate("""
+                INSERT INTO user_reports (store_id, item_id, user_id, price, unit, amount, report_date)
+                SELECT s.store_id, 1, u.id, 1000, 'kg', 1, CURRENT_DATE
+                  FROM stores s
+                  JOIN users u ON u.provider_subject = 'migration-user'
+                 WHERE s.kakao_place_id = 'migration-store'
+                """);
+
+        flyway().migrate();
+
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+        assertThat(columnNullable("user_reports", "store_id")).isTrue();
+        assertThat(columnNullable("user_reports", "user_id")).isTrue();
+        assertThat(columnNullable("user_reports", "region_id")).isTrue();
+        assertThat(columnNullable("user_reports", "report_type")).isTrue();
+        assertThat(reportRegionAndType()).containsExactly(null, null);
+
+        executeUpdate("DELETE FROM users WHERE provider_subject = 'migration-user'");
+        assertThat(countRows("user_reports")).isEqualTo(1);
+        assertThat(reportUserId()).isNull();
     }
 
     @Test
@@ -339,6 +380,58 @@ class FlywayMigrationIntegrationTest {
         try (Connection connection = connection();
                 Statement statement = connection.createStatement()) {
             return statement.executeUpdate(sql);
+        }
+    }
+
+    private boolean columnNullable(final String tableName, final String columnName) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT is_nullable FROM information_schema.columns "
+                                + "WHERE table_schema = 'public' AND table_name = ? AND column_name = ?")) {
+            statement.setString(1, tableName);
+            statement.setString(2, columnName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return "YES".equals(resultSet.getString("is_nullable"));
+            }
+        }
+    }
+
+    private int columnNumericPrecision(final String tableName, final String columnName) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT numeric_precision FROM information_schema.columns "
+                                + "WHERE table_schema = 'public' AND table_name = ? AND column_name = ?")) {
+            statement.setString(1, tableName);
+            statement.setString(2, columnName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getInt(1);
+            }
+        }
+    }
+
+    private List<String> reportRegionAndType() throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(
+                        "SELECT region_id, report_type FROM user_reports ORDER BY report_id")) {
+            final ArrayList<String> values = new ArrayList<>();
+            while (resultSet.next()) {
+                values.add(resultSet.getString("region_id"));
+                values.add(resultSet.getString("report_type"));
+            }
+            return values;
+        }
+    }
+
+    private Long reportUserId() throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(
+                        "SELECT user_id FROM user_reports ORDER BY report_id LIMIT 1")) {
+            resultSet.next();
+            return (Long) resultSet.getObject(1);
         }
     }
 

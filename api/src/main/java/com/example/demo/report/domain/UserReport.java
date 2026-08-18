@@ -2,11 +2,14 @@ package com.example.demo.report.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -25,13 +28,20 @@ public class UserReport {
     @Column(name = "report_id")
     private Long id;
 
-    @Column(name = "store_id", nullable = false)
+    @Column(name = "store_id")
     private Long storeId;
+
+    @Column(name = "region_id", length = 10)
+    private String regionId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "report_type", length = 20)
+    private ReportType reportType;
 
     @Column(name = "item_id", nullable = false)
     private Long itemId;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private Long userId;
 
     @Column(nullable = false)
@@ -49,21 +59,37 @@ public class UserReport {
     @Column(name = "public_price_diff")
     private Integer publicPriceDiff;
 
-    @Column(name = "price_diff_rate", precision = 5, scale = 2)
+    @Column(name = "price_diff_rate", precision = 14, scale = 2)
     private BigDecimal priceDiffRate;
 
     @Column(name = "photo_url", length = 500)
     private String photoUrl;
 
-    public UserReport(final Long storeId, final Long itemId, final Long userId, final Integer price,
-            final String unit, final BigDecimal amount, final String photoUrl) {
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    public UserReport(final String regionId, final ReportType reportType, final Long storeId,
+            final Long itemId, final Long userId, final Integer price, final String unit,
+            final BigDecimal amount, final String photoUrl) {
+        this(regionId, reportType, storeId, itemId, userId, price, unit, amount, null, null, photoUrl);
+    }
+
+    public UserReport(final String regionId, final ReportType reportType, final Long storeId,
+            final Long itemId, final Long userId, final Integer price, final String unit,
+            final BigDecimal amount, final Integer publicPriceDiff, final BigDecimal priceDiffRate,
+            final String photoUrl) {
         this.storeId = storeId;
+        this.regionId = regionId;
+        this.reportType = reportType;
         this.itemId = itemId;
         this.userId = userId;
         this.price = price;
         this.unit = unit;
         this.amount = amount;
+        this.publicPriceDiff = publicPriceDiff;
+        this.priceDiffRate = priceDiffRate;
         this.photoUrl = photoUrl;
         this.reportDate = LocalDate.now();
+        this.createdAt = Instant.now();
     }
 }
