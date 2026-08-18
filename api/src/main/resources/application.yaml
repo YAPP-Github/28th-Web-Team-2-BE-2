@@ -50,6 +50,8 @@ jwt:
   refresh-secret: ${JWT_REFRESH_SECRET}
   access-token-expiration: 30m
   refresh-token-expiration: 14d
+  test-token-endpoint:
+    enabled: ${JWT_TEST_TOKEN_ENDPOINT_ENABLED:false}
   refresh-cookie:
     secure: ${JWT_REFRESH_COOKIE_SECURE:true}
 
