@@ -1,8 +1,6 @@
 package com.example.demo.item.presentation;
 
 import com.example.demo.auth.domain.UserRole;
-import com.example.demo.common.exception.ApiException;
-import com.example.demo.common.exception.ErrorType;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.item.application.result.ItemQueryResult;
 import com.example.demo.item.application.usecase.GetItemQueryUseCase;
@@ -14,7 +12,6 @@ import com.example.demo.item.presentation.dto.ItemQueryRequest;
 import com.example.demo.item.presentation.spec.ItemControllerSpec;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,7 +40,6 @@ public class ItemController implements ItemControllerSpec {
             @AuthenticationPrincipal final AuthPrincipal principal,
             final Authentication authentication) {
         final Long userId = userId(principal, authentication);
-        validateFavoriteOnly(request.favoriteOnly(), userId);
         final ItemQueryResult result = getItemQueryUseCase.execute(
                 itemQueryRequestConverter.toQuery(request), userId);
         final ItemPageResponse data = itemResultConverter.toResponse(result);
@@ -75,15 +71,5 @@ public class ItemController implements ItemControllerSpec {
         final boolean isUser = authentication.getAuthorities().stream()
                 .anyMatch(authority -> UserRole.USER.authority().equals(authority.getAuthority()));
         return isUser ? principal.userId() : null;
-    }
-
-    private void validateFavoriteOnly(final Boolean favoriteOnly, final Long userId) {
-        if (!Boolean.TRUE.equals(favoriteOnly) || userId != null) {
-            return;
-        }
-        throw new ApiException(
-                ErrorType.UNAUTHORIZED.description(),
-                ErrorType.UNAUTHORIZED,
-                HttpStatus.UNAUTHORIZED);
     }
 }

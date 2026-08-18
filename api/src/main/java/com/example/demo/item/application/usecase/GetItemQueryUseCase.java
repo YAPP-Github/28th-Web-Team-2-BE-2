@@ -1,5 +1,6 @@
 package com.example.demo.item.application.usecase;
 
+import com.example.demo.common.exception.AuthenticationRequiredException;
 import com.example.demo.item.application.port.ItemQueryPort;
 import com.example.demo.item.application.port.PublicPriceQueryPort;
 import com.example.demo.item.application.query.ItemQuery;
@@ -28,6 +29,7 @@ public class GetItemQueryUseCase {
 
     @Transactional(readOnly = true)
     public ItemQueryResult execute(final ItemQuery query, final Long userId) {
+        validateFavoriteOnly(query, userId);
         final LocalDate baseDate = publicPriceQueryPort.findLatestPriceDateByRegionId(query.regionId());
         final Page<Item> itemPage = itemQueryPort.findAll(query, userId);
         final List<Long> itemIds = itemPage.getContent().stream().map(Item::id).toList();
@@ -49,6 +51,12 @@ public class GetItemQueryUseCase {
                 query.page(),
                 query.size(),
                 itemPage.hasNext());
+    }
+
+    private void validateFavoriteOnly(final ItemQuery query, final Long userId) {
+        if (query.favoriteOnly() && userId == null) {
+            throw new AuthenticationRequiredException();
+        }
     }
 
     private List<PublicPrice> findPrices(final List<Long> itemIds, final String regionId) {
