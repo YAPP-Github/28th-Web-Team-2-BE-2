@@ -11,5 +11,8 @@ public interface PublicPriceJpaRepository extends JpaRepository<PublicPrice, Lon
     List<PublicPrice> findAllByItemIdInAndRegionIdOrderByItemIdAscPriceDateDescIdDesc(
             List<Long> itemIds, String regionId);
 
+    Optional<PublicPrice> findFirstByItemIdAndRegionIdOrderByPriceDateDescIdDesc(
+            Long itemId, String regionId);
+
     Optional<PublicPrice> findFirstByRegionIdOrderByPriceDateDescIdDesc(String regionId);
 }
