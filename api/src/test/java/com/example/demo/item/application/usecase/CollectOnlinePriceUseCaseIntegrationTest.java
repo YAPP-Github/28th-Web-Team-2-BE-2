@@ -22,9 +22,12 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -32,6 +35,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest
 @Import(CollectOnlinePriceUseCaseIntegrationTest.TestConfig.class)
+@ExtendWith(OutputCaptureExtension.class)
 class CollectOnlinePriceUseCaseIntegrationTest {
 
     private static final LocalDate COLLECTION_DATE = LocalDate.of(2026, 8, 16);
@@ -78,7 +82,8 @@ class CollectOnlinePriceUseCaseIntegrationTest {
     }
 
     @Test
-    void DB_실패가_발생하면_앞선_커밋과_실패한_작업의_기존값을_보존하고_나머지를_중단한다() {
+    void DB_실패가_발생하면_앞선_커밋과_실패한_작업의_기존값을_보존하고_나머지를_중단한다(
+            final CapturedOutput output) {
         assertThatThrownBy(() -> useCase.execute(COLLECTION_DATE))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
@@ -94,6 +99,7 @@ class CollectOnlinePriceUseCaseIntegrationTest {
         assertThat(execution.get("STATUS")).isEqualTo(BatchJobStatus.FAILED.name());
         assertThat(execution.get("TOTAL_RECORDS")).isEqualTo(3);
         assertThat(execution.get("SUCCESS_RECORDS")).isEqualTo(1);
+        assertThat(output).contains("status=FAILED total=3 succeeded=1 failed=1");
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM batch_item_errors", Integer.class)).isZero();
     }

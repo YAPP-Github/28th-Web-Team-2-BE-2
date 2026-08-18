@@ -1,5 +1,7 @@
 package com.example.demo.item.infrastructure.crawler.elevenst.parser;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.infrastructure.crawler.elevenst.ElevenStProduct;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -24,8 +27,11 @@ public class ElevenStSearchPageParser {
         }
         try {
             return parseProducts(objectMapper.readTree(jsonContent(json)));
-        } catch (Exception exception) {
-            return List.of();
+        } catch (Exception ignored) {
+            throw new ApiException(
+                    ErrorType.UNKNOWN_ERROR.description(),
+                    ErrorType.UNKNOWN_ERROR,
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
