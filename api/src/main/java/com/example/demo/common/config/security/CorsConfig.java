@@ -10,13 +10,18 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 public class CorsConfig {
 
-    private static final List<String> ALLOWED_ORIGINS = List.of(
-            "http://localhost:3000", "http://192.168.0.100:3000", "https://marketgo.kro.kr");
+    private static final List<String> ALLOWED_ORIGIN_PATTERNS = List.of(
+            "http://localhost:3000",
+            "http://localhost:[*]",
+            "http://192.168.0.100:3000",
+            "http://192.168.0.100:[*]",
+            "https://marketgo.kro.kr",
+            "https://marketgo.kro.kr:443");
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         final CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(ALLOWED_ORIGINS);
+        configuration.setAllowedOriginPatterns(ALLOWED_ORIGIN_PATTERNS);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

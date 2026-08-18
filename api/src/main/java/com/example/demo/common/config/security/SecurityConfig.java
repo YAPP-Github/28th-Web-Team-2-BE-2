@@ -49,6 +49,7 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/api/kamis/**",
                                 "/api/v1/items",
+                                "/api/v1/items/*",
                                 "/api/v1/news",
                                 "/api/v1/regions/nearby",
                                 "/api/v1/regions/search",
