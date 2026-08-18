@@ -32,8 +32,4 @@ public record ImageSize(long bytes) {
                     HttpStatus.BAD_REQUEST);
         }
     }
-
-    public static long maxBytes() {
-        return MAX_BYTES;
-    }
 }

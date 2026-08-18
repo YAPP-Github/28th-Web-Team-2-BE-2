@@ -2,7 +2,6 @@ package com.example.demo.image.domain;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
-import java.util.Arrays;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -27,21 +26,18 @@ public enum ImageContentType {
     /**
      * MIME 문자열을 형식으로 바꾼다. 허용 목록에 없으면 400으로 끝낸다.
      *
-     * <p>{@code image/jpg}는 표준 MIME이 아니지만 일부 브라우저와 이전 클라이언트가 보내므로
-     * JPEG로 받아 준다. 반대로 {@code null}이나 빈 값은 형식을 판별할 근거가 없어 거부한다.
+     * <p>{@code null}이나 빈 값은 형식을 판별할 근거가 없어 거부한다.
      */
     public static ImageContentType from(final String mimeType) {
         if (mimeType == null || mimeType.isBlank()) {
             throw invalidFormat();
         }
-        final String normalized = mimeType.trim().toLowerCase();
-        if ("image/jpg".equals(normalized)) {
-            return JPEG;
-        }
-        return Arrays.stream(values())
-                .filter(candidate -> candidate.mimeType.equals(normalized))
-                .findFirst()
-                .orElseThrow(ImageContentType::invalidFormat);
+        return switch (mimeType.trim().toLowerCase()) {
+            case "image/png" -> PNG;
+            // image/jpg는 표준이 아니지만 일부 브라우저와 이전 클라이언트가 보낸다.
+            case "image/jpeg", "image/jpg" -> JPEG;
+            default -> throw invalidFormat();
+        };
     }
 
     private static ApiException invalidFormat() {

@@ -77,7 +77,12 @@ public class S3ImageStorageAdapter implements ImageStoragePort, ImageReadUrlPort
                 .putObjectRequest(objectRequest)
                 .build();
         try {
-            return toResult(key, contentType, expiry, s3Presigner.presignPutObject(presignRequest).url().toString());
+            return new PresignedUploadResult(
+                    s3Presigner.presignPutObject(presignRequest).url().toString(),
+                    permanentUrl(key),
+                    PresignedUploadResult.PUT_METHOD,
+                    Instant.now().plus(expiry),
+                    contentType.mimeType());
         } catch (final SdkException exception) {
             throw storageUnavailable(exception);
         }
@@ -118,19 +123,6 @@ public class S3ImageStorageAdapter implements ImageStoragePort, ImageReadUrlPort
                     HttpStatus.BAD_REQUEST);
         }
         return new ImageKey(imageUrl.substring(baseUrl.length()));
-    }
-
-    private PresignedUploadResult toResult(
-            final ImageKey key,
-            final ImageContentType contentType,
-            final Duration expiry,
-            final String uploadUrl) {
-        return new PresignedUploadResult(
-                uploadUrl,
-                permanentUrl(key),
-                PresignedUploadResult.PUT_METHOD,
-                Instant.now().plus(expiry),
-                contentType.mimeType());
     }
 
     private String permanentUrl(final ImageKey key) {

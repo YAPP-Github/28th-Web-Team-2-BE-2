@@ -75,12 +75,12 @@ class ImageDomainTest {
 
     @Test
     void 상한_이하_크기는_허용한다() {
-        assertThat(new ImageSize(ImageSize.maxBytes()).bytes()).isEqualTo(5L * 1024 * 1024);
+        assertThat(new ImageSize(5L * 1024 * 1024).bytes()).isEqualTo(5L * 1024 * 1024);
     }
 
     @Test
     void 상한을_넘는_크기는_IMAGE_TOO_LARGE로_거부한다() {
-        assertThatThrownBy(() -> new ImageSize(ImageSize.maxBytes() + 1))
+        assertThatThrownBy(() -> new ImageSize(5L * 1024 * 1024 + 1))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.IMAGE_TOO_LARGE);

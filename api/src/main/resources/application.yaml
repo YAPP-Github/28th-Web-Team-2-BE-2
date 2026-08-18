@@ -81,8 +81,6 @@ aws:
     base-url: ${AWS_S3_BASE_URL:}
     # 계약이 정한 10분. 늘리면 유출된 URL의 유효 기간도 함께 늘어난다.
     presign-expiry: ${AWS_S3_PRESIGN_EXPIRY:10m}
-    # 로컬·테스트에서 S3 호환 저장소를 가리킬 때만 설정한다. 비어 있으면 실제 AWS를 쓴다.
-    endpoint: ${AWS_S3_ENDPOINT:}
 
 qwen:
   # DashScope OpenAI 호환 endpoint. 리전과 계정 형태에 따라 host가 갈리므로 설정으로 둔다.
