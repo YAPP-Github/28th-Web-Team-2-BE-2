@@ -5,9 +5,15 @@ import java.util.Objects;
 public record BatchItemFailure(
         Long itemId,
         Integer channelId,
+        int attemptCount,
         RuntimeException cause) {
 
-    private static final int ATTEMPT_COUNT = 1;
+    public BatchItemFailure(
+            final Long itemId,
+            final Integer channelId,
+            final RuntimeException cause) {
+        this(itemId, channelId, 1, cause);
+    }
 
     public BatchItemFailure {
         Objects.requireNonNull(itemId, "itemId must not be null");
@@ -16,9 +22,8 @@ public record BatchItemFailure(
         if (itemId <= 0 || channelId <= 0) {
             throw new IllegalArgumentException("batch item failure identifiers must be positive");
         }
-    }
-
-    public int attemptCount() {
-        return ATTEMPT_COUNT;
+        if (attemptCount <= 0) {
+            throw new IllegalArgumentException("attemptCount must be positive");
+        }
     }
 }

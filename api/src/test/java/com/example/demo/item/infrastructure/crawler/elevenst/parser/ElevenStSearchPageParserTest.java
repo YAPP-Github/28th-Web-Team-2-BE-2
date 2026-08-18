@@ -1,6 +1,7 @@
 package com.example.demo.item.infrastructure.crawler.elevenst.parser;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.demo.item.infrastructure.crawler.elevenst.ElevenStProduct;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,8 +28,10 @@ class ElevenStSearchPageParserTest {
     }
 
     @Test
-    void returnsEmptyForInvalidResponse() {
-        assertThat(parser.parse("not-json")).isEmpty();
+    void throwsForInvalidResponse() {
+        assertThatThrownBy(() -> parser.parse("not-json"))
+                .isInstanceOfSatisfying(IllegalStateException.class, exception ->
+                        assertThat(exception.getCause()).isNull());
     }
 
     @Test

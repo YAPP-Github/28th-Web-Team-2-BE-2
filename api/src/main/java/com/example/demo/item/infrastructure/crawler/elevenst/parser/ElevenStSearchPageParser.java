@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class ElevenStSearchPageParser {
 
     private static final String PRODUCT_URL = "https://www.11st.co.kr/products/";
+    private static final String PARSE_FAILURE_MESSAGE = "11번가 검색 응답을 해석할 수 없습니다.";
     private final ObjectMapper objectMapper;
 
     public List<ElevenStProduct> parse(final String json) {
@@ -25,7 +26,7 @@ public class ElevenStSearchPageParser {
         try {
             return parseProducts(objectMapper.readTree(jsonContent(json)));
         } catch (Exception exception) {
-            return List.of();
+            throw new IllegalStateException(PARSE_FAILURE_MESSAGE);
         }
     }
 
