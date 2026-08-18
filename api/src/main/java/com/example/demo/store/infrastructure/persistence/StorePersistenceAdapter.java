@@ -2,10 +2,10 @@ package com.example.demo.store.infrastructure.persistence;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.report.domain.Store;
 import com.example.demo.store.application.port.StorePersistencePort;
 import com.example.demo.store.application.result.NearbyStoreCandidate;
 import com.example.demo.store.application.result.NearbyStoreResult;
-import com.example.demo.store.domain.Store;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -72,24 +72,29 @@ public class StorePersistenceAdapter implements StorePersistencePort {
                 .orElseGet(() -> new Store(
                         candidate.kakaoPlaceId(),
                         candidate.storeName(),
-                        candidate.latitude(),
-                        candidate.longitude(),
+                        candidate.placeUrl(),
+                        null,
                         candidate.addressName(),
                         candidate.roadAddressName(),
                         candidate.phone(),
-                        candidate.placeUrl()));
-        store.updateProviderFields(
+                        null,
+                        null,
+                        candidate.longitude(),
+                        candidate.latitude(),
+                        candidate.distanceMeters()));
+        store.updateNearbyProviderFields(
                 candidate.storeName(),
-                candidate.latitude(),
-                candidate.longitude(),
+                candidate.placeUrl(),
                 candidate.addressName(),
                 candidate.roadAddressName(),
                 candidate.phone(),
-                candidate.placeUrl());
+                candidate.longitude(),
+                candidate.latitude(),
+                candidate.distanceMeters());
         final Store saved = storeJpaRepository.save(store);
         return new NearbyStoreResult(
                 saved.id(),
-                saved.storeName(),
+                saved.placeName(),
                 saved.latitude(),
                 saved.longitude(),
                 saved.addressName(),

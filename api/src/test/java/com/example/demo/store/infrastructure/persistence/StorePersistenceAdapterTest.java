@@ -37,7 +37,7 @@ class StorePersistenceAdapterTest {
         final var second = adapter.synchronize(List.of(candidate("kakao-1", "new-name"))).getFirst();
 
         assertThat(second.storeId()).isEqualTo(first.storeId());
-        assertThat(storeJpaRepository.findById(first.storeId()).orElseThrow().storeName())
+        assertThat(storeJpaRepository.findById(first.storeId()).orElseThrow().placeName())
                 .isEqualTo("new-name");
         assertThat(adapter.findLikedStoreIds(7L, List.of(first.storeId())))
                 .containsExactly(first.storeId());

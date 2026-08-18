@@ -1,6 +1,6 @@
 package com.example.demo.store.infrastructure.persistence;
 
-import com.example.demo.store.domain.Store;
+import com.example.demo.report.domain.Store;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
