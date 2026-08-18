@@ -33,7 +33,8 @@ public record ImageAnalysisResponse(
             @Schema(example = "250") Integer value,
             @Schema(description = "항상 KRW", example = "KRW") String currency,
             @Schema(
-                    description = "가격표에 숫자가 여럿이면 낮아진다. 값이 있어도 사용자 확인이 필요하다",
+                    description = "이 숫자가 판매 가격이라는 확신. 품목 신뢰도와 별개이며, "
+                            + "가격표에 숫자가 여럿이면 낮아진다. 값이 있어도 사용자 확인이 필요하다",
                     example = "0.30")
             BigDecimal confidence) {
 

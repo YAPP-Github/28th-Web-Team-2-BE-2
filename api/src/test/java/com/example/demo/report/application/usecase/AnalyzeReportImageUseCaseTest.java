@@ -152,6 +152,25 @@ class AnalyzeReportImageUseCaseTest {
         assertThat(result.priceConfidence()).isEqualTo(new AnalysisConfidence(new BigDecimal("0.95")));
     }
 
+    // 품목은 확실하지만 가격 숫자가 흐린 사진이 있다. 이전에는 품목 신뢰도를 가격 신뢰도로 내보냈다.
+    @Test
+    void 가격_신뢰도는_품목_신뢰도와_독립이다() {
+        when(imageAnalysisPort.analyze(IMAGE_URL)).thenReturn(new ExtractedPriceTag(
+                "오이",
+                new AnalysisConfidence(new BigDecimal("0.99")),
+                250,
+                new AnalysisConfidence(new BigDecimal("0.35")),
+                null,
+                null,
+                1));
+        when(itemCandidateQueryPort.findCandidatesByName("오이")).thenReturn(List.of(CUCUMBER));
+
+        final ImageAnalysisResult result = useCase.execute(command(null));
+
+        assertThat(result.itemConfidence().value()).isEqualByComparingTo("0.99");
+        assertThat(result.priceConfidence().value()).isEqualByComparingTo("0.35");
+    }
+
     @Test
     void 숫자가_여럿이면_수량_신뢰도도_함께_낮춘다() {
         given(extracted("오이", "0.95", 250, new BigDecimal("1"), new BigDecimal("0.80"), 3));
@@ -195,15 +214,18 @@ class AnalyzeReportImageUseCaseTest {
 
     private ExtractedPriceTag extracted(
             final String itemName,
-            final String itemConfidence,
+            final String confidence,
             final Integer price,
             final BigDecimal amount,
             final BigDecimal amountConfidence,
             final int numberCount) {
+        final AnalysisConfidence parsed =
+                confidence == null ? null : new AnalysisConfidence(new BigDecimal(confidence));
         return new ExtractedPriceTag(
                 itemName,
-                itemConfidence == null ? null : new AnalysisConfidence(new BigDecimal(itemConfidence)),
+                parsed,
                 price,
+                parsed,
                 amount,
                 amountConfidence == null ? null : new AnalysisConfidence(amountConfidence),
                 numberCount);

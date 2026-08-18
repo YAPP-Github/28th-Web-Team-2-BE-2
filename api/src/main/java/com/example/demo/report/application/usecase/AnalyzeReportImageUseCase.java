@@ -102,7 +102,7 @@ public class AnalyzeReportImageUseCase {
             return null;
         }
         return PriceExtractionPolicy.downgradeIfAmbiguous(
-                extracted.itemConfidence(), extracted.numberCount());
+                extracted.priceConfidence(), extracted.numberCount());
     }
 
     private AnalysisConfidence amountConfidence(final ExtractedPriceTag extracted) {

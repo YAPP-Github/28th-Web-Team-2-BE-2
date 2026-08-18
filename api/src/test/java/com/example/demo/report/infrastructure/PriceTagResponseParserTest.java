@@ -40,6 +40,17 @@ class PriceTagResponseParserTest {
         assertThat(result.price()).isEqualTo(250);
     }
 
+    // 이전에는 응답에 priceConfidence 가 없어 품목 신뢰도를 가격 신뢰도로 내보냈다.
+    @Test
+    void 가격_신뢰도를_품목_신뢰도와_별도로_읽는다() {
+        final ExtractedPriceTag result = parser.parse("""
+                {"itemName":"오이","itemConfidence":0.96,"price":250,
+                 "priceConfidence":0.40,"numberCount":1}""");
+
+        assertThat(result.itemConfidence().value()).isEqualByComparingTo("0.96");
+        assertThat(result.priceConfidence().value()).isEqualByComparingTo("0.40");
+    }
+
     @Test
     void 필드가_빠지면_그_필드만_비운다() {
         final ExtractedPriceTag result = parser.parse("{\"price\":250,\"numberCount\":1}");

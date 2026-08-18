@@ -33,6 +33,7 @@ public class PriceTagResponseParser {
                 text(root, "itemName"),
                 confidence(root, "itemConfidence"),
                 integer(root, "price"),
+                confidence(root, "priceConfidence"),
                 decimal(root, "amount"),
                 confidence(root, "amountConfidence"),
                 numberCount(root));

@@ -20,6 +20,7 @@ final class PriceTagPrompt {
               "itemName": string|null,       // 사진의 농산물 이름. 한국어. 확실하지 않으면 null
               "itemConfidence": number|null, // 0~1
               "price": integer|null,         // 판매 가격의 숫자만. 통화기호와 콤마 제외
+              "priceConfidence": number|null, // 0~1. 이 숫자가 판매 가격이라는 확신
               "amount": number|null,         // 수량 또는 중량의 숫자. 사진에 근거가 없으면 null
               "amountConfidence": number|null,
               "numberCount": integer         // 가격표에서 발견한 숫자의 총 개수

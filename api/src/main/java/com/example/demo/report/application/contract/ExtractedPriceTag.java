@@ -17,12 +17,13 @@ public record ExtractedPriceTag(
         String itemName,
         AnalysisConfidence itemConfidence,
         Integer price,
+        AnalysisConfidence priceConfidence,
         BigDecimal amount,
         AnalysisConfidence amountConfidence,
         int numberCount) {
 
     public static ExtractedPriceTag empty() {
-        return new ExtractedPriceTag(null, null, null, null, null, 0);
+        return new ExtractedPriceTag(null, null, null, null, null, null, 0);
     }
 
     public boolean hasItemName() {
