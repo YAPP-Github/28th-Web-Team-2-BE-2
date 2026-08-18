@@ -19,43 +19,31 @@ public class UpdateUserNicknameUseCase {
 
     @Transactional
     public void execute(final UpdateUserNicknameCommand command) {
-        final User user = userRepository.findById(command.userId()).orElseThrow(this::userNotFound);
+        final User user = userRepository.findById(command.userId()).orElseThrow(() -> new ApiException(
+                ErrorType.NO_RESOURCE_ERROR.description(),
+                ErrorType.NO_RESOURCE_ERROR,
+                HttpStatus.NOT_FOUND));
         validateNicknameAvailable(user, command.nickname());
         user.changeNickname(command.nickname());
         try {
             userRepository.saveAndFlush(user);
         } catch (final DataIntegrityViolationException exception) {
-            throw duplicateNickname(exception);
+            throw new ApiException(
+                    ErrorType.DUPLICATE_NICKNAME_ERROR.description(),
+                    ErrorType.DUPLICATE_NICKNAME_ERROR,
+                    HttpStatus.CONFLICT,
+                    exception);
         }
     }
 
     private void validateNicknameAvailable(final User user, final String nickname) {
         userRepository.findByNickname(nickname).ifPresent(existingUser -> {
             if (!existingUser.id().equals(user.id())) {
-                throw duplicateNickname();
+                throw new ApiException(
+                        ErrorType.DUPLICATE_NICKNAME_ERROR.description(),
+                        ErrorType.DUPLICATE_NICKNAME_ERROR,
+                        HttpStatus.CONFLICT);
             }
         });
-    }
-
-    private ApiException userNotFound() {
-        return new ApiException(
-                ErrorType.NO_RESOURCE_ERROR.description(),
-                ErrorType.NO_RESOURCE_ERROR,
-                HttpStatus.NOT_FOUND);
-    }
-
-    private ApiException duplicateNickname() {
-        return new ApiException(
-                ErrorType.DUPLICATE_NICKNAME_ERROR.description(),
-                ErrorType.DUPLICATE_NICKNAME_ERROR,
-                HttpStatus.CONFLICT);
-    }
-
-    private ApiException duplicateNickname(final DataIntegrityViolationException cause) {
-        return new ApiException(
-                ErrorType.DUPLICATE_NICKNAME_ERROR.description(),
-                ErrorType.DUPLICATE_NICKNAME_ERROR,
-                HttpStatus.CONFLICT,
-                cause);
     }
 }
