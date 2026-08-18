@@ -95,4 +95,29 @@ class StoreControllerUserTest {
             SecurityContextHolder.clearContext();
         }
     }
+
+    @Test
+    void ROLE_USER의_onlyLiked_조회는_200과_단골_목록을_반환한다() throws Exception {
+        final Authentication authentication = new UsernamePasswordAuthenticationToken(
+                new AuthPrincipal(7L),
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_USER")));
+        final var context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+
+        try {
+            mockMvc.perform(get("/api/v1/stores/nearby")
+                            .principal(authentication)
+                            .queryParam("latitude", "37.5")
+                            .queryParam("longitude", "127.0")
+                            .queryParam("onlyLiked", "true"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalCount").value(1))
+                    .andExpect(jsonPath("$.stores[0].storeId").value(1))
+                    .andExpect(jsonPath("$.stores[0].isLiked").value(true));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
 }
