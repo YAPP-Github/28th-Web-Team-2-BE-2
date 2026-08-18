@@ -6,6 +6,7 @@ import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.common.security.JwtAuthenticationFilter;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
 import com.example.demo.store.application.usecase.StoreFavoriteUseCase;
+import com.example.demo.store.presentation.converter.StoreCommandConverter;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
 import com.example.demo.store.presentation.converter.StoreResultConverter;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
@@ -33,6 +34,7 @@ public class StoreController implements StoreControllerSpec {
 
     private final GetNearbyStoresUseCase getNearbyStoresUseCase;
     private final StoreFavoriteUseCase storeFavoriteUseCase;
+    private final StoreCommandConverter storeCommandConverter;
     private final StoreQueryConverter storeQueryConverter;
     private final StoreResultConverter storeResultConverter;
 
@@ -55,7 +57,7 @@ public class StoreController implements StoreControllerSpec {
     public ResponseEntity<Void> addFavorite(
             @Positive @PathVariable final Long storeId,
             @AuthenticationPrincipal final AuthPrincipal principal) {
-        storeFavoriteUseCase.add(principal.userId(), storeId);
+        storeFavoriteUseCase.add(storeCommandConverter.toStoreFavoriteCommand(storeId, principal));
         return ResponseEntity.noContent().build();
     }
 

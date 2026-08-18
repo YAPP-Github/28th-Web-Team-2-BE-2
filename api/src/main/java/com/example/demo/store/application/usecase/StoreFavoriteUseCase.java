@@ -2,6 +2,7 @@ package com.example.demo.store.application.usecase;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.store.application.command.StoreFavoriteCommand;
 import com.example.demo.store.application.port.StoreFavoriteCommandPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,9 +16,9 @@ public class StoreFavoriteUseCase {
     private final StoreFavoriteCommandPort storeFavoriteCommandPort;
 
     @Transactional
-    public void add(final Long userId, final Long storeId) {
-        validateStoreExists(storeId);
-        storeFavoriteCommandPort.add(userId, storeId);
+    public void add(final StoreFavoriteCommand command) {
+        validateStoreExists(command.storeId());
+        storeFavoriteCommandPort.add(command.userId(), command.storeId());
     }
 
     private void validateStoreExists(final Long storeId) {

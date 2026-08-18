@@ -18,6 +18,7 @@ import com.example.demo.store.application.result.NearbyStoreSearchResult;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
 import com.example.demo.store.application.usecase.StoreFavoriteUseCase;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
+import com.example.demo.store.presentation.converter.StoreCommandConverter;
 import com.example.demo.store.presentation.converter.StoreResultConverter;
 import java.math.BigDecimal;
 import java.util.List;
@@ -43,6 +44,7 @@ class StoreControllerUserTest {
         mockMvc = MockMvcBuilders.standaloneSetup(new StoreController(
                         new GetNearbyStoresUseCase(nearbyStoreSearchPort, storePersistencePort),
                         mock(StoreFavoriteUseCase.class),
+                        new StoreCommandConverter(),
                         new StoreQueryConverter(),
                         new StoreResultConverter()))
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
