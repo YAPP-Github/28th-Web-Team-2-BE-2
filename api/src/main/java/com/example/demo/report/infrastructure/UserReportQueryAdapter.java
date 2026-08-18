@@ -1,6 +1,7 @@
 package com.example.demo.report.infrastructure;
 
 import com.example.demo.report.application.port.UserReportQueryPort;
+import com.example.demo.report.application.query.MyReportQuery;
 import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.application.query.UserReportSort;
 import com.example.demo.report.domain.UserReport;
@@ -34,6 +35,12 @@ public class UserReportQueryAdapter implements UserReportQueryPort {
                 query.itemId(), query.regionId(), unit, pageable(query));
     }
 
+    @Override
+    public Page<UserReport> findByUser(final MyReportQuery query) {
+        return userReportJpaRepository.findAllByUserId(
+                query.userId(), PageRequest.of(query.page(), query.size(), latestFirst()));
+    }
+
     private Pageable pageable(final RegionItemReportQuery query) {
         return PageRequest.of(query.page(), query.size(), sort(query.sort()));
     }
@@ -42,6 +49,10 @@ public class UserReportQueryAdapter implements UserReportQueryPort {
         if (sort == UserReportSort.PRICE_ASC) {
             return Sort.by(Sort.Order.asc("price"), Sort.Order.asc("id"));
         }
+        return latestFirst();
+    }
+
+    private Sort latestFirst() {
         return Sort.by(Sort.Order.desc("reportDate"), Sort.Order.desc("id"));
     }
 }

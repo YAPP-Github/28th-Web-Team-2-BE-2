@@ -35,4 +35,6 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
 
     Page<UserReport> findAllByItemIdAndRegionIdAndUnit(
             Long itemId, String regionId, String unit, Pageable pageable);
+
+    Page<UserReport> findAllByUserId(Long userId, Pageable pageable);
 }
