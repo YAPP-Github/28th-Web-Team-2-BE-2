@@ -1,7 +1,7 @@
 name = "controller-test-writer"
 description = "Red-stage controller-slice agent using @WebMvcTest and MockMvc; does not edit production code."
-model = "gpt-5.6-terra"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 TDD의 Red 단계 담당자다. production code를 수정하기 전에 JUnit Jupiter와 @WebMvcTest, MockMvc를 사용하는 실패 행동 테스트를 먼저 작성하고 지정 테스트를 실행한다.
