@@ -8,7 +8,6 @@ import com.example.demo.region.presentation.dto.NearbyRegionRequest;
 import com.example.demo.region.presentation.dto.NearbyRegionResponse;
 import com.example.demo.region.presentation.dto.RegionSearchRequest;
 import com.example.demo.region.presentation.dto.RegionSearchResponse;
-import com.example.demo.common.presentation.ApiResponse;
 import com.example.demo.region.presentation.spec.RegionControllerSpec;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -40,10 +39,10 @@ public class RegionController implements RegionControllerSpec {
 
     @GetMapping("/search")
     @Override
-    public ResponseEntity<ApiResponse<RegionSearchResponse>> searchRegions(
+    public ResponseEntity<RegionSearchResponse> searchRegions(
             @Valid @ModelAttribute final RegionSearchRequest request) {
         final RegionSearchResponse data = regionResultConverter.toRegionSearchResponse(
                 searchRegionsUseCase.execute(regionQueryConverter.toRegionSearchQuery(request)));
-        return ResponseEntity.ok(new ApiResponse<>("OK", "success", data));
+        return ResponseEntity.ok(data);
     }
 }

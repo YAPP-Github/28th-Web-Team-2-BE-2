@@ -67,9 +67,11 @@ class RegionControllerTest {
                         .queryParam("longitude", "127.1324"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$[0].regionId").isNumber())
-                .andExpect(jsonPath("$[0].regionId").value(4413310500L))
-                .andExpect(jsonPath("$[0].regionName").value("천안시 서북구 성성동"));
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.data[0].regionId").isNumber())
+                .andExpect(jsonPath("$.data[0].regionId").value(4413310500L))
+                .andExpect(jsonPath("$.data[0].regionName").value("천안시 서북구 성성동"));
     }
 
     @Test
@@ -98,8 +100,9 @@ class RegionControllerTest {
                         .queryParam("latitude", "36.8358")
                         .queryParam("longitude", "127.1324"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isEmpty());
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isEmpty());
     }
 
     @Test
@@ -107,8 +110,8 @@ class RegionControllerTest {
         mockMvc.perform(get("/api/v1/regions/search").queryParam("keyword", "성성동"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").value("OK"))
-                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
                 .andExpect(jsonPath("$.data.searchResults").isArray())
                 .andExpect(jsonPath("$.data.searchResults[0].regionId").value("4413310500"))
                 .andExpect(jsonPath("$.data.searchResults[0].regionName").value("천안시 서북구 성성동"));

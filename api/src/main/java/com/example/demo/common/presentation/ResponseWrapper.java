@@ -12,7 +12,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 @RestControllerAdvice
 public class ResponseWrapper implements ResponseBodyAdvice<Object> {
 
-    private static final String ITEMS_PATH = "/api/v1/items";
+    private static final String API_V1_PATH = "/api/v1";
 
     @Override
     public boolean supports(
@@ -31,7 +31,7 @@ public class ResponseWrapper implements ResponseBodyAdvice<Object> {
             final ServerHttpResponse response) {
         final String path = request.getURI().getPath();
         if (body == null
-                || !isItemsPath(path)
+                || !isApiV1Path(path)
                 || isDocumentationPath(path)
                 || body instanceof ApiResponse<?>) {
             return body;
@@ -39,8 +39,8 @@ public class ResponseWrapper implements ResponseBodyAdvice<Object> {
         return new ApiResponse<>(ApiResponse.SUCCESS_CODE, ApiResponse.SUCCESS_MESSAGE, body);
     }
 
-    private boolean isItemsPath(final String path) {
-        return path.equals(ITEMS_PATH);
+    private boolean isApiV1Path(final String path) {
+        return path.equals(API_V1_PATH) || path.startsWith(API_V1_PATH + "/");
     }
 
     private boolean isDocumentationPath(final String path) {

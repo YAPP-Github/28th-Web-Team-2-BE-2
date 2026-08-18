@@ -6,6 +6,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import java.util.Arrays;
+import java.util.stream.Stream;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,11 +15,11 @@ import org.springframework.web.method.HandlerMethod;
 @Component
 public class SuccessResponseCustomizer implements OperationCustomizer {
 
-    private static final String ITEMS_PATH = "/api/v1/items";
+    private static final String API_V1_PATH = "/api/v1";
 
     @Override
     public Operation customize(final Operation operation, final HandlerMethod handlerMethod) {
-        if (isItemsController(handlerMethod)) {
+        if (isApiV1Controller(handlerMethod)) {
             wrapSuccessResponseSchemas(operation.getResponses());
         }
         return operation;
@@ -45,10 +46,14 @@ public class SuccessResponseCustomizer implements OperationCustomizer {
                 });
     }
 
-    private boolean isItemsController(final HandlerMethod handlerMethod) {
+    private boolean isApiV1Controller(final HandlerMethod handlerMethod) {
         final RequestMapping mapping = handlerMethod.getBeanType().getAnnotation(RequestMapping.class);
         return mapping != null
-                && (Arrays.asList(mapping.value()).contains(ITEMS_PATH)
-                        || Arrays.asList(mapping.path()).contains(ITEMS_PATH));
+                && Stream.concat(Arrays.stream(mapping.value()), Arrays.stream(mapping.path()))
+                        .anyMatch(this::isApiV1Path);
+    }
+
+    private boolean isApiV1Path(final String path) {
+        return path.equals(API_V1_PATH) || path.startsWith(API_V1_PATH + "/");
     }
 }
