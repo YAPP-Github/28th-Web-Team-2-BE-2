@@ -23,9 +23,4 @@ public record ImageAnalysisResult(
         String unit,
         BigDecimal amount,
         AnalysisConfidence amountConfidence) {
-
-    /** 사진에서 아무것도 읽지 못한 경우. 사용자가 직접 입력하도록 빈 결과를 돌려준다. */
-    public static ImageAnalysisResult empty() {
-        return new ImageAnalysisResult(null, null, List.of(), null, null, null, null, null);
-    }
 }

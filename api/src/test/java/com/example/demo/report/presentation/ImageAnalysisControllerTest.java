@@ -98,7 +98,8 @@ class ImageAnalysisControllerTest {
     // envelope가 이미 code·message를 주므로 payload에 중복해 두지 않는다.
     @Test
     void payload에_status와_message를_두지_않는다() throws Exception {
-        when(analyzeReportImageUseCase.execute(any())).thenReturn(ImageAnalysisResult.empty());
+        when(analyzeReportImageUseCase.execute(any())).thenReturn(new ImageAnalysisResult(
+                null, null, List.of(), null, null, null, null, null));
 
         mockMvc.perform(authorized())
                 .andExpect(status().isOk())

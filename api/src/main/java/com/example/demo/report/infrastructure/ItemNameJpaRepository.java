@@ -13,6 +13,4 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ItemNameJpaRepository extends JpaRepository<Item, Long> {
 
     List<Item> findByName(String name);
-
-    List<Item> findByNameContaining(String name);
 }

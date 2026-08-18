@@ -20,7 +20,7 @@ public final class PriceExtractionPolicy {
     private PriceExtractionPolicy() {
     }
 
-    public static boolean isPriceAmbiguous(final int numberCount) {
+    private static boolean isPriceAmbiguous(final int numberCount) {
         return numberCount > AMBIGUOUS_NUMBER_THRESHOLD;
     }
 
