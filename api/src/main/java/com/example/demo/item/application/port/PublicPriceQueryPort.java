@@ -9,6 +9,8 @@ public interface PublicPriceQueryPort {
 
     List<PublicPrice> findByItemIdsAndRegionId(List<Long> itemIds, String regionId);
 
+    List<PublicPrice> findByItemIdAndRegionId(Long itemId, String regionId);
+
     Optional<PublicPrice> findLatestByItemIdAndRegionId(Long itemId, String regionId);
 
     LocalDate findLatestPriceDateByRegionId(String regionId);

@@ -1,13 +1,30 @@
 package com.example.demo.item.presentation.converter;
 
 import com.example.demo.item.application.result.ItemPriceResult;
+import com.example.demo.item.application.result.ItemDetailResult;
 import com.example.demo.item.application.result.ItemQueryResult;
 import com.example.demo.item.presentation.dto.ItemPageResponse;
+import com.example.demo.item.presentation.dto.ItemDetailResponse;
 import com.example.demo.item.presentation.dto.ItemResponse;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ItemResultConverter {
+
+    public ItemDetailResponse toResponse(final ItemDetailResult result) {
+        return new ItemDetailResponse(
+                result.itemId(),
+                result.itemName(),
+                result.itemImageUrl(),
+                result.defaultUnit(),
+                result.isLiked(),
+                result.latestLocalReportPrice(),
+                result.todayPublicPrice(),
+                result.onlineLowestPrice(),
+                result.baseDate(),
+                result.priceGap(),
+                result.priceDiffRate());
+    }
 
     public ItemPageResponse toResponse(final ItemQueryResult result) {
         return new ItemPageResponse(
