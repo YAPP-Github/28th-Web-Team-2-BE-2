@@ -4,6 +4,7 @@ import com.example.demo.item.application.port.PublicPriceQueryPort;
 import com.example.demo.item.domain.PublicPrice;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -18,6 +19,13 @@ public class PublicPriceQueryAdapter implements PublicPriceQueryPort {
             final List<Long> itemIds, final String regionId) {
         return publicPriceJpaRepository.findAllByItemIdInAndRegionIdOrderByItemIdAscPriceDateDescIdDesc(
                 itemIds, regionId);
+    }
+
+    @Override
+    public Optional<PublicPrice> findLatestByItemIdAndRegionId(
+            final Long itemId, final String regionId) {
+        return publicPriceJpaRepository.findFirstByItemIdAndRegionIdOrderByPriceDateDescIdDesc(
+                itemId, regionId);
     }
 
     @Override

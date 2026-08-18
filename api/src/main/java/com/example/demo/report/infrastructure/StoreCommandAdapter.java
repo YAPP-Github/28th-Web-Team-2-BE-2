@@ -2,6 +2,7 @@ package com.example.demo.report.infrastructure;
 
 import com.example.demo.report.application.command.StoreSnapshot;
 import com.example.demo.report.application.port.StoreCommandPort;
+import com.example.demo.report.domain.Store;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -37,6 +38,11 @@ public class StoreCommandAdapter implements StoreCommandPort {
             """;
 
     private final EntityManager entityManager;
+
+    @Override
+    public boolean exists(final Long storeId) {
+        return entityManager.find(Store.class, storeId) != null;
+    }
 
     @Override
     public Long save(final StoreSnapshot snapshot) {

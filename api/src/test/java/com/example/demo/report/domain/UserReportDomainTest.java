@@ -12,7 +12,9 @@ class UserReportDomainTest {
     void 장소와_가격_제보의_모든_값을_보존한다() {
         final Store store = new Store("166", "장보고", "url", "category", "address", "road", "phone",
                 "PM9", "약국", new BigDecimal("127.1"), new BigDecimal("37.5"), 100);
-        final UserReport report = new UserReport(1L, 2L, 3L, 3500, "kg", new BigDecimal("1.5"), "photo");
+        final UserReport report = new UserReport(
+                "1121510100", ReportType.PURCHASE, 1L, 2L, 3L, 3500, "kg", new BigDecimal("1.5"),
+                500, new BigDecimal("14.29"), "photo");
 
         assertThat(store.id()).isNull();
         assertThat(store.kakaoPlaceId()).isEqualTo("166");
@@ -29,12 +31,17 @@ class UserReportDomainTest {
         assertThat(store.distance()).isEqualTo(100);
         assertThat(report.id()).isNull();
         assertThat(report.storeId()).isEqualTo(1L);
+        assertThat(report.regionId()).isEqualTo("1121510100");
+        assertThat(report.reportType()).isEqualTo(ReportType.PURCHASE);
         assertThat(report.itemId()).isEqualTo(2L);
         assertThat(report.userId()).isEqualTo(3L);
         assertThat(report.price()).isEqualTo(3500);
         assertThat(report.unit()).isEqualTo("kg");
         assertThat(report.amount()).isEqualByComparingTo("1.5");
         assertThat(report.reportDate()).isEqualTo(LocalDate.now());
+        assertThat(report.publicPriceDiff()).isEqualTo(500);
+        assertThat(report.priceDiffRate()).isEqualByComparingTo("14.29");
+        assertThat(report.createdAt()).isNotNull();
         assertThat(report.photoUrl()).isEqualTo("photo");
     }
 }

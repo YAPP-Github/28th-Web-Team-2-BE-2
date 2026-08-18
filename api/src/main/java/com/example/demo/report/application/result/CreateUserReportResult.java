@@ -1,3 +1,9 @@
 package com.example.demo.report.application.result;
 
-public record CreateUserReportResult(Long reportId) {}
+import java.time.Instant;
+
+public record CreateUserReportResult(
+        Long reportId,
+        Long itemId,
+        Long storeId,
+        Instant reportedAt) {}
