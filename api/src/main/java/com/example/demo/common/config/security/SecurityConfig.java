@@ -76,6 +76,9 @@ public class SecurityConfig {
                         // 제보 작성 자체가 이미 ROLE_USER라 공개로 둘 이유가 없다.
                         .requestMatchers(HttpMethod.POST, "/api/v1/images", "/api/v1/images/presigned-url")
                         .hasRole("USER")
+                        // 외부 유료 모델을 호출하는 경로다. 무인증으로 열면 비용이 그대로 노출된다.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/user-reports/image-analysis")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout")
                         .authenticated()
                         .anyRequest()

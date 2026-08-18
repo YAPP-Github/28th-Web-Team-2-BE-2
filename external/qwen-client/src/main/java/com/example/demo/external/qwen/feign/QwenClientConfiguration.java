@@ -38,12 +38,16 @@ public class QwenClientConfiguration {
      *
      * <p>인식은 사용자가 화면에서 기다리는 동기 요청이다. 재시도를 많이 하면 응답이 늦어지는 쪽이
      * 더 나쁘므로 총 2회 시도(최초 1회 + 재시도 1회)로 제한한다. 대상은 429·5xx와 timeout이다.
+     *
+     * <p>간격을 {@code Duration}이 아니라 밀리초로 받는다. Feign은 클라이언트마다 별도 자식
+     * 컨텍스트를 만드는데 그 컨텍스트에는 {@code ApplicationConversionService}가 없어
+     * {@code "500ms"} 같은 문자열을 {@code Duration}으로 바꾸지 못한다.
      */
     @Bean
     public Retryer qwenRetryer(
-            @Value("${qwen.retry.period:500ms}") final java.time.Duration period,
-            @Value("${qwen.retry.max-period:2s}") final java.time.Duration maxPeriod,
+            @Value("${qwen.retry.period-ms:500}") final long periodMs,
+            @Value("${qwen.retry.max-period-ms:2000}") final long maxPeriodMs,
             @Value("${qwen.retry.max-attempts:2}") final int maxAttempts) {
-        return new Retryer.Default(period.toMillis(), maxPeriod.toMillis(), maxAttempts);
+        return new Retryer.Default(periodMs, maxPeriodMs, maxAttempts);
     }
 }

@@ -25,6 +25,8 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -137,6 +139,47 @@ class S3ImageStorageAdapterTest {
                 .thenThrow(SdkClientException.create("presign failed"));
 
         assertThatThrownBy(() -> adapter.presign(KEY, ImageContentType.JPEG, new ImageSize(3L)))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.IMAGE_STORAGE_UNAVAILABLE);
+    }
+
+    @Test
+    void 영구_URL에서_key를_되짚어_읽기_URL을_발급한다() {
+        final PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
+        when(presigned.url()).thenReturn(toUrl("https://s3.example.com/images/abc.jpg?X-Amz-Signature=r"));
+        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
+
+        final String readUrl = adapter.presignedReadUrl("https://cdn.example.com/images/abc.jpg");
+
+        assertThat(readUrl).contains("X-Amz-Signature");
+        final ArgumentCaptor<GetObjectPresignRequest> captor =
+                ArgumentCaptor.forClass(GetObjectPresignRequest.class);
+        verify(s3Presigner).presignGetObject(captor.capture());
+        assertThat(captor.getValue().getObjectRequest().key()).isEqualTo("images/abc.jpg");
+    }
+
+    // 임의 문자열을 그대로 서명해 주면 우리 자격증명으로 외부 URL을 서명해 주는 통로가 된다.
+    @Test
+    void 우리_저장소의_URL이_아니면_읽기_URL을_발급하지_않는다() {
+        assertThatThrownBy(() -> adapter.presignedReadUrl("https://evil.example.com/images/abc.jpg"))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
+    }
+
+    @Test
+    void 접두사_규칙을_벗어난_key는_거부한다() {
+        assertThatThrownBy(() -> adapter.presignedReadUrl("https://cdn.example.com/uploads/abc.jpg"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void 읽기_URL_발급이_실패하면_저장소_사용_불가를_반환한다() {
+        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class)))
+                .thenThrow(SdkClientException.create("presign failed"));
+
+        assertThatThrownBy(() -> adapter.presignedReadUrl("https://cdn.example.com/images/abc.jpg"))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.IMAGE_STORAGE_UNAVAILABLE);

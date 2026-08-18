@@ -7,7 +7,6 @@ import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import feign.RequestTemplate;
 import feign.Retryer;
-import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -44,8 +43,7 @@ class QwenClientConfigurationTest {
 
     @Test
     void 재시도는_설정한_횟수를_따른다() {
-        final Retryer retryer = configuration.qwenRetryer(
-                Duration.ofMillis(500), Duration.ofSeconds(2), 2);
+        final Retryer retryer = configuration.qwenRetryer(500L, 2000L, 2);
 
         assertThat(retryer).isInstanceOf(Retryer.Default.class);
     }
