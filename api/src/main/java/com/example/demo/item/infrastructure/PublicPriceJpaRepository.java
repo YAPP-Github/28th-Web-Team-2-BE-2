@@ -18,4 +18,8 @@ public interface PublicPriceJpaRepository extends JpaRepository<PublicPrice, Lon
             Long itemId, String regionId);
 
     Optional<PublicPrice> findFirstByRegionIdOrderByPriceDateDescIdDesc(String regionId);
+
+    List<PublicPrice>
+            findAllByItemIdAndRegionIdAndPriceDateGreaterThanAndPriceDateLessThanEqualOrderByPriceDateAscIdAsc(
+                    Long itemId, String regionId, LocalDate startExclusive, LocalDate endInclusive);
 }
