@@ -228,7 +228,8 @@ class ItemQueryE2ETest {
     void favoriteOnly는_검색_가격정렬_페이지네이션과_빈_결과의_기준이_된다() throws Exception {
         final User user = saveUser("찜 필터 조합 사용자");
         final User otherUser = saveUser("찜 필터 조합 다른 사용자");
-        final Item otherUsersPotato = itemJpaRepository.save(new Item("감자", "1kg"));
+        final Item otherUsersPotato = itemJpaRepository.save(
+                new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES));
         publicPriceJpaRepository.save(
                 new PublicPrice(otherUsersPotato.id(), REGION_ID, 3500, referenceDate));
         addFavorite(user.id(), firstPotatoId);
@@ -480,6 +481,21 @@ class ItemQueryE2ETest {
                 .andExpect(jsonPath("$.categoryCounts.SEASONINGS").value(2))
                 .andExpect(jsonPath("$.categoryCounts.MUSHROOMS").value(0))
                 .andExpect(jsonPath("$.categoryCounts.FRUITS").value(0));
+
+        mockMvc.perform(get("/api/v1/items")
+                        .queryParam("regionId", REGION_ID)
+                        .queryParam("category", "ROOT_VEGETABLES")
+                        .queryParam("keyword", "없는품목"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalCount").value(0))
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.categoryCounts.ROOT_VEGETABLES").value(3))
+                .andExpect(jsonPath("$.categoryCounts.LEAFY_GREENS").value(1))
+                .andExpect(jsonPath("$.categoryCounts.FRUITING_VEGETABLES").value(0))
+                .andExpect(jsonPath("$.categoryCounts.PEPPERS").value(0))
+                .andExpect(jsonPath("$.categoryCounts.SEASONINGS").value(2))
+                .andExpect(jsonPath("$.categoryCounts.MUSHROOMS").value(0))
+                .andExpect(jsonPath("$.categoryCounts.FRUITS").value(0));
     }
 
     @Test
@@ -497,10 +513,14 @@ class ItemQueryE2ETest {
     void 지역_전체_최신일과_품목별_최신일이_달라도_품목별_가격과_priceGap으로_정렬한다()
             throws Exception {
         final LocalDate today = referenceDate;
-        final Item itemWithOlderLatestPrice = itemJpaRepository.save(new Item("시금치", "1단"));
-        final Item itemWithRegionLatestPrice = itemJpaRepository.save(new Item("토마토", "1kg"));
-        final Item apple = itemJpaRepository.save(new Item("사과", "1kg"));
-        final Item cucumber = itemJpaRepository.save(new Item("오이", "1개"));
+        final Item itemWithOlderLatestPrice = itemJpaRepository.save(
+                new Item("시금치", "1단", null, ItemCategory.LEAFY_GREENS));
+        final Item itemWithRegionLatestPrice = itemJpaRepository.save(
+                new Item("토마토", "1kg", null, ItemCategory.FRUITING_VEGETABLES));
+        final Item apple = itemJpaRepository.save(
+                new Item("사과", "1kg", null, ItemCategory.FRUITS));
+        final Item cucumber = itemJpaRepository.save(
+                new Item("오이", "1개", null, ItemCategory.FRUITING_VEGETABLES));
 
         publicPriceJpaRepository.save(new PublicPrice(
                 itemWithOlderLatestPrice.id(), REGION_ID, 1500, today.minusDays(2)));
@@ -556,8 +576,10 @@ class ItemQueryE2ETest {
     void 같은_날짜의_공공가격은_가장_큰_ID를_현재가로_사용하고_직전_같은날짜_가격과_priceGap을_계산한다()
             throws Exception {
         final LocalDate today = referenceDate;
-        final Item item = itemJpaRepository.save(new Item("동일날짜품목", "1개"));
-        final Item anotherItem = itemJpaRepository.save(new Item("동일날짜보조품목", "1개"));
+        final Item item = itemJpaRepository.save(
+                new Item("동일날짜품목", "1개", null, ItemCategory.ROOT_VEGETABLES));
+        final Item anotherItem = itemJpaRepository.save(
+                new Item("동일날짜보조품목", "1개", null, ItemCategory.ROOT_VEGETABLES));
         publicPriceJpaRepository.save(new PublicPrice(
                 item.id(), SAME_DATE_PRICE_REGION_ID, 1000, today));
         publicPriceJpaRepository.save(new PublicPrice(
@@ -583,7 +605,8 @@ class ItemQueryE2ETest {
 
     @Test
     void 직전_공공가격이_0이면_변동률은_null이다() throws Exception {
-        final Item item = itemJpaRepository.save(new Item("직전가격0품목", "1개"));
+        final Item item = itemJpaRepository.save(
+                new Item("직전가격0품목", "1개", null, ItemCategory.ROOT_VEGETABLES));
         publicPriceJpaRepository.save(
                 new PublicPrice(item.id(), SAME_DATE_PRICE_REGION_ID, 0, referenceDate.minusDays(1)));
         publicPriceJpaRepository.save(

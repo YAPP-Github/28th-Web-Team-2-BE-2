@@ -35,16 +35,8 @@ public class Item {
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "category_code", length = 32)
+    @Column(name = "category_code", nullable = false, length = 32)
     private ItemCategory category;
-
-    public Item(final String name, final String defaultUnit) {
-        this(name, defaultUnit, null);
-    }
-
-    public Item(final String name, final String defaultUnit, final String imageUrl) {
-        this(name, defaultUnit, imageUrl, null);
-    }
 
     public Item(
             final String name,
@@ -53,6 +45,9 @@ public class Item {
             final ItemCategory category) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("item name must not be blank");
+        }
+        if (category == null) {
+            throw new IllegalArgumentException("item category must not be null");
         }
         this.name = name;
         this.defaultUnit = defaultUnit;
