@@ -5,6 +5,8 @@ import com.example.demo.report.application.query.MyReportQuery;
 import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.application.query.UserReportSort;
 import com.example.demo.report.domain.UserReport;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -39,6 +41,12 @@ public class UserReportQueryAdapter implements UserReportQueryPort {
     public Page<UserReport> findByUser(final MyReportQuery query) {
         return userReportJpaRepository.findAllByUserId(
                 query.userId(), PageRequest.of(query.page(), query.size(), latestFirst()));
+    }
+
+    @Override
+    public List<UserReport> findByUserInPeriod(
+            final Long userId, final LocalDate from, final LocalDate to) {
+        return userReportJpaRepository.findAllByUserIdAndReportDateBetween(userId, from, to);
     }
 
     private Pageable pageable(final RegionItemReportQuery query) {

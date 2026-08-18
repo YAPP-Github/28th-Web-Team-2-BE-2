@@ -1,6 +1,7 @@
 package com.example.demo.report.infrastructure;
 
 import com.example.demo.report.domain.UserReport;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -37,4 +38,7 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
             Long itemId, String regionId, String unit, Pageable pageable);
 
     Page<UserReport> findAllByUserId(Long userId, Pageable pageable);
+
+    List<UserReport> findAllByUserIdAndReportDateBetweenOrderByReportDateAscIdAsc(
+            Long userId, LocalDate from, LocalDate to);
 }

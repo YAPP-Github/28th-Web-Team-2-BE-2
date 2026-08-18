@@ -2,10 +2,13 @@ package com.example.demo.report.presentation;
 
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.report.application.result.MyReportPageResult;
+import com.example.demo.report.application.result.MyWeeklyReportResult;
 import com.example.demo.report.application.usecase.GetMyReportQueryUseCase;
+import com.example.demo.report.application.usecase.GetMyWeeklyReportQueryUseCase;
 import com.example.demo.report.presentation.converter.UserReportResultConverter;
 import com.example.demo.report.presentation.dto.MyReportPageResponse;
 import com.example.demo.report.presentation.dto.MyReportRequest;
+import com.example.demo.report.presentation.dto.MyWeeklyReportResponse;
 import com.example.demo.report.presentation.spec.MyReportControllerSpec;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MyReportController implements MyReportControllerSpec {
 
     private final GetMyReportQueryUseCase getMyReportQueryUseCase;
+    private final GetMyWeeklyReportQueryUseCase getMyWeeklyReportQueryUseCase;
     private final UserReportResultConverter userReportResultConverter;
 
     @GetMapping
@@ -31,6 +35,15 @@ public class MyReportController implements MyReportControllerSpec {
             @AuthenticationPrincipal final AuthPrincipal principal) {
         final MyReportPageResult result = getMyReportQueryUseCase.execute(
                 userReportResultConverter.toQuery(principal.userId(), request));
+        return ResponseEntity.ok(userReportResultConverter.toResponse(result));
+    }
+
+    @GetMapping("/weekly")
+    @Override
+    public ResponseEntity<MyWeeklyReportResponse> getMyWeeklyReports(
+            @AuthenticationPrincipal final AuthPrincipal principal) {
+        final MyWeeklyReportResult result =
+                getMyWeeklyReportQueryUseCase.execute(principal.userId());
         return ResponseEntity.ok(userReportResultConverter.toResponse(result));
     }
 }

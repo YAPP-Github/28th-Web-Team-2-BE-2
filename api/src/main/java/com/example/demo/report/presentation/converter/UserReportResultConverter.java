@@ -6,7 +6,9 @@ import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.application.result.CreateUserReportResult;
 import com.example.demo.report.application.result.ImageAnalysisResult;
 import com.example.demo.report.application.result.MyReportPageResult;
+import com.example.demo.report.application.result.DailyReportResult;
 import com.example.demo.report.application.result.MyReportSummaryResult;
+import com.example.demo.report.application.result.MyWeeklyReportResult;
 import com.example.demo.report.application.result.RegionItemReportResult;
 import com.example.demo.report.application.result.StoreReportResult;
 import com.example.demo.report.application.result.StoreReportsResult;
@@ -16,7 +18,9 @@ import com.example.demo.report.presentation.dto.CreateUserReportResponse;
 import com.example.demo.report.presentation.dto.ImageAnalysisResponse;
 import com.example.demo.report.presentation.dto.MyReportPageResponse;
 import com.example.demo.report.presentation.dto.MyReportRequest;
+import com.example.demo.report.presentation.dto.DailyReportResponse;
 import com.example.demo.report.presentation.dto.MyReportSummaryResponse;
+import com.example.demo.report.presentation.dto.MyWeeklyReportResponse;
 import com.example.demo.report.presentation.dto.RegionItemReportRequest;
 import com.example.demo.report.presentation.dto.RegionItemReportResponse;
 import com.example.demo.report.presentation.dto.StoreReportResponse;
@@ -59,6 +63,17 @@ public class UserReportResultConverter {
                 result.regionId(),
                 result.regionName(),
                 result.priceGap());
+    }
+
+    public MyWeeklyReportResponse toResponse(final MyWeeklyReportResult result) {
+        final List<DailyReportResponse> dailyReports =
+                result.dailyReports().stream().map(this::toResponse).toList();
+        return new MyWeeklyReportResponse(result.totalReportedDays(), dailyReports);
+    }
+
+    private DailyReportResponse toResponse(final DailyReportResult result) {
+        return new DailyReportResponse(
+                result.reportedAt(), result.hasReported(), result.itemId(), result.itemName());
     }
 
     public RegionItemReportQuery toQuery(
