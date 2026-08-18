@@ -27,6 +27,7 @@ public interface UserRegionControllerSpec {
         @ApiResponse(responseCode = "400", description = "법정동 코드가 올바르지 않다"),
         @ApiResponse(responseCode = "401", description = "로그인이 필요하다"),
         @ApiResponse(responseCode = "403", description = "사용자 권한이 필요하다"),
+        @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없다"),
         @ApiResponse(responseCode = "409", description = "중복 또는 최대 개수 초과")
     })
     ResponseEntity<Void> addRegion(AddUserRegionRequest request, @Parameter(hidden = true) AuthPrincipal principal);
@@ -39,6 +40,7 @@ public interface UserRegionControllerSpec {
         @ApiResponse(responseCode = "400", description = "법정동 코드가 올바르지 않다"),
         @ApiResponse(responseCode = "401", description = "로그인이 필요하다"),
         @ApiResponse(responseCode = "403", description = "사용자 권한이 필요하다"),
+        @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없다"),
         @ApiResponse(responseCode = "409", description = "관심 지역 최대 개수 초과")
     })
     ResponseEntity<Void> setCurrentRegion(

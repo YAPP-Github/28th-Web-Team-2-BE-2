@@ -20,6 +20,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -138,7 +139,7 @@ class UserRegionHttpTest {
                     .map(regionId -> executor.submit(() -> addConcurrently(
                             token, regionId, ready, start)))
                     .toList();
-            ready.await();
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
             start.countDown();
 
             assertThat(responses.stream().map(this::statusOf).toList())
@@ -286,6 +287,7 @@ class UserRegionHttpTest {
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].post.responses['400']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].post.responses['401']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].post.responses['403']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].post.responses['404']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].post.responses['409']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['204']")
                         .exists())
@@ -294,6 +296,8 @@ class UserRegionHttpTest {
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['401']")
                         .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['403']")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['404']")
                         .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['409']")
                         .exists())
@@ -352,7 +356,7 @@ class UserRegionHttpTest {
 
     private int statusOf(final Future<Integer> response) {
         try {
-            return response.get();
+            return response.get(10, TimeUnit.SECONDS);
         } catch (final InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new AssertionError("동시 요청 결과를 기다리는 중 인터럽트되었습니다.", exception);
