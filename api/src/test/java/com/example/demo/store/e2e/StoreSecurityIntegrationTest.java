@@ -32,7 +32,7 @@ class StoreSecurityIntegrationTest {
     }
 
     @Test
-    void 공개_경로의_검증_오류는_인증보다_먼저_공통_400으로_처리된다() throws Exception {
+    void 공개_경로의_잘못된_좌표는_공통_400으로_처리된다() throws Exception {
         mockMvc.perform(get("/api/v1/stores/nearby")
                         .queryParam("latitude", "91")
                         .queryParam("longitude", "127"))

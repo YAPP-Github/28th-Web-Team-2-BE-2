@@ -34,10 +34,10 @@ public class StorePersistenceAdapter implements StorePersistencePort {
                 return executeSynchronization(candidates);
             } catch (final DataAccessException exception) {
                 if (attempt == MAX_SYNC_ATTEMPTS) {
-                    throw storeSyncException();
+                    throw storeSyncException(exception);
                 }
             } catch (final RuntimeException exception) {
-                throw storeSyncException();
+                throw storeSyncException(exception);
             }
         }
         throw storeSyncException();
@@ -62,8 +62,8 @@ public class StorePersistenceAdapter implements StorePersistencePort {
         }
         try {
             return storeFavoriteJpaRepository.findStoreIdsByUserIdAndStoreIdIn(userId, storeIds);
-        } catch (final RuntimeException exception) {
-            throw storeSyncException();
+        } catch (final DataAccessException exception) {
+            throw storeSyncException(exception);
         }
     }
 
@@ -110,5 +110,13 @@ public class StorePersistenceAdapter implements StorePersistencePort {
                 ErrorType.STORE_SYNC_ERROR.description(),
                 ErrorType.STORE_SYNC_ERROR,
                 HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private ApiException storeSyncException(final Throwable cause) {
+        return new ApiException(
+                ErrorType.STORE_SYNC_ERROR.description(),
+                ErrorType.STORE_SYNC_ERROR,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                cause);
     }
 }

@@ -1,7 +1,12 @@
 package com.example.demo.store.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.store.application.result.NearbyStoreCandidate;
 import com.example.demo.store.domain.StoreFavorite;
 import java.math.BigDecimal;
@@ -10,6 +15,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @SpringBootTest
 class StorePersistenceAdapterTest {
@@ -42,6 +49,25 @@ class StorePersistenceAdapterTest {
         assertThat(adapter.findLikedStoreIds(7L, List.of(first.storeId())))
                 .containsExactly(first.storeId());
         assertThat(adapter.findLikedStoreIds(8L, List.of(first.storeId()))).isEmpty();
+    }
+
+    @Test
+    void 단골_조회_DB_오류는_STORE_SYNC_ERROR와_원인을_보존한다() {
+        final StoreFavoriteJpaRepository favoriteRepository = mock(StoreFavoriteJpaRepository.class);
+        final DataAccessResourceFailureException cause =
+                new DataAccessResourceFailureException("favorite query failed");
+        when(favoriteRepository.findStoreIdsByUserIdAndStoreIdIn(7L, List.of(1L)))
+                .thenThrow(cause);
+        final StorePersistenceAdapter isolatedAdapter = new StorePersistenceAdapter(
+                mock(StoreJpaRepository.class),
+                favoriteRepository,
+                mock(PlatformTransactionManager.class));
+
+        assertThatThrownBy(() -> isolatedAdapter.findLikedStoreIds(7L, List.of(1L)))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.STORE_SYNC_ERROR);
+                    assertThat(exception.getCause()).isSameAs(cause);
+                });
     }
 
     private NearbyStoreCandidate candidate(final String kakaoPlaceId, final String name) {
