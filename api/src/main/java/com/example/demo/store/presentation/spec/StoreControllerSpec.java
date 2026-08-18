@@ -23,8 +23,18 @@ public interface StoreControllerSpec {
         @ApiResponse(responseCode = "502", description = "외부 가게 provider를 조회할 수 없다")
     })
     ResponseEntity<NearbyStoresResponse> getNearbyStores(
-            @ParameterObject NearbyStoreRequest request,
+            @Valid @ParameterObject NearbyStoreRequest request,
             @Parameter(hidden = true) AuthPrincipal principal,
             @Parameter(hidden = true) Authentication authentication,
             @Parameter(hidden = true) HttpServletRequest servletRequest);
+
+    @Operation(summary = "가게를 단골로 등록한다")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "단골 등록 성공 또는 이미 등록된 관계"),
+        @ApiResponse(responseCode = "401", description = "로그인이 필요하다"),
+        @ApiResponse(responseCode = "404", description = "가게를 찾을 수 없다")
+    })
+    ResponseEntity<Void> addFavorite(
+            @Parameter(description = "가게 ID") @Positive Long storeId,
+            @Parameter(hidden = true) AuthPrincipal principal);
 }
