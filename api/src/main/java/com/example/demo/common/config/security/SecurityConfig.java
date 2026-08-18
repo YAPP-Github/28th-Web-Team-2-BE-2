@@ -69,6 +69,8 @@ public class SecurityConfig {
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/items/*/favorite")
                         .hasRole("USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/stores/*/favorite")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/items/*/reports")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout")
