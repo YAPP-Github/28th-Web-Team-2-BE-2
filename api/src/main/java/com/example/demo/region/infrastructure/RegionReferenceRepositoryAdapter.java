@@ -1,12 +1,12 @@
 package com.example.demo.region.infrastructure;
 
-import com.example.demo.region.application.port.RegionRepository;
+import com.example.demo.user.application.port.RegionReferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class RegionRepositoryAdapter implements RegionRepository {
+public class RegionReferenceRepositoryAdapter implements RegionReferenceRepository {
 
     private final RegionJpaRepository regionJpaRepository;
 

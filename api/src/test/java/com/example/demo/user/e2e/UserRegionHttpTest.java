@@ -158,6 +158,32 @@ class UserRegionHttpTest {
     }
 
     @Test
+    void 존재하지_않는_지역을_current로_설정하면_400과_공통_오류를_응답한다() throws Exception {
+        final User user = saveUser("잘못된 현재 지역 사용자");
+
+        setCurrent(accessToken(user), "9999999999")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
+
+        assertThat(regionCount(user.id())).isZero();
+    }
+
+    @Test
+    void 네_번째_지역을_current로_설정하면_409와_최대_개수_오류를_응답한다() throws Exception {
+        final User user = saveUser("현재 지역 한도 사용자");
+        final String token = accessToken(user);
+
+        add(token, "1121510100").andExpect(status().isNoContent());
+        add(token, "1121510200").andExpect(status().isNoContent());
+        add(token, "1121510300").andExpect(status().isNoContent());
+        setCurrent(token, "1121510400")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value(ErrorType.USER_REGION_LIMIT_EXCEEDED_ERROR.name()));
+
+        assertThat(regionCount(user.id())).isEqualTo(3);
+    }
+
+    @Test
     void current를_변경하면_기존_지역은_해제되고_새_지역만_current가_된다() throws Exception {
         final User user = saveUser("현재 지역 변경 사용자");
         final String token = accessToken(user);
@@ -209,6 +235,15 @@ class UserRegionHttpTest {
                         .content("{\"regionId\":\"1121510100\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(ErrorType.INVALID_TOKEN.name()));
+
+        mockMvc.perform(put(PATH + "/1121510100/current"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(ErrorType.UNAUTHORIZED.name()));
+
+        mockMvc.perform(put(PATH + "/1121510100/current")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_TOKEN.name()));
     }
 
     @Test
@@ -217,6 +252,11 @@ class UserRegionHttpTest {
                         .with(user("guest").roles("GUEST"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"regionId\":\"1121510100\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(ErrorType.FORBIDDEN.name()));
+
+        mockMvc.perform(put(PATH + "/1121510100/current")
+                        .with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(ErrorType.FORBIDDEN.name()));
     }
@@ -235,6 +275,10 @@ class UserRegionHttpTest {
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['400']")
                         .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['401']")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['403']")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['409']")
                         .exists())
                 .andExpect(jsonPath("$.components.schemas.AddUserRegionRequest.properties.regionId").exists());
     }

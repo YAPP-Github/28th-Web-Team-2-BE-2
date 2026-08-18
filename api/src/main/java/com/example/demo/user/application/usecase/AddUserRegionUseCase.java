@@ -3,8 +3,8 @@ package com.example.demo.user.application.usecase;
 import com.example.demo.auth.application.port.UserRepository;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
-import com.example.demo.region.application.port.RegionRepository;
 import com.example.demo.user.application.command.AddUserRegionCommand;
+import com.example.demo.user.application.port.RegionReferenceRepository;
 import com.example.demo.user.application.port.UserRegionRepository;
 import com.example.demo.user.domain.UserRegion;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class AddUserRegionUseCase {
 
     private final UserRepository userRepository;
     private final UserRegionRepository userRegionRepository;
-    private final RegionRepository regionRepository;
+    private final RegionReferenceRepository regionReferenceRepository;
 
     @Transactional
     public void execute(final AddUserRegionCommand command) {
@@ -33,7 +33,7 @@ public class AddUserRegionUseCase {
     }
 
     private void validateRegion(final String regionId) {
-        if (!regionRepository.existsById(regionId)) {
+        if (!regionReferenceRepository.existsById(regionId)) {
             throw ApiException.invalidParameter();
         }
     }
