@@ -14,19 +14,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.demo.auth.application.port.TokenProvider;
 import com.example.demo.auth.application.result.AccessTokenPayload;
 import com.example.demo.auth.domain.UserRole;
-import com.example.demo.auth.presentation.AuthController;
-import com.example.demo.auth.presentation.KakaoTestRedirectController;
 import com.example.demo.common.config.security.SecurityConfig;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.common.security.JwtAccessDeniedHandler;
 import com.example.demo.common.security.JwtAuthenticationEntryPoint;
 import com.example.demo.common.security.SecurityErrorResponseWriter;
-import com.example.demo.item.presentation.ItemController;
-import com.example.demo.kamis.presentation.KamisController;
-import com.example.demo.news.presentation.NewsController;
-import com.example.demo.region.presentation.RegionController;
-import com.example.demo.sample.presentation.SampleController;
-import com.example.demo.store.presentation.StoreController;
 import com.example.demo.report.application.command.CreateUserReportCommand;
 import com.example.demo.report.application.result.CreateUserReportResult;
 import com.example.demo.report.application.usecase.CreateUserReportUseCase;
@@ -40,25 +32,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan.Filter;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(excludeFilters = @Filter(
-        type = FilterType.ASSIGNABLE_TYPE,
-        classes = {
-            AuthController.class,
-            ItemController.class,
-            KakaoTestRedirectController.class,
-            KamisController.class,
-            NewsController.class,
-            RegionController.class,
-            SampleController.class,
-            StoreController.class
-        }))
+@WebMvcTest(UserReportController.class)
 @Import({
     SecurityConfig.class,
     SecurityErrorResponseWriter.class,
