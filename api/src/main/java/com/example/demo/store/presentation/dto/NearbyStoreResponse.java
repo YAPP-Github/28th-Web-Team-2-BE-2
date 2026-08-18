@@ -3,7 +3,7 @@ package com.example.demo.store.presentation.dto;
 import java.math.BigDecimal;
 
 public record NearbyStoreResponse(
-        String storeId,
+        Long storeId,
         String storeName,
         BigDecimal latitude,
         BigDecimal longitude,

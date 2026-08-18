@@ -38,21 +38,64 @@ class FlywayMigrationIntegrationTest {
         flyway.clean();
         flyway.migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
         assertThat(countRows("batch_item_errors")).isZero();
         assertThat(countRows("news_articles")).isZero();
         assertThat(countRows("item_favorites")).isZero();
+        assertThat(countRows("stores")).isZero();
+        assertThat(countRows("user_reports")).isZero();
+        assertThat(countRows("store_favorites")).isZero();
         assertThat(columnNames("item_favorites"))
                 .containsExactly("item_favorite_id", "user_id", "item_id", "created_at");
         assertThat(constraintNames("item_favorites"))
                 .contains("uk_item_favorites_user_item", "fk_item_favorites_user", "fk_item_favorites_item");
+        assertThat(columnNames("users")).contains("nickname");
+        assertThat(constraintNames("users")).contains("uk_users_nickname");
+        assertThat(columnNames("items")).contains("category_code");
+        assertThat(countRowsWhere("category_code = 'ROOT_VEGETABLES'")).isEqualTo(5);
+        assertThat(countRowsWhere("category_code = 'LEAFY_GREENS'")).isEqualTo(12);
+        assertThat(countRowsWhere("category_code = 'FRUITING_VEGETABLES'")).isEqualTo(8);
+        assertThat(countRowsWhere("category_code = 'PEPPERS'")).isEqualTo(4);
+        assertThat(countRowsWhere("category_code = 'SEASONINGS'")).isEqualTo(10);
+        assertThat(countRowsWhere("category_code = 'MUSHROOMS'")).isEqualTo(3);
+        assertThat(countRowsWhere("category_code = 'FRUITS'")).isEqualTo(4);
+        assertThat(countRowsWhere("category_code IS NULL")).isZero();
+        assertCategoryMapping();
+        assertThat(columnNames("stores"))
+                .containsExactly(
+                        "store_id", "kakao_place_id", "place_name", "place_url", "category_name",
+                        "address_name", "road_address_name", "phone", "category_group_code",
+                        "category_group_name", "longitude", "latitude", "distance", "created_at", "updated_at");
+        assertThat(constraintNames("stores"))
+                .contains("stores_pkey", "uk_stores_kakao_place_id");
+        assertThat(columnNames("user_reports"))
+                .containsExactly(
+                        "report_id", "store_id", "item_id", "user_id", "price", "unit", "amount",
+                        "report_date", "public_price_diff", "price_diff_rate", "photo_url", "created_at",
+                        "region_id", "report_type");
+        assertThat(constraintNames("user_reports"))
+                .contains(
+                        "user_reports_pkey", "fk_user_reports_store", "fk_user_reports_item",
+                        "fk_user_reports_user", "ck_user_reports_price_positive", "ck_user_reports_amount_positive",
+                        "ck_user_reports_report_type");
+        assertThat(indexNames("user_reports"))
+                .contains(
+                        "idx_user_reports_item_report_date",
+                        "idx_user_reports_user_created_at",
+                        "uk_user_reports_submission");
+        assertThat(columnNumericPrecision("user_reports", "price_diff_rate")).isEqualTo(14);
+        assertThat(columnNames("store_favorites"))
+                .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
+        assertThat(constraintNames("store_favorites"))
+                .contains("uk_store_favorites_user_store", "fk_store_favorites_user", "fk_store_favorites_store");
     }
 
     @Test
-    void 기존_V1부터_V8까지의_이력에서_V9와_V10이_추가된다() throws SQLException {
+    void 기존_V1부터_V8까지의_이력에서_V9부터_V14가_추가된다() throws SQLException {
         flyway().clean();
         flyway("8").migrate();
 
@@ -62,7 +105,8 @@ class FlywayMigrationIntegrationTest {
 
         flyway().migrate();
 
-        assertThat(migrationVersions()).containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -72,6 +116,104 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRows("batch_item_errors")).isZero();
         assertThat(countRows("news_articles")).isZero();
         assertThat(countRows("item_favorites")).isZero();
+        assertThat(countRows("stores")).isZero();
+        assertThat(countRows("user_reports")).isZero();
+        assertThat(countRows("store_favorites")).isZero();
+        assertThat(countRowsWhere("category_code IS NULL")).isZero();
+    }
+
+    @Test
+    void 기존_V11_이력에_V12부터_V14_migration을_추가한다() throws SQLException {
+        flyway().clean();
+        flyway("11").migrate();
+
+        assertThat(columnNames("items")).doesNotContain("category_code");
+
+        flyway().migrate();
+
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+        assertCategoryMapping();
+        assertThat(countRows("stores")).isZero();
+        assertThat(countRows("user_reports")).isZero();
+        assertThat(countRows("store_favorites")).isZero();
+    }
+
+    @Test
+    void 기존_V13_이력에_V14_store_favorites를_추가한다() throws SQLException {
+        flyway().clean();
+        flyway("13").migrate();
+
+        assertThat(columnNames("store_favorites")).isEmpty();
+
+        flyway().migrate();
+
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+        assertThat(columnNames("store_favorites"))
+                .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
+        assertThat(constraintNames("store_favorites"))
+                .contains("uk_store_favorites_user_store", "fk_store_favorites_user", "fk_store_favorites_store");
+    }
+
+    @Test
+    void 기존_V14_제보_이력을_보존하면서_V15_지역과_제보_유형을_추가한다() throws SQLException {
+        flyway().clean();
+        flyway("14").migrate();
+        executeUpdate("""
+                INSERT INTO users (provider, provider_subject, name, role)
+                VALUES ('KAKAO', 'migration-user', 'migration user', 'USER')
+                """);
+        executeUpdate("""
+                INSERT INTO stores (kakao_place_id, place_name, address_name)
+                VALUES ('migration-store', 'migration store', 'migration address')
+                """);
+        executeUpdate("""
+                INSERT INTO user_reports (store_id, item_id, user_id, price, unit, amount, report_date)
+                SELECT s.store_id, 1, u.id, 1000, 'kg', 1, CURRENT_DATE
+                  FROM stores s
+                  JOIN users u ON u.provider_subject = 'migration-user'
+                 WHERE s.kakao_place_id = 'migration-store'
+                """);
+
+        flyway().migrate();
+
+        assertThat(migrationVersions()).containsExactly(
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+        assertThat(columnNullable("user_reports", "store_id")).isTrue();
+        assertThat(columnNullable("user_reports", "user_id")).isTrue();
+        assertThat(columnNullable("user_reports", "region_id")).isTrue();
+        assertThat(columnNullable("user_reports", "report_type")).isTrue();
+        assertThat(reportRegionAndType()).containsExactly(null, null);
+
+        executeUpdate("DELETE FROM users WHERE provider_subject = 'migration-user'");
+        assertThat(countRows("user_reports")).isEqualTo(1);
+        assertThat(reportUserId()).isNull();
+    }
+
+    @Test
+    void nickname은_null을_여러_개_허용하고_중복을_거부한다() throws SQLException {
+        flyway().clean();
+        flyway().migrate();
+
+        executeUpdate("""
+                INSERT INTO users (provider, provider_subject, email, name, role, nickname)
+                VALUES ('KAKAO', 'nickname-1', NULL, '사용자 1', 'USER', '같은이름')
+                """);
+        executeUpdate("""
+                INSERT INTO users (provider, provider_subject, email, name, role, nickname)
+                VALUES ('KAKAO', 'nickname-2', NULL, '사용자 2', 'USER', NULL)
+                """);
+        executeUpdate("""
+                INSERT INTO users (provider, provider_subject, email, name, role, nickname)
+                VALUES ('KAKAO', 'nickname-3', NULL, '사용자 3', 'USER', NULL)
+                """);
+
+        assertThatThrownBy(() -> executeUpdate("""
+                INSERT INTO users (provider, provider_subject, email, name, role, nickname)
+                VALUES ('KAKAO', 'nickname-4', NULL, '사용자 4', 'USER', '같은이름')
+                """))
+                .isInstanceOf(SQLException.class);
     }
 
     @Test
@@ -161,10 +303,135 @@ class FlywayMigrationIntegrationTest {
         }
     }
 
+    private int countRowsWhere(final String predicate) throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(
+                        "SELECT COUNT(*) FROM items WHERE " + predicate)) {
+            resultSet.next();
+            return resultSet.getInt(1);
+        }
+    }
+
+    private void assertCategoryMapping() throws SQLException {
+        assertThat(categoryCodes()).containsExactly(
+                "ROOT_VEGETABLES",
+                "SEASONINGS",
+                "SEASONINGS",
+                "ROOT_VEGETABLES",
+                "ROOT_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "LEAFY_GREENS",
+                "ROOT_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "FRUITING_VEGETABLES",
+                "SEASONINGS",
+                "SEASONINGS",
+                "PEPPERS",
+                "PEPPERS",
+                "PEPPERS",
+                "PEPPERS",
+                "MUSHROOMS",
+                "MUSHROOMS",
+                "MUSHROOMS",
+                "SEASONINGS",
+                "SEASONINGS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "SEASONINGS",
+                "SEASONINGS",
+                "ROOT_VEGETABLES",
+                "SEASONINGS",
+                "SEASONINGS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "FRUITING_VEGETABLES",
+                "FRUITS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "FRUITS",
+                "FRUITS",
+                "FRUITS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS",
+                "LEAFY_GREENS");
+    }
+
+    private List<String> categoryCodes() throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(
+                        "SELECT category_code FROM items ORDER BY item_id")) {
+            final ArrayList<String> categories = new ArrayList<>();
+            while (resultSet.next()) {
+                categories.add(resultSet.getString("category_code"));
+            }
+            return categories;
+        }
+    }
+
     private int executeUpdate(final String sql) throws SQLException {
         try (Connection connection = connection();
                 Statement statement = connection.createStatement()) {
             return statement.executeUpdate(sql);
+        }
+    }
+
+    private boolean columnNullable(final String tableName, final String columnName) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT is_nullable FROM information_schema.columns "
+                                + "WHERE table_schema = 'public' AND table_name = ? AND column_name = ?")) {
+            statement.setString(1, tableName);
+            statement.setString(2, columnName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return "YES".equals(resultSet.getString("is_nullable"));
+            }
+        }
+    }
+
+    private int columnNumericPrecision(final String tableName, final String columnName) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT numeric_precision FROM information_schema.columns "
+                                + "WHERE table_schema = 'public' AND table_name = ? AND column_name = ?")) {
+            statement.setString(1, tableName);
+            statement.setString(2, columnName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getInt(1);
+            }
+        }
+    }
+
+    private List<String> reportRegionAndType() throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(
+                        "SELECT region_id, report_type FROM user_reports ORDER BY report_id")) {
+            final ArrayList<String> values = new ArrayList<>();
+            while (resultSet.next()) {
+                values.add(resultSet.getString("region_id"));
+                values.add(resultSet.getString("report_type"));
+            }
+            return values;
+        }
+    }
+
+    private Long reportUserId() throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(
+                        "SELECT user_id FROM user_reports ORDER BY report_id LIMIT 1")) {
+            resultSet.next();
+            return (Long) resultSet.getObject(1);
         }
     }
 
@@ -206,6 +473,21 @@ class FlywayMigrationIntegrationTest {
                     constraints.add(resultSet.getString("constraint_name"));
                 }
                 return constraints;
+            }
+        }
+    }
+
+    private List<String> indexNames(final String tableName) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = ?")) {
+            statement.setString(1, tableName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                final ArrayList<String> indexes = new ArrayList<>();
+                while (resultSet.next()) {
+                    indexes.add(resultSet.getString("indexname"));
+                }
+                return indexes;
             }
         }
     }

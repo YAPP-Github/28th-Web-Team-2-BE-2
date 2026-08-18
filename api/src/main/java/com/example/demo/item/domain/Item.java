@@ -1,7 +1,9 @@
 package com.example.demo.item.domain;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,16 +34,24 @@ public class Item {
     @Column(name = "item_image_url", length = 255)
     private String imageUrl;
 
-    public Item(final String name, final String defaultUnit) {
-        this(name, defaultUnit, null);
-    }
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category_code", nullable = false, length = 32)
+    private ItemCategory category;
 
-    public Item(final String name, final String defaultUnit, final String imageUrl) {
+    public Item(
+            final String name,
+            final String defaultUnit,
+            final String imageUrl,
+            final ItemCategory category) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("item name must not be blank");
+        }
+        if (category == null) {
+            throw new IllegalArgumentException("item category must not be null");
         }
         this.name = name;
         this.defaultUnit = defaultUnit;
         this.imageUrl = imageUrl;
+        this.category = category;
     }
 }

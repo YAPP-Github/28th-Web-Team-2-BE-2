@@ -3,6 +3,7 @@ package com.example.demo.item.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.demo.item.domain.Item;
+import com.example.demo.item.domain.ItemCategory;
 import com.example.demo.item.domain.OnlineChannel;
 import com.example.demo.item.domain.OnlinePrice;
 import com.example.demo.item.infrastructure.ItemJpaRepository;
@@ -41,7 +42,8 @@ class ReplaceOnlinePriceUseCaseIntegrationTest {
         onlinePriceJpaRepository.deleteAll();
         onlineChannelJpaRepository.deleteAll();
         itemJpaRepository.deleteAll();
-        itemId = itemJpaRepository.save(new Item("감자", "1kg")).id();
+        itemId = itemJpaRepository.save(
+                new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES)).id();
         channelId = onlineChannelJpaRepository.save(new OnlineChannel("컬리")).id();
     }
 

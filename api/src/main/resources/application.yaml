@@ -52,13 +52,15 @@ jwt:
   refresh-secret: ${JWT_REFRESH_SECRET}
   access-token-expiration: 30m
   refresh-token-expiration: 14d
+  test-token-endpoint:
+    enabled: ${JWT_TEST_TOKEN_ENDPOINT_ENABLED:false}
   refresh-cookie:
     secure: ${JWT_REFRESH_COOKIE_SECURE:true}
 
 kakao:
   map:
     url: ${KAKAO_MAP_URL:https://dapi.kakao.com}
-    rest-api-key: ${KAKAO_REST_API_KEY}
+    rest-api-key: ${KAKAO_MAP_API_KEY}
   oauth:
     client-id: ${KAKAO_CLIENT_ID:}
     client-secret: ${KAKAO_CLIENT_SECRET:}

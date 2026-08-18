@@ -1,6 +1,6 @@
 package com.example.demo.common.exception;
 
-import com.example.demo.common.presentation.ApiV1Response;
+import com.example.demo.common.presentation.ApiResponse;
 import feign.FeignException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -20,7 +20,7 @@ public class GlobalExceptionHandler {
             final HttpServletRequest request) {
         if (isV1Request(request)) {
             return ResponseEntity.status(exception.httpStatus())
-                    .body(new ApiV1Response<>(
+                    .body(new ApiResponse<>(
                             exception.errorType().name(),
                             exception.errorMessage(),
                             null));
@@ -29,13 +29,23 @@ public class GlobalExceptionHandler {
                 .body(new ApiErrorResponse(exception.errorType().name(), exception.errorMessage()));
     }
 
+    @ExceptionHandler(AuthenticationRequiredException.class)
+    public ResponseEntity<?> handleAuthenticationRequired(final HttpServletRequest request) {
+        return handleApiException(
+                new ApiException(
+                        ErrorType.UNAUTHORIZED.description(),
+                        ErrorType.UNAUTHORIZED,
+                        HttpStatus.UNAUTHORIZED),
+                request);
+    }
+
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<?> handleFeignException(
             final FeignException exception,
             final HttpServletRequest request) {
         if (isV1Request(request)) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                    .body(new ApiV1Response<>(
+                    .body(new ApiResponse<>(
                             ErrorType.EXTERNAL_API_ERROR.name(),
                             ErrorType.EXTERNAL_API_ERROR.description(),
                             null));
@@ -64,7 +74,7 @@ public class GlobalExceptionHandler {
             final HttpServletRequest request) {
         if (isV1Request(request)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiV1Response<>(
+                    .body(new ApiResponse<>(
                             ErrorType.INVALID_PARAMETER_ERROR.name(),
                             ErrorType.INVALID_PARAMETER_ERROR.description(),
                             null));

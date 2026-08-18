@@ -41,7 +41,7 @@ class KakaoResponseDecoderTest {
     @Test
     void 장소_검색_응답을_결과로_변환한다() throws Exception {
         final var result = decode(
-                "{\"meta\":{\"total_count\":1},\"documents\":[{"
+                "{\"meta\":{\"total_count\":1,\"pageable_count\":1,\"is_end\":true},\"documents\":[{"
                         + "\"id\":\"123\",\"place_name\":\"강남마트\","
                         + "\"x\":\"127.0276\",\"y\":\"37.4979\","
                         + "\"address_name\":\"서울 강남구 삼성동 123\","
@@ -54,6 +54,8 @@ class KakaoResponseDecoderTest {
                 KakaoCategorySearchResult.class);
 
         assertThat(result.totalCount()).isEqualTo(1);
+        assertThat(result.pageableCount()).isEqualTo(1);
+        assertThat(result.end()).isTrue();
         assertThat(result.places()).singleElement().satisfies(place -> {
             assertThat(place.placeName()).isEqualTo("강남마트");
             assertThat(place.latitude()).isEqualByComparingTo("37.4979");
@@ -105,6 +107,15 @@ class KakaoResponseDecoderTest {
     void 객체가_아닌_장소_document를_거부한다() {
         assertThatThrownBy(() -> decode(
                         "{\"meta\":{\"total_count\":1},\"documents\":[null]}",
+                        KakaoCategorySearchResult.class))
+                .isInstanceOfSatisfying(ApiException.class, this::assertExternalApiException);
+    }
+
+    @Test
+    void 장소_검색의_pageable_count가_공식_상한을_초과하면_거부한다() {
+        assertThatThrownBy(() -> decode(
+                        "{\"meta\":{\"total_count\":46,\"pageable_count\":46,\"is_end\":true},"
+                                + "\"documents\":[]}",
                         KakaoCategorySearchResult.class))
                 .isInstanceOfSatisfying(ApiException.class, this::assertExternalApiException);
     }

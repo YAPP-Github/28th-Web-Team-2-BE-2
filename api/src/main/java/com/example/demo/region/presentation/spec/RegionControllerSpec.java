@@ -18,12 +18,22 @@ public interface RegionControllerSpec {
 
     @Operation(summary = "좌표에 해당하는 법정동을 조회한다")
     @ApiResponses({
-        @ApiResponse(
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "200",
                 description = "법정동 조회 성공",
                 content = @Content(array = @ArraySchema(schema = @Schema(implementation = NearbyRegionResponse.class)))),
-        @ApiResponse(responseCode = "400", description = "좌표가 올바르지 않다")
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "400", description = "좌표가 올바르지 않다")
     })
     ResponseEntity<List<NearbyRegionResponse>> getNearbyRegions(
             @ParameterObject NearbyRegionRequest request);
+    ResponseEntity<List<NearbyRegionResponse>> getNearbyRegions(NearbyRegionRequest request);
+
+    @Operation(summary = "동 이름으로 법정동을 검색한다")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "법정동 검색 성공"),
+        @ApiResponse(responseCode = "400", description = "검색어가 올바르지 않다"),
+        @ApiResponse(responseCode = "502", description = "외부 지역 provider 호출에 실패했다")
+    })
+    ResponseEntity<RegionSearchResponse> searchRegions(RegionSearchRequest request);
 }

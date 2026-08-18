@@ -25,7 +25,8 @@ public interface ItemControllerSpec {
                         @Content(
                                 mediaType = "application/json",
                                 schema = @Schema(implementation = ItemPageResponse.class))),
-        @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다")
+        @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다"),
+        @ApiResponse(responseCode = "401", description = "찜한 품목만 조회하려면 로그인이 필요하다")
     })
     ResponseEntity<ItemPageResponse> getItems(
             @ParameterObject ItemQueryRequest request,

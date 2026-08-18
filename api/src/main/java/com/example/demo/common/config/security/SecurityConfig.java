@@ -9,6 +9,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -33,6 +34,7 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(
             final HttpSecurity http, final JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -49,8 +51,10 @@ public class SecurityConfig {
                                 "/api/v1/items",
                                 "/api/v1/news",
                                 "/api/v1/regions/nearby",
+                                "/api/v1/regions/search",
                                 "/api/v1/stores/nearby",
                                 "/api/auth/test/kakao/redirect",
+                                "/api/auth/test/token",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**")
@@ -63,6 +67,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/items/*/favorite")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/items/*/favorite")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/items/*/reports")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout")
                         .authenticated()

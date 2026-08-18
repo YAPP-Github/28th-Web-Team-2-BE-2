@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.Objects;
 
 public record NearbyStoreRequest(
         @NotNull
@@ -20,21 +21,19 @@ public record NearbyStoreRequest(
         @Schema(description = "지도 중심 경도", example = "127.0632")
         BigDecimal longitude,
         @Min(0)
-        @Max(20000)
+        @Max(5000)
         @Schema(description = "검색 반경(미터)", example = "2000", defaultValue = "2000")
-        Integer radius) {
+        Integer radius,
+        @Schema(description = "단골 가게만 조회할지 여부", defaultValue = "false")
+        Boolean onlyLiked,
+        @Schema(description = "가게명 검색어", example = "장보고 마트")
+        String keyword) {
 
     private static final int DEFAULT_RADIUS = 2000;
 
     public NearbyStoreRequest {
-        radius = defaultRadius(radius);
+        radius = radius == null ? DEFAULT_RADIUS : radius;
+        onlyLiked = onlyLiked != null && onlyLiked;
+        keyword = Objects.requireNonNullElse(keyword, "").strip();
     }
-
-    private static int defaultRadius(final Integer radius) {
-        if (radius == null) {
-            return DEFAULT_RADIUS;
-        }
-        return radius;
-    }
-
 }
