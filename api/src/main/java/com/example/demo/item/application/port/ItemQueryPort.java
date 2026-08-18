@@ -8,7 +8,7 @@ import org.springframework.data.domain.Page;
 
 public interface ItemQueryPort {
 
-    Page<Item> findAll(ItemQuery query);
+    Page<Item> findAll(ItemQuery query, Long userId);
 
     Set<Long> findFavoriteItemIds(Long userId, List<Long> itemIds);
 }

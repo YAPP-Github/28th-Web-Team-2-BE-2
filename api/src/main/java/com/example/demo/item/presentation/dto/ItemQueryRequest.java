@@ -18,7 +18,8 @@ public record ItemQueryRequest(
                         description = "정렬 방식",
                         defaultValue = "NAME_ASC")
                 ItemSort sort,
-        @Schema(description = "품목명 검색어", example = "감자") String keyword) {
+        @Schema(description = "품목명 검색어", example = "감자") String keyword,
+        @Schema(description = "찜한 품목만 조회", defaultValue = "false") Boolean favoriteOnly) {
 
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 10;
@@ -28,6 +29,7 @@ public record ItemQueryRequest(
         size = defaultValue(size, DEFAULT_SIZE);
         sort = defaultSort(sort);
         keyword = normalizeKeyword(keyword);
+        favoriteOnly = favoriteOnly != null && favoriteOnly;
     }
 
     public ItemQueryRequest(
@@ -35,7 +37,16 @@ public record ItemQueryRequest(
             final Integer page,
             final Integer size,
             final ItemSort sort) {
-        this(regionId, page, size, sort, null);
+        this(regionId, page, size, sort, null, false);
+    }
+
+    public ItemQueryRequest(
+            final String regionId,
+            final Integer page,
+            final Integer size,
+            final ItemSort sort,
+            final String keyword) {
+        this(regionId, page, size, sort, keyword, false);
     }
 
     public ItemQueryRequest(final String regionId, final Integer page, final Integer size) {
