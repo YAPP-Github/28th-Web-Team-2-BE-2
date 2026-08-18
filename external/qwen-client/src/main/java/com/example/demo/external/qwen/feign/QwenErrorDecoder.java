@@ -1,6 +1,5 @@
 package com.example.demo.external.qwen.feign;
 
-import feign.Request;
 import feign.Response;
 import feign.RetryableException;
 import feign.codec.ErrorDecoder;
@@ -44,16 +43,9 @@ public final class QwenErrorDecoder implements ErrorDecoder {
         return new RetryableException(
                 response.status(),
                 decoded.getMessage(),
-                requestMethod(response),
+                response.request().httpMethod(),
                 decoded,
                 (Long) null,
                 response.request());
-    }
-
-    private Request.HttpMethod requestMethod(final Response response) {
-        if (response.request() == null) {
-            return Request.HttpMethod.POST;
-        }
-        return response.request().httpMethod();
     }
 }

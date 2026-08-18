@@ -16,12 +16,17 @@ public record QwenChatRequest(
         String model,
         List<QwenMessage> messages,
         Double temperature,
-        QwenResponseFormat responseFormat) {
+        ResponseFormat responseFormat) {
 
     /** 추출 작업이라 표본 다양성이 필요 없다. 같은 사진에 같은 답이 나오는 편이 낫다. */
     private static final Double DETERMINISTIC = 0.0d;
 
+    private static final ResponseFormat JSON_OBJECT = new ResponseFormat("json_object");
+
     public static QwenChatRequest jsonOnly(final String model, final List<QwenMessage> messages) {
-        return new QwenChatRequest(model, messages, DETERMINISTIC, QwenResponseFormat.jsonObject());
+        return new QwenChatRequest(model, messages, DETERMINISTIC, JSON_OBJECT);
     }
+
+    /** {@code response_format}. JSON 객체만 받겠다는 선언이다. */
+    public record ResponseFormat(String type) {}
 }
