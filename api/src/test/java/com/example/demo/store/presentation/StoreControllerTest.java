@@ -15,13 +15,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.demo.common.exception.GlobalExceptionHandler;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.application.port.NearbyStoreSearchPort;
+import com.example.demo.store.application.port.RecommendedStoreQueryPort;
 import com.example.demo.store.application.port.StorePersistencePort;
 import com.example.demo.store.application.query.NearbyStoreQuery;
 import com.example.demo.store.application.result.NearbyStoreCandidate;
 import com.example.demo.store.application.result.NearbyStoreResult;
 import com.example.demo.store.application.result.NearbyStoreSearchResult;
 import com.example.demo.store.application.result.NearbyStoresResult;
+import com.example.demo.store.application.result.RecommendedStoreResult;
+import com.example.demo.store.application.result.RecommendedStoresResult;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
+import com.example.demo.store.application.usecase.GetRecommendedStoresUseCase;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
 import com.example.demo.store.presentation.converter.StoreResultConverter;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
@@ -59,6 +63,9 @@ class StoreControllerTest {
 
     @Autowired
     private StorePersistencePort storePersistencePort;
+
+    @Autowired
+    private RecommendedStoreQueryPort recommendedStoreQueryPort;
 
     @BeforeEach
     void setUp() {
@@ -101,6 +108,33 @@ class StoreControllerTest {
                 .andExpect(jsonPath("$.data.totalCount").value(1))
                 .andExpect(jsonPath("$.data.stores[0].storeId").value(1))
                 .andExpect(jsonPath("$.data.stores[0].isLiked").value(false));
+    }
+
+    @Test
+    void 추천_조회는_저렴한_제보_근거를_반환한다() throws Exception {
+        when(recommendedStoreQueryPort.findLatestCheapReports(11L)).thenReturn(List.of(
+                new com.example.demo.store.application.result.RecommendedStoreSource(
+                        1L,
+                        "장보고 마트",
+                        new BigDecimal("37.5088"),
+                        new BigDecimal("127.0632"),
+                        "서울 강남구 삼성동 123",
+                        "서울 강남구 테헤란로 123",
+                        "02-1234-5678",
+                        "http://place.map.kakao.com/1",
+                        3000,
+                        java.time.LocalDate.of(2026, 8, 1),
+                        new BigDecimal("-10.00"))));
+
+        mockMvc.perform(get("/api/v1/stores/recommended")
+                        .queryParam("latitude", "37.5088")
+                        .queryParam("longitude", "127.0632")
+                        .queryParam("itemId", "11"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalCount").value(1))
+                .andExpect(jsonPath("$.data.stores[0].storeId").value(1))
+                .andExpect(jsonPath("$.data.stores[0].reportedPrice").value(3000))
+                .andExpect(jsonPath("$.data.stores[0].priceDiffRate").value(-10.00));
     }
 
     @Test
@@ -206,10 +240,21 @@ class StoreControllerTest {
         }
 
         @Bean
+        RecommendedStoreQueryPort recommendedStoreQueryPort() {
+            return mock(RecommendedStoreQueryPort.class);
+        }
+
+        @Bean
         GetNearbyStoresUseCase getNearbyStoresUseCase(
                 final NearbyStoreSearchPort searchPort,
                 final StorePersistencePort persistencePort) {
             return new GetNearbyStoresUseCase(searchPort, persistencePort);
+        }
+
+        @Bean
+        GetRecommendedStoresUseCase getRecommendedStoresUseCase(
+                final RecommendedStoreQueryPort queryPort) {
+            return new GetRecommendedStoresUseCase(queryPort);
         }
     }
 }

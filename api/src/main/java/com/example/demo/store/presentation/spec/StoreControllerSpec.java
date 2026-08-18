@@ -3,6 +3,8 @@ package com.example.demo.store.presentation.spec;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
 import com.example.demo.store.presentation.dto.NearbyStoresResponse;
+import com.example.demo.store.presentation.dto.RecommendedStoreRequest;
+import com.example.demo.store.presentation.dto.RecommendedStoresResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -27,4 +29,12 @@ public interface StoreControllerSpec {
             @Parameter(hidden = true) AuthPrincipal principal,
             @Parameter(hidden = true) Authentication authentication,
             @Parameter(hidden = true) HttpServletRequest servletRequest);
+
+    @Operation(summary = "제보 가격이 저렴한 주변 가게를 조회한다")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "추천 가게 조회 성공"),
+        @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다")
+    })
+    ResponseEntity<RecommendedStoresResponse> getRecommendedStores(
+            @ParameterObject RecommendedStoreRequest request);
 }
