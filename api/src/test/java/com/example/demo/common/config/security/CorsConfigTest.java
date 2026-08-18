@@ -25,13 +25,15 @@ class CorsConfigTest {
                         "http://192.168.0.100:3000",
                         "http://192.168.0.100:[*]",
                         "https://marketgo.kro.kr",
-                        "https://marketgo.kro.kr:[*]",
-                        "http://180.233.242.210",
-                        "http://180.233.242.210:[*]");
+                        "https://marketgo.kro.kr:443");
         assertThat(configuration.checkOrigin("http://localhost:5173")).isEqualTo("http://localhost:5173");
         assertThat(configuration.checkOrigin("http://192.168.0.100:8080")).isEqualTo("http://192.168.0.100:8080");
-        assertThat(configuration.checkOrigin("https://marketgo.kro.kr:8443")).isEqualTo("https://marketgo.kro.kr:8443");
-        assertThat(configuration.checkOrigin("http://180.233.242.210:4200")).isEqualTo("http://180.233.242.210:4200");
+        assertThat(configuration.checkOrigin("https://marketgo.kro.kr")).isEqualTo("https://marketgo.kro.kr");
+        assertThat(configuration.checkOrigin("https://marketgo.kro.kr:443"))
+                .isEqualTo("https://marketgo.kro.kr:443");
+        assertThat(configuration.checkOrigin("https://marketgo.kro.kr:8443")).isNull();
+        assertThat(configuration.checkOrigin("http://marketgo.kro.kr")).isNull();
+        assertThat(configuration.checkOrigin("http://180.233.242.210:4200")).isNull();
         assertThat(configuration.getAllowedMethods()).containsExactlyInAnyOrder("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS");
         assertThat(configuration.getAllowedHeaders()).containsExactly("*");
         assertThat(configuration.getAllowCredentials()).isTrue();
