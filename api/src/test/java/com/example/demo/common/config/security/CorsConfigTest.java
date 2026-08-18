@@ -20,7 +20,10 @@ class CorsConfigTest {
         assertThat(configuration).isNotNull();
         assertThat(configuration.getAllowedOrigins())
                 .containsExactlyInAnyOrder(
-                        "http://localhost:3000", "http://192.168.0.100:3000", "https://marketgo.kro.kr");
+                        "http://localhost:3000",
+                        "http://192.168.0.100:3000",
+                        "https://marketgo.kro.kr",
+                        "http://180.233.242.210");
         assertThat(configuration.getAllowedMethods()).containsExactlyInAnyOrder("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS");
         assertThat(configuration.getAllowedHeaders()).containsExactly("*");
         assertThat(configuration.getAllowCredentials()).isTrue();
