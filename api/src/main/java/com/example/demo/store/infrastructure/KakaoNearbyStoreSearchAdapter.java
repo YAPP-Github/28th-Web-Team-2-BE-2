@@ -54,7 +54,10 @@ public class KakaoNearbyStoreSearchAdapter implements NearbyStoreSearchPort {
             }
             fetchedCount += result.places().size();
             for (final KakaoPlace place : result.places()) {
-                candidates.putIfAbsent(place.id(), toCandidate(place));
+                if (candidates.containsKey(place.id())) {
+                    throw externalApiException();
+                }
+                candidates.put(place.id(), toCandidate(place));
             }
             if (result.end()) {
                 if (fetchedCount != providerPageableCount) {

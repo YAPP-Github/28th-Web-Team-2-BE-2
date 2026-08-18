@@ -3,7 +3,6 @@ package com.example.demo.store.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
@@ -22,7 +21,7 @@ class KakaoNearbyStoreSearchAdapterTest {
     private final KakaoNearbyStoreSearchAdapter adapter = new KakaoNearbyStoreSearchAdapter(kakaoMapClient);
 
     @Test
-    void 모든_Kakao_페이지를_모아_중복_place를_제거한다() {
+    void provider_페이지의_중복_place는_502로_실패한다() {
         final NearbyStoreQuery query = query();
         when(kakaoMapClient.searchCategory("MT1", query.longitude(), query.latitude(), 1500,
                 "distance", 1, 15))
@@ -32,11 +31,13 @@ class KakaoNearbyStoreSearchAdapterTest {
                 .thenReturn(new KakaoCategorySearchResult(
                         3, 3, true, List.of(place("1", 100), place("2", 200))));
 
-        final var result = adapter.search(query);
-
-        assertThat(result.stores()).extracting("kakaoPlaceId").containsExactly("1", "2");
-        verify(kakaoMapClient).searchCategory("MT1", query.longitude(), query.latitude(), 1500,
-                "distance", 2, 15);
+        assertThatThrownBy(() -> adapter.search(query))
+                .isInstanceOf(ApiException.class)
+                .satisfies(exception -> {
+                    final ApiException apiException = (ApiException) exception;
+                    assertThat(apiException.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(apiException.httpStatus().value()).isEqualTo(502);
+                });
     }
 
     @Test
