@@ -1,7 +1,7 @@
 package com.example.demo.store.application.result;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.util.List;
 
 public record RecommendedStoreResult(
         Long storeId,
@@ -13,6 +13,6 @@ public record RecommendedStoreResult(
         String phone,
         String placeUrl,
         Integer distanceMeters,
-        Integer price,
-        LocalDate reportedDate,
-        BigDecimal priceDiffRate) {}
+        int cheapItemCount,
+        List<String> itemNames,
+        int remainingItemCount) {}

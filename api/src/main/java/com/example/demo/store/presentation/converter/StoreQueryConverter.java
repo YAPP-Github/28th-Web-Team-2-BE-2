@@ -33,6 +33,6 @@ public class StoreQueryConverter {
     public RecommendedStoreQuery toRecommendedStoreQuery(
             final RecommendedStoreRequest request) {
         return new RecommendedStoreQuery(
-                request.latitude(), request.longitude(), request.itemId(), request.radius());
+                request.latitude(), request.longitude(), request.radius());
     }
 }

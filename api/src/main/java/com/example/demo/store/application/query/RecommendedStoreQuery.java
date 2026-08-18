@@ -5,5 +5,4 @@ import java.math.BigDecimal;
 public record RecommendedStoreQuery(
         BigDecimal latitude,
         BigDecimal longitude,
-        Long itemId,
         Integer radius) {}

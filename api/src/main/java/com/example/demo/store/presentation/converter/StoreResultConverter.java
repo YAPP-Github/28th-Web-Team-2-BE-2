@@ -50,8 +50,8 @@ public class StoreResultConverter {
                 result.phone(),
                 result.placeUrl(),
                 result.distanceMeters(),
-                result.price(),
-                result.reportedDate(),
-                result.priceDiffRate());
+                result.cheapItemCount(),
+                result.itemNames(),
+                result.remainingItemCount());
     }
 }

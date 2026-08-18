@@ -15,8 +15,7 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
     @Query("""
             SELECT report
             FROM UserReport report
-            WHERE report.itemId = :itemId
-              AND report.storeId IS NOT NULL
+            WHERE report.storeId IS NOT NULL
               AND NOT EXISTS (
                   SELECT newer.id
                   FROM UserReport newer
@@ -29,5 +28,5 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
               )
               AND report.priceDiffRate < 0
             """)
-    List<UserReport> findLatestCheapReportsByItemId(@Param("itemId") Long itemId);
+    List<UserReport> findLatestCheapReports();
 }

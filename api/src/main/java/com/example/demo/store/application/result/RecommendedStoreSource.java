@@ -12,6 +12,4 @@ public record RecommendedStoreSource(
         String roadAddressName,
         String phone,
         String placeUrl,
-        Integer price,
-        LocalDate reportedDate,
-        BigDecimal priceDiffRate) {}
+        String itemName) {}

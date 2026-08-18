@@ -7,7 +7,9 @@ import com.example.demo.store.application.result.RecommendedStoresResult;
 import com.example.demo.store.application.result.RecommendedStoreSource;
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,10 +23,15 @@ public class GetRecommendedStoresUseCase {
     private final RecommendedStoreQueryPort recommendedStoreQueryPort;
 
     public RecommendedStoresResult execute(final RecommendedStoreQuery query) {
-        final List<RecommendedStoreResult> stores = recommendedStoreQueryPort
-                .findLatestCheapReports(query.itemId()).stream()
-                .map(source -> toResult(source, query))
-                .filter(store -> store.distanceMeters() <= query.radius())
+        final Map<Long, List<RecommendedStoreSource>> sourcesByStore = recommendedStoreQueryPort
+                .findLatestCheapReports().stream()
+                .filter(source -> distanceMeters(query, source) <= query.radius())
+                .collect(java.util.stream.Collectors.groupingBy(
+                        RecommendedStoreSource::storeId,
+                        LinkedHashMap::new,
+                        java.util.stream.Collectors.toList()));
+        final List<RecommendedStoreResult> stores = sourcesByStore.values().stream()
+                .map(sources -> toResult(sources, query))
                 .sorted(Comparator.comparing(RecommendedStoreResult::distanceMeters)
                         .thenComparing(RecommendedStoreResult::storeId))
                 .toList();
@@ -33,8 +40,11 @@ public class GetRecommendedStoresUseCase {
     }
 
     private RecommendedStoreResult toResult(
-            final RecommendedStoreSource source,
+            final List<RecommendedStoreSource> sources,
             final RecommendedStoreQuery query) {
+        final RecommendedStoreSource source = sources.getFirst();
+        final int cheapItemCount = sources.size();
+        final int displayedItemCount = Math.min(5, cheapItemCount);
         return new RecommendedStoreResult(
                 source.storeId(),
                 source.storeName(),
@@ -44,10 +54,18 @@ public class GetRecommendedStoresUseCase {
                 source.roadAddressName(),
                 source.phone(),
                 source.placeUrl(),
-                distanceMeters(query.latitude(), query.longitude(), source.latitude(), source.longitude()),
-                source.price(),
-                source.reportedDate(),
-                source.priceDiffRate());
+                distanceMeters(query, source),
+                cheapItemCount,
+                sources.stream().limit(displayedItemCount)
+                        .map(RecommendedStoreSource::itemName)
+                        .toList(),
+                cheapItemCount - displayedItemCount);
+    }
+
+    private int distanceMeters(
+            final RecommendedStoreQuery query,
+            final RecommendedStoreSource source) {
+        return distanceMeters(query.latitude(), query.longitude(), source.latitude(), source.longitude());
     }
 
     private int distanceMeters(

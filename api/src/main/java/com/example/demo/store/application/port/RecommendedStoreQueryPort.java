@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface RecommendedStoreQueryPort {
 
-    List<RecommendedStoreSource> findLatestCheapReports(Long itemId);
+    List<RecommendedStoreSource> findLatestCheapReports();
 }
