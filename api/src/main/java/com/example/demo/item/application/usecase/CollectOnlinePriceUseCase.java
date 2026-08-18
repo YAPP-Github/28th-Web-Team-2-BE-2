@@ -5,9 +5,9 @@ import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.command.CrawlOnlinePriceCommand;
 import com.example.demo.item.application.contract.BatchItemFailure;
 import com.example.demo.item.application.contract.BatchJobCompletion;
+import com.example.demo.item.application.port.BatchExecutionOutcome;
 import com.example.demo.item.application.port.BatchJobPersistencePort;
 import com.example.demo.item.application.port.BatchMetricsPort;
-import com.example.demo.item.application.port.BatchMetricsPort.Outcome;
 import com.example.demo.item.application.port.BatchRetryDelayPort;
 import com.example.demo.item.application.port.OnlineChannelQueryPort;
 import com.example.demo.item.application.port.OnlineItemQueryPort;
@@ -90,7 +90,7 @@ public class CollectOnlinePriceUseCase {
             channels.stream()
                     .filter(channel -> !hasCrawler(channel))
                     .forEach(channel -> metricsPort.recordExecution(
-                            JOB_NAME, channel.name(), Outcome.SKIP));
+                            JOB_NAME, channel.name(), BatchExecutionOutcome.SKIP));
             final boolean hasSkippedChannel = runnableChannels.size() != channels.size();
             totalTaskCount = items.size() * runnableChannels.size();
             for (Item item : items) {
@@ -104,11 +104,13 @@ public class CollectOnlinePriceUseCase {
                                 item.id(), channel.id(), collectionDate, execution.prices());
                         savedPriceCount += execution.prices().size();
                         succeededTaskCount++;
-                        metricsPort.recordExecution(JOB_NAME, channel.name(), Outcome.SUCCESS);
+                        metricsPort.recordExecution(
+                                JOB_NAME, channel.name(), BatchExecutionOutcome.SUCCESS);
                     } catch (CrawlFailure exception) {
                         attemptCount = exception.attemptCount();
                         failedTaskCount++;
-                        metricsPort.recordExecution(JOB_NAME, channel.name(), Outcome.FAILURE);
+                        metricsPort.recordExecution(
+                                JOB_NAME, channel.name(), BatchExecutionOutcome.FAILURE);
                         log.error(
                                 "batch task failed job={} itemId={} channel={} attempt={} errorType={} durationMs={}",
                                 JOB_NAME,
@@ -127,7 +129,8 @@ public class CollectOnlinePriceUseCase {
                         continue;
                     } catch (RuntimeException exception) {
                         failedTaskCount++;
-                        metricsPort.recordExecution(JOB_NAME, channel.name(), Outcome.FAILURE);
+                        metricsPort.recordExecution(
+                                JOB_NAME, channel.name(), BatchExecutionOutcome.FAILURE);
                         log.error(
                                 "batch task failed job={} itemId={} channel={} attempt={} errorType={} durationMs={}",
                                 JOB_NAME,
@@ -223,14 +226,12 @@ public class CollectOnlinePriceUseCase {
     }
 
     private boolean isRetryable(final RuntimeException exception) {
-        if (hasNetworkCause(exception)) {
-            return true;
-        }
         if (exception instanceof ApiException apiException) {
             return apiException.httpStatus().value() == 429
-                    || apiException.httpStatus().is5xxServerError();
+                    || (apiException.errorType() == ErrorType.EXTERNAL_API_ERROR
+                    && apiException.httpStatus().is5xxServerError());
         }
-        return false;
+        return hasNetworkCause(exception);
     }
 
     private boolean hasNetworkCause(final Throwable throwable) {

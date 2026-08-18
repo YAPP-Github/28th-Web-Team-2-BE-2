@@ -1,5 +1,7 @@
 package com.example.demo.item.infrastructure.crawler.elevenst.parser;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.infrastructure.crawler.elevenst.ElevenStProduct;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,7 +19,6 @@ import org.springframework.stereotype.Component;
 public class ElevenStSearchPageParser {
 
     private static final String PRODUCT_URL = "https://www.11st.co.kr/products/";
-    private static final String PARSE_FAILURE_MESSAGE = "11번가 검색 응답을 해석할 수 없습니다.";
     private final ObjectMapper objectMapper;
 
     public List<ElevenStProduct> parse(final String json) {
@@ -25,8 +27,11 @@ public class ElevenStSearchPageParser {
         }
         try {
             return parseProducts(objectMapper.readTree(jsonContent(json)));
-        } catch (Exception exception) {
-            throw new IllegalStateException(PARSE_FAILURE_MESSAGE);
+        } catch (Exception ignored) {
+            throw new ApiException(
+                    ErrorType.UNKNOWN_ERROR.description(),
+                    ErrorType.UNKNOWN_ERROR,
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

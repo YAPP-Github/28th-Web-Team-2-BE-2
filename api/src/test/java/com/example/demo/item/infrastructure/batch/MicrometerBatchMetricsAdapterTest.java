@@ -2,7 +2,7 @@ package com.example.demo.item.infrastructure.batch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.example.demo.item.application.port.BatchMetricsPort.Outcome;
+import com.example.demo.item.application.port.BatchExecutionOutcome;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
@@ -15,7 +15,7 @@ class MicrometerBatchMetricsAdapterTest {
         final SimpleMeterRegistry registry = new SimpleMeterRegistry();
         final MicrometerBatchMetricsAdapter adapter = new MicrometerBatchMetricsAdapter(registry);
 
-        adapter.recordExecution("ONLINE_PRICE_COLLECTION", "OASIS", Outcome.SUCCESS);
+        adapter.recordExecution("ONLINE_PRICE_COLLECTION", "OASIS", BatchExecutionOutcome.SUCCESS);
         adapter.recordRetries("ONLINE_PRICE_COLLECTION", "OASIS", 4);
         adapter.recordDuration("ONLINE_PRICE_COLLECTION", "OASIS", Duration.ofSeconds(3));
 
@@ -37,9 +37,9 @@ class MicrometerBatchMetricsAdapterTest {
         final SimpleMeterRegistry registry = new SimpleMeterRegistry();
         final MicrometerBatchMetricsAdapter adapter = new MicrometerBatchMetricsAdapter(registry);
 
-        adapter.recordExecution("ONLINE_PRICE_COLLECTION", "OASIS", Outcome.SUCCESS);
-        adapter.recordExecution("ONLINE_PRICE_COLLECTION", "OASIS", Outcome.FAILURE);
-        adapter.recordExecution("ONLINE_PRICE_COLLECTION", "OASIS", Outcome.SKIP);
+        adapter.recordExecution("ONLINE_PRICE_COLLECTION", "OASIS", BatchExecutionOutcome.SUCCESS);
+        adapter.recordExecution("ONLINE_PRICE_COLLECTION", "OASIS", BatchExecutionOutcome.FAILURE);
+        adapter.recordExecution("ONLINE_PRICE_COLLECTION", "OASIS", BatchExecutionOutcome.SKIP);
 
         assertThat(registry.get("batch.job.executions")
                 .tag("job", "ONLINE_PRICE_COLLECTION")

@@ -1,5 +1,6 @@
 package com.example.demo.item.application.contract;
 
+import com.example.demo.common.exception.ApiException;
 import java.util.Objects;
 
 public record BatchItemFailure(
@@ -20,10 +21,10 @@ public record BatchItemFailure(
         Objects.requireNonNull(channelId, "channelId must not be null");
         Objects.requireNonNull(cause, "cause must not be null");
         if (itemId <= 0 || channelId <= 0) {
-            throw new IllegalArgumentException("batch item failure identifiers must be positive");
+            throw ApiException.invalidParameter();
         }
         if (attemptCount <= 0) {
-            throw new IllegalArgumentException("attemptCount must be positive");
+            throw ApiException.invalidParameter();
         }
     }
 }

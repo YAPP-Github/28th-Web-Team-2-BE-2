@@ -10,6 +10,7 @@ import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.command.CrawlOnlinePriceCommand;
 import com.example.demo.item.application.contract.BatchItemFailure;
 import com.example.demo.item.application.contract.BatchJobCompletion;
+import com.example.demo.item.application.port.BatchExecutionOutcome;
 import com.example.demo.item.application.port.BatchJobPersistencePort;
 import com.example.demo.item.application.port.BatchMetricsPort;
 import com.example.demo.item.application.port.BatchRetryDelayPort;
@@ -420,7 +421,7 @@ class CollectOnlinePriceUseCaseTest {
         assertThat(attempts).hasSize(1);
         assertThat(retryDelay.delays()).isEmpty();
         assertThat(metrics.executions()).containsExactly(
-                new ExecutionMetric("ONLINE_PRICE_COLLECTION", "오아시스", BatchMetricsPort.Outcome.SUCCESS));
+                new ExecutionMetric("ONLINE_PRICE_COLLECTION", "오아시스", BatchExecutionOutcome.SUCCESS));
         assertThat(metrics.retries()).containsExactly(new RetryMetric("ONLINE_PRICE_COLLECTION", "오아시스", 0));
         assertThat(metrics.durations()).hasSize(1);
         assertThat(metrics.durations().get(0).job()).isEqualTo("ONLINE_PRICE_COLLECTION");
@@ -438,7 +439,10 @@ class CollectOnlinePriceUseCaseTest {
                 new InMemoryOnlinePricePersistence(),
                 List.of(new StubCrawler("오아시스", name -> {
                     attempts.add(1);
-                    throw new IllegalStateException("parsing failed");
+                    throw new ApiException(
+                            ErrorType.UNKNOWN_ERROR.description(),
+                            ErrorType.UNKNOWN_ERROR,
+                            HttpStatus.INTERNAL_SERVER_ERROR);
                 })),
                 jobs,
                 retryDelay,
@@ -810,7 +814,10 @@ class CollectOnlinePriceUseCaseTest {
         private final List<DurationMetric> durations = new ArrayList<>();
 
         @Override
-        public void recordExecution(final String job, final String channel, final Outcome outcome) {
+        public void recordExecution(
+                final String job,
+                final String channel,
+                final BatchExecutionOutcome outcome) {
             executions.add(new ExecutionMetric(job, channel, outcome));
         }
 
@@ -837,7 +844,7 @@ class CollectOnlinePriceUseCaseTest {
         }
     }
 
-    private record ExecutionMetric(String job, String channel, BatchMetricsPort.Outcome outcome) {}
+    private record ExecutionMetric(String job, String channel, BatchExecutionOutcome outcome) {}
 
     private record RetryMetric(String job, String channel, int retryCount) {}
 

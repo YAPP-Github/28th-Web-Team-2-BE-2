@@ -1,5 +1,6 @@
 package com.example.demo.item.infrastructure.batch;
 
+import com.example.demo.item.application.port.BatchExecutionOutcome;
 import com.example.demo.item.application.port.BatchMetricsPort;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
@@ -20,7 +21,7 @@ public class MicrometerBatchMetricsAdapter implements BatchMetricsPort {
     public void recordExecution(
             final String job,
             final String channel,
-            final Outcome outcome) {
+            final BatchExecutionOutcome outcome) {
         meterRegistry.counter(
                         EXECUTION_METRIC,
                         "job", job,
