@@ -15,8 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class UpdateUserNicknameUseCase {
 
-    private static final String DUPLICATE_NICKNAME_MESSAGE = "이미 사용 중인 닉네임입니다.";
-
     private final UserRepository userRepository;
 
     @Transactional
@@ -48,15 +46,15 @@ public class UpdateUserNicknameUseCase {
 
     private ApiException duplicateNickname() {
         return new ApiException(
-                DUPLICATE_NICKNAME_MESSAGE,
-                ErrorType.INVALID_PARAMETER_ERROR,
+                ErrorType.DUPLICATE_NICKNAME_ERROR.description(),
+                ErrorType.DUPLICATE_NICKNAME_ERROR,
                 HttpStatus.CONFLICT);
     }
 
     private ApiException duplicateNickname(final DataIntegrityViolationException cause) {
         return new ApiException(
-                DUPLICATE_NICKNAME_MESSAGE,
-                ErrorType.INVALID_PARAMETER_ERROR,
+                ErrorType.DUPLICATE_NICKNAME_ERROR.description(),
+                ErrorType.DUPLICATE_NICKNAME_ERROR,
                 HttpStatus.CONFLICT,
                 cause);
     }

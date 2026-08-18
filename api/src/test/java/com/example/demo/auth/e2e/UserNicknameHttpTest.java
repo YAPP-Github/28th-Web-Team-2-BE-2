@@ -96,7 +96,7 @@ class UserNicknameHttpTest {
 
         updateNickname(accessToken(secondUser), "중복확인01")
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_ERROR"));
+                .andExpect(jsonPath("$.code").value("DUPLICATE_NICKNAME_ERROR"));
 
         assertThat(userJpaRepository.findById(secondUser.id()).orElseThrow().nickname())
                 .isEqualTo("기존닉네임");
