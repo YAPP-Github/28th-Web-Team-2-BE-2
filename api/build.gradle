@@ -20,6 +20,7 @@ dependencies {
     implementation project(':common')
     implementation project(':external:kamis-client')
     implementation project(':external:kakao-client')
+    implementation project(':external:qwen-client')
     implementation project(':external:selenium')
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'

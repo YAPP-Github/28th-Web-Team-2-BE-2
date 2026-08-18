@@ -13,7 +13,10 @@ public enum ErrorType {
     UNAUTHORIZED("로그인이 필요한 서비스입니다."),
     FORBIDDEN("해당 권한이 없습니다."),
     NEWS_UNAVAILABLE("뉴스를 조회할 수 없습니다."),
-    STORE_SYNC_ERROR("가게 정보를 동기화할 수 없습니다.");
+    STORE_SYNC_ERROR("가게 정보를 동기화할 수 없습니다."),
+    IMAGE_ANALYSIS_TIMEOUT("이미지 인식이 지연되고 있습니다. 잠시 후 다시 시도해 주세요."),
+    IMAGE_ANALYSIS_RATE_LIMITED("이미지 인식 요청이 많습니다. 잠시 후 다시 시도해 주세요."),
+    IMAGE_ANALYSIS_UNAVAILABLE("이미지를 인식할 수 없습니다.");
 
     private final String description;
 
