@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.demo.common.exception.GlobalExceptionHandler;
+import com.example.demo.common.presentation.ResponseWrapper;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.application.port.NearbyStoreSearchPort;
 import com.example.demo.store.application.port.StorePersistencePort;
@@ -43,7 +44,7 @@ class StoreControllerUserTest {
                         new StoreQueryConverter(),
                         new StoreResultConverter()))
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(), new ResponseWrapper())
                 .build();
 
         final NearbyStoreCandidate candidate = new NearbyStoreCandidate(
@@ -89,8 +90,8 @@ class StoreControllerUserTest {
                             .queryParam("latitude", "37.5")
                             .queryParam("longitude", "127.0"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.stores[0].storeId").value(1))
-                    .andExpect(jsonPath("$.stores[0].isLiked").value(true));
+                    .andExpect(jsonPath("$.data.stores[0].storeId").value(1))
+                    .andExpect(jsonPath("$.data.stores[0].isLiked").value(true));
         } finally {
             SecurityContextHolder.clearContext();
         }
@@ -114,9 +115,9 @@ class StoreControllerUserTest {
                             .queryParam("keyword", "장보고")
                             .queryParam("onlyLiked", "true"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalCount").value(1))
-                    .andExpect(jsonPath("$.stores[0].storeId").value(1))
-                    .andExpect(jsonPath("$.stores[0].isLiked").value(true));
+                    .andExpect(jsonPath("$.data.totalCount").value(1))
+                    .andExpect(jsonPath("$.data.stores[0].storeId").value(1))
+                    .andExpect(jsonPath("$.data.stores[0].isLiked").value(true));
         } finally {
             SecurityContextHolder.clearContext();
         }

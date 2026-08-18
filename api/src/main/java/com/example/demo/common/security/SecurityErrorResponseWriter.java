@@ -2,7 +2,7 @@ package com.example.demo.common.security;
 
 import com.example.demo.common.exception.ApiErrorResponse;
 import com.example.demo.common.exception.ErrorType;
-import com.example.demo.common.presentation.ApiV1Response;
+import com.example.demo.common.presentation.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,7 +29,7 @@ public class SecurityErrorResponseWriter {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         final Object body = request.getRequestURI().startsWith("/api/v1/")
-                ? new ApiV1Response<>(errorType.name(), errorType.description(), null)
+                ? new ApiResponse<>(errorType.name(), errorType.description(), null)
                 : new ApiErrorResponse(errorType.name(), errorType.description());
         objectMapper.writeValue(response.getWriter(), body);
     }

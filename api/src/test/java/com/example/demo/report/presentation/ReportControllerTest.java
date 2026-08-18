@@ -84,10 +84,12 @@ class ReportControllerTest {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.reportId").isNumber())
-                .andExpect(jsonPath("$.itemId").value(1))
-                .andExpect(jsonPath("$.storeId").value(2))
-                .andExpect(jsonPath("$.reportedAt").isNotEmpty());
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.data.reportId").isNumber())
+                .andExpect(jsonPath("$.data.itemId").value(1))
+                .andExpect(jsonPath("$.data.storeId").value(2))
+                .andExpect(jsonPath("$.data.reportedAt").isNotEmpty());
     }
 
     @Test
@@ -154,7 +156,9 @@ class ReportControllerTest {
                                  "unit":"1kg","amount":2}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.reportId").isNumber());
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.data.reportId").isNumber());
 
         final ArgumentCaptor<CreateUserReportCommand> captor = ArgumentCaptor.forClass(CreateUserReportCommand.class);
         verify(createUserReportUseCase).execute(captor.capture());
