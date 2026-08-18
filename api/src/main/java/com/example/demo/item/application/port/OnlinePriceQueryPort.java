@@ -8,4 +8,6 @@ public interface OnlinePriceQueryPort {
 
     Optional<OnlinePrice> findLowestPrice(
             Long itemId, Integer channelId, LocalDate collectionDate, Integer unit);
+
+    Optional<OnlinePrice> findLowestPriceAtLatestCollectionDate(Long itemId, Integer unit);
 }

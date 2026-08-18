@@ -36,4 +36,13 @@ public class OnlinePricePersistenceAdapter implements OnlinePricePersistencePort
                 .findFirstByItemIdAndChannelIdAndCreatedAtAndUnitOrderByPriceAscIdAsc(
                         itemId, channelId, collectionDate, unit);
     }
+
+    @Override
+    public Optional<OnlinePrice> findLowestPriceAtLatestCollectionDate(
+            final Long itemId, final Integer unit) {
+        return onlinePriceJpaRepository.findFirstByItemIdOrderByCreatedAtDescIdDesc(itemId)
+                .flatMap(price -> onlinePriceJpaRepository
+                        .findFirstByItemIdAndCreatedAtAndUnitOrderByPriceAscIdAsc(
+                                itemId, price.createdAt(), unit));
+    }
 }

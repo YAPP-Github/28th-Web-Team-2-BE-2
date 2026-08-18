@@ -2,15 +2,20 @@ package com.example.demo.item.presentation;
 
 import com.example.demo.auth.domain.UserRole;
 import com.example.demo.common.security.AuthPrincipal;
+import com.example.demo.item.application.result.ItemDetailResult;
 import com.example.demo.item.application.result.ItemQueryResult;
+import com.example.demo.item.application.usecase.GetItemDetailQueryUseCase;
 import com.example.demo.item.application.usecase.GetItemQueryUseCase;
 import com.example.demo.item.application.usecase.ItemFavoriteUseCase;
 import com.example.demo.item.presentation.converter.ItemQueryRequestConverter;
 import com.example.demo.item.presentation.converter.ItemResultConverter;
+import com.example.demo.item.presentation.dto.ItemDetailRequest;
+import com.example.demo.item.presentation.dto.ItemDetailResponse;
 import com.example.demo.item.presentation.dto.ItemPageResponse;
 import com.example.demo.item.presentation.dto.ItemQueryRequest;
 import com.example.demo.item.presentation.spec.ItemControllerSpec;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -29,9 +34,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class ItemController implements ItemControllerSpec {
 
     private final GetItemQueryUseCase getItemQueryUseCase;
+    private final GetItemDetailQueryUseCase getItemDetailQueryUseCase;
     private final ItemFavoriteUseCase itemFavoriteUseCase;
     private final ItemQueryRequestConverter itemQueryRequestConverter;
     private final ItemResultConverter itemResultConverter;
+
+    @GetMapping("/{itemId}")
+    @Override
+    public ResponseEntity<ItemDetailResponse> getItemDetail(
+            @Positive @PathVariable final Long itemId,
+            @Valid @ModelAttribute final ItemDetailRequest request,
+            @AuthenticationPrincipal final AuthPrincipal principal,
+            final Authentication authentication) {
+        final ItemDetailResult result = getItemDetailQueryUseCase.execute(
+                itemQueryRequestConverter.toQuery(itemId, request), userId(principal, authentication));
+        return ResponseEntity.ok(itemResultConverter.toResponse(result));
+    }
 
     @GetMapping
     @Override
