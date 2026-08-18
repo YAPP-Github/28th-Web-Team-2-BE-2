@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
-import org.springdoc.core.annotations.ParameterObject;
 
 @Tag(name = "REGION", description = "지역 API")
 public interface RegionControllerSpec {
@@ -27,8 +26,7 @@ public interface RegionControllerSpec {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
                 responseCode = "400", description = "좌표가 올바르지 않다")
     })
-    ResponseEntity<List<NearbyRegionResponse>> getNearbyRegions(
-            @ParameterObject NearbyRegionRequest request);
+    ResponseEntity<List<NearbyRegionResponse>> getNearbyRegions(NearbyRegionRequest request);
 
     @Operation(summary = "동 이름으로 법정동을 검색한다")
     @ApiResponses({
