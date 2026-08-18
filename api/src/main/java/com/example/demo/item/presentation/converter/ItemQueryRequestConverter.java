@@ -1,8 +1,10 @@
 package com.example.demo.item.presentation.converter;
 
 import com.example.demo.item.application.query.ItemDetailQuery;
+import com.example.demo.item.application.query.ItemPublicPriceQuery;
 import com.example.demo.item.application.query.ItemQuery;
 import com.example.demo.item.presentation.dto.ItemDetailRequest;
+import com.example.demo.item.presentation.dto.ItemPublicPriceRequest;
 import com.example.demo.item.presentation.dto.ItemQueryRequest;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +13,10 @@ public class ItemQueryRequestConverter {
 
     public ItemDetailQuery toQuery(final Long itemId, final ItemDetailRequest request) {
         return new ItemDetailQuery(itemId, request.regionId());
+    }
+
+    public ItemPublicPriceQuery toQuery(final Long itemId, final ItemPublicPriceRequest request) {
+        return new ItemPublicPriceQuery(itemId, request.regionId(), request.period());
     }
 
     public ItemQuery toQuery(final ItemQueryRequest request) {

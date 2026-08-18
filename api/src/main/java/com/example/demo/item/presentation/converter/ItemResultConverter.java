@@ -2,10 +2,15 @@ package com.example.demo.item.presentation.converter;
 
 import com.example.demo.item.application.result.ItemPriceResult;
 import com.example.demo.item.application.result.ItemDetailResult;
+import com.example.demo.item.application.result.ItemPublicPriceResult;
 import com.example.demo.item.application.result.ItemQueryResult;
+import com.example.demo.item.application.result.PublicPricePointResult;
 import com.example.demo.item.presentation.dto.ItemPageResponse;
 import com.example.demo.item.presentation.dto.ItemDetailResponse;
+import com.example.demo.item.presentation.dto.ItemPublicPriceResponse;
 import com.example.demo.item.presentation.dto.ItemResponse;
+import com.example.demo.item.presentation.dto.PublicPricePointResponse;
+import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -24,6 +29,17 @@ public class ItemResultConverter {
                 result.baseDate(),
                 result.priceGap(),
                 result.priceDiffRate());
+    }
+
+    public ItemPublicPriceResponse toResponse(final ItemPublicPriceResult result) {
+        final List<PublicPricePointResponse> points =
+                result.points().stream().map(this::toResponse).toList();
+        return new ItemPublicPriceResponse(
+                result.itemId(), result.defaultUnit(), result.period(), points);
+    }
+
+    private PublicPricePointResponse toResponse(final PublicPricePointResult result) {
+        return new PublicPricePointResponse(result.date(), result.price());
     }
 
     public ItemPageResponse toResponse(final ItemQueryResult result) {
