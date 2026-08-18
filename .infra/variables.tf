@@ -40,3 +40,23 @@ variable "ecr_repository_name" {
   type        = string
   default     = "demo-backend"
 }
+
+variable "image_bucket_name" {
+  description = "S3 bucket holding user report photos. Bucket names are globally unique."
+  type        = string
+  default     = "marketgo-images"
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$", var.image_bucket_name))
+    error_message = "image_bucket_name must be a valid S3 bucket name."
+  }
+}
+
+variable "image_upload_allowed_origins" {
+  description = "Origins allowed to PUT directly to presigned upload URLs. Keep aligned with backend CorsConfig."
+  type        = list(string)
+  default = [
+    "http://localhost:3000",
+    "https://marketgo.kro.kr",
+  ]
+}
