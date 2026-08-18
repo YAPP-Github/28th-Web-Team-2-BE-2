@@ -90,18 +90,17 @@ class StoreControllerTest {
     }
 
     @Test
-    void 공개_조회는_직접_응답과_숫자형_storeId를_반환한다() throws Exception {
+    void 공개_조회는_공통_응답과_숫자형_storeId를_반환한다() throws Exception {
         mockMvc.perform(get("/api/v1/stores/nearby")
                         .queryParam("latitude", "37.5088")
                         .queryParam("longitude", "127.0632"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").doesNotExist())
-                .andExpect(jsonPath("$.message").doesNotExist())
-                .andExpect(jsonPath("$.data").doesNotExist())
-                .andExpect(jsonPath("$.totalCount").value(1))
-                .andExpect(jsonPath("$.stores[0].storeId").value(1))
-                .andExpect(jsonPath("$.stores[0].isLiked").value(false));
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.data.totalCount").value(1))
+                .andExpect(jsonPath("$.data.stores[0].storeId").value(1))
+                .andExpect(jsonPath("$.data.stores[0].isLiked").value(false));
     }
 
     @Test
@@ -114,8 +113,8 @@ class StoreControllerTest {
                         .queryParam("latitude", "37.5")
                         .queryParam("longitude", "127.0"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(0))
-                .andExpect(jsonPath("$.stores").isEmpty());
+                .andExpect(jsonPath("$.data.totalCount").value(0))
+                .andExpect(jsonPath("$.data.stores").isEmpty());
     }
 
     @Test

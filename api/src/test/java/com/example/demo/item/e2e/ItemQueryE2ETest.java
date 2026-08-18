@@ -126,13 +126,13 @@ class ItemQueryE2ETest {
 
         mockMvc.perform(itemListRequest())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].isLiked")
+                .andExpect(jsonPath("$.data.items[*].isLiked")
                         .value(contains(false, false, false, false, false, false)));
 
         mockMvc.perform(itemListRequest()
                         .header(HttpHeaders.AUTHORIZATION, bearer(guestAccessToken(user.id()))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].isLiked")
+                .andExpect(jsonPath("$.data.items[*].isLiked")
                         .value(contains(false, false, false, false, false, false)));
     }
 
@@ -146,16 +146,16 @@ class ItemQueryE2ETest {
         mockMvc.perform(itemListRequest()
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(currentUser))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].itemId").value(firstPotatoId))
-                .andExpect(jsonPath("$.items[0].isLiked").value(true))
-                .andExpect(jsonPath("$.items[5].itemId").value(onionId))
-                .andExpect(jsonPath("$.items[5].isLiked").value(false));
+                .andExpect(jsonPath("$.data.items[0].itemId").value(firstPotatoId))
+                .andExpect(jsonPath("$.data.items[0].isLiked").value(true))
+                .andExpect(jsonPath("$.data.items[5].itemId").value(onionId))
+                .andExpect(jsonPath("$.data.items[5].isLiked").value(false));
 
         mockMvc.perform(itemListRequest()
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(otherUser))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].isLiked").value(false))
-                .andExpect(jsonPath("$.items[5].isLiked").value(true));
+                .andExpect(jsonPath("$.data.items[0].isLiked").value(false))
+                .andExpect(jsonPath("$.data.items[5].isLiked").value(true));
     }
 
     @Test
@@ -167,7 +167,7 @@ class ItemQueryE2ETest {
         mockMvc.perform(itemListRequest()
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].isLiked")
+                .andExpect(jsonPath("$.data.items[*].isLiked")
                         .value(contains(true, true, true, true, true, true)));
 
         assertThat(statistics.getPrepareStatementCount()).isEqualTo(6);
@@ -185,11 +185,11 @@ class ItemQueryE2ETest {
                         .queryParam("favoriteOnly", "true")
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(currentUser))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(2))
-                .andExpect(jsonPath("$.items[*].itemId")
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.items[*].itemId")
                         .value(contains(firstPotatoId.intValue(), secondPotatoId.intValue())))
-                .andExpect(jsonPath("$.items[*].isLiked").value(contains(true, true)))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.items[*].isLiked").value(contains(true, true)))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
     @Test
@@ -213,14 +213,14 @@ class ItemQueryE2ETest {
 
         mockMvc.perform(itemListRequest())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(6))
-                .andExpect(jsonPath("$.items[*].isLiked")
+                .andExpect(jsonPath("$.data.totalCount").value(6))
+                .andExpect(jsonPath("$.data.items[*].isLiked")
                         .value(contains(false, false, false, false, false, false)));
 
         mockMvc.perform(itemListRequest().queryParam("favoriteOnly", "false"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(6))
-                .andExpect(jsonPath("$.items[*].isLiked")
+                .andExpect(jsonPath("$.data.totalCount").value(6))
+                .andExpect(jsonPath("$.data.items[*].isLiked")
                         .value(contains(false, false, false, false, false, false)));
     }
 
@@ -245,10 +245,10 @@ class ItemQueryE2ETest {
                         .queryParam("size", "1")
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(2))
-                .andExpect(jsonPath("$.items[0].itemId").value(firstPotatoId.intValue()))
-                .andExpect(jsonPath("$.items[0].isLiked").value(true))
-                .andExpect(jsonPath("$.hasNext").value(true));
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.items[0].itemId").value(firstPotatoId.intValue()))
+                .andExpect(jsonPath("$.data.items[0].isLiked").value(true))
+                .andExpect(jsonPath("$.data.hasNext").value(true));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -259,10 +259,10 @@ class ItemQueryE2ETest {
                         .queryParam("size", "1")
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(2))
-                .andExpect(jsonPath("$.items[0].itemId").value(secondPotatoId.intValue()))
-                .andExpect(jsonPath("$.items[0].isLiked").value(true))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.items[0].itemId").value(secondPotatoId.intValue()))
+                .andExpect(jsonPath("$.data.items[0].isLiked").value(true))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -270,13 +270,13 @@ class ItemQueryE2ETest {
                         .queryParam("keyword", "없는품목")
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(0))
-                .andExpect(jsonPath("$.items").isEmpty())
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.totalCount").value(0))
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
     @Test
-    void 공개_품목과_공공가격_목록을_직접_성공_응답과_가격_변동으로_조회한다() throws Exception {
+    void 공개_품목과_공공가격_목록을_ApiResponse와_가격_변동으로_조회한다() throws Exception {
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
                         .queryParam("sort", "NAME_ASC")
@@ -284,37 +284,37 @@ class ItemQueryE2ETest {
                         .queryParam("size", "6"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.code").doesNotExist())
-                .andExpect(jsonPath("$.message").doesNotExist())
-                .andExpect(jsonPath("$.data").doesNotExist())
-                .andExpect(jsonPath("$.baseDate").value(referenceDate.toString()))
-                .andExpect(jsonPath("$.totalCount").value(6))
-                .andExpect(jsonPath("$.items").isArray())
-                .andExpect(jsonPath("$.items[*].itemName")
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.data").isMap())
+                .andExpect(jsonPath("$.data.baseDate").value(referenceDate.toString()))
+                .andExpect(jsonPath("$.data.totalCount").value(6))
+                .andExpect(jsonPath("$.data.items").isArray())
+                .andExpect(jsonPath("$.data.items[*].itemName")
                         .value(contains("감자", "감자", "당근", "대파", "양배추", "양파")))
-                .andExpect(jsonPath("$.items[0].price").value(3500))
-                .andExpect(jsonPath("$.items[0].priceGap").value(500))
-                .andExpect(jsonPath("$.items[0].defaultUnit").value("1kg"))
-                .andExpect(jsonPath("$.items[0].priceDiffRate").value(16.7))
-                .andExpect(jsonPath("$.items[1].price").value(3500))
-                .andExpect(jsonPath("$.items[1].priceGap").value(nullValue()))
-                .andExpect(jsonPath("$.items[1].priceDiffRate").value(nullValue()))
-                .andExpect(jsonPath("$.items[2].price").value(4000))
-                .andExpect(jsonPath("$.items[2].priceGap").value(nullValue()))
-                .andExpect(jsonPath("$.items[2].priceDiffRate").value(nullValue()))
-                .andExpect(jsonPath("$.items[3].price").value(2100))
-                .andExpect(jsonPath("$.items[3].priceGap").value(0))
-                .andExpect(jsonPath("$.items[3].priceDiffRate").value(0.0))
-                .andExpect(jsonPath("$.items[4].price").value(nullValue()))
-                .andExpect(jsonPath("$.items[4].priceGap").value(nullValue()))
-                .andExpect(jsonPath("$.items[4].defaultUnit").value(nullValue()))
-                .andExpect(jsonPath("$.items[4].priceDiffRate").value(nullValue()))
-                .andExpect(jsonPath("$.items[5].price").value(2800))
-                .andExpect(jsonPath("$.items[5].priceGap").value(-200))
-                .andExpect(jsonPath("$.items[5].priceDiffRate").value(-6.7))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.size").value(6))
-                .andExpect(jsonPath("$.hasNext").isBoolean());
+                .andExpect(jsonPath("$.data.items[0].price").value(3500))
+                .andExpect(jsonPath("$.data.items[0].priceGap").value(500))
+                .andExpect(jsonPath("$.data.items[0].defaultUnit").value("1kg"))
+                .andExpect(jsonPath("$.data.items[0].priceDiffRate").value(16.7))
+                .andExpect(jsonPath("$.data.items[1].price").value(3500))
+                .andExpect(jsonPath("$.data.items[1].priceGap").value(nullValue()))
+                .andExpect(jsonPath("$.data.items[1].priceDiffRate").value(nullValue()))
+                .andExpect(jsonPath("$.data.items[2].price").value(4000))
+                .andExpect(jsonPath("$.data.items[2].priceGap").value(nullValue()))
+                .andExpect(jsonPath("$.data.items[2].priceDiffRate").value(nullValue()))
+                .andExpect(jsonPath("$.data.items[3].price").value(2100))
+                .andExpect(jsonPath("$.data.items[3].priceGap").value(0))
+                .andExpect(jsonPath("$.data.items[3].priceDiffRate").value(0.0))
+                .andExpect(jsonPath("$.data.items[4].price").value(nullValue()))
+                .andExpect(jsonPath("$.data.items[4].priceGap").value(nullValue()))
+                .andExpect(jsonPath("$.data.items[4].defaultUnit").value(nullValue()))
+                .andExpect(jsonPath("$.data.items[4].priceDiffRate").value(nullValue()))
+                .andExpect(jsonPath("$.data.items[5].price").value(2800))
+                .andExpect(jsonPath("$.data.items[5].priceGap").value(-200))
+                .andExpect(jsonPath("$.data.items[5].priceDiffRate").value(-6.7))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(6))
+                .andExpect(jsonPath("$.data.hasNext").isBoolean());
     }
 
     @Test
@@ -324,10 +324,10 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "6"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].itemName")
+                .andExpect(jsonPath("$.data.items[*].itemName")
                         .value(contains("감자", "감자", "당근", "대파", "양배추", "양파")))
-                .andExpect(jsonPath("$.items[0].itemId").value(firstPotatoId))
-                .andExpect(jsonPath("$.items[1].itemId").value(secondPotatoId));
+                .andExpect(jsonPath("$.data.items[0].itemId").value(firstPotatoId))
+                .andExpect(jsonPath("$.data.items[1].itemId").value(secondPotatoId));
     }
 
     @Test
@@ -338,10 +338,10 @@ class ItemQueryE2ETest {
                         .queryParam("page", "1")
                         .queryParam("size", "2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].itemName").value(contains("당근", "대파")))
-                .andExpect(jsonPath("$.page").value(1))
-                .andExpect(jsonPath("$.size").value(2))
-                .andExpect(jsonPath("$.hasNext").value(true));
+                .andExpect(jsonPath("$.data.items[*].itemName").value(contains("당근", "대파")))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(2))
+                .andExpect(jsonPath("$.data.hasNext").value(true));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -349,8 +349,8 @@ class ItemQueryE2ETest {
                         .queryParam("page", "2")
                         .queryParam("size", "2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].itemName").value(contains("양배추", "양파")))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.items[*].itemName").value(contains("양배추", "양파")))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
     @Test
@@ -361,11 +361,11 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "3"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].itemName").value(contains("대파", "양파", "감자")))
-                .andExpect(jsonPath("$.items[2].itemId").value(firstPotatoId))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.size").value(3))
-                .andExpect(jsonPath("$.hasNext").value(true));
+                .andExpect(jsonPath("$.data.items[*].itemName").value(contains("대파", "양파", "감자")))
+                .andExpect(jsonPath("$.data.items[2].itemId").value(firstPotatoId))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(3))
+                .andExpect(jsonPath("$.data.hasNext").value(true));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -373,12 +373,12 @@ class ItemQueryE2ETest {
                         .queryParam("page", "1")
                         .queryParam("size", "3"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].itemName").value(contains("감자", "당근", "양배추")))
-                .andExpect(jsonPath("$.items[0].itemId").value(secondPotatoId))
-                .andExpect(jsonPath("$.items[2].price").value(nullValue()))
-                .andExpect(jsonPath("$.page").value(1))
-                .andExpect(jsonPath("$.size").value(3))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.items[*].itemName").value(contains("감자", "당근", "양배추")))
+                .andExpect(jsonPath("$.data.items[0].itemId").value(secondPotatoId))
+                .andExpect(jsonPath("$.data.items[2].price").value(nullValue()))
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(3))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -386,11 +386,11 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "6"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].itemName")
+                .andExpect(jsonPath("$.data.items[*].itemName")
                         .value(contains("당근", "감자", "감자", "양파", "대파", "양배추")))
-                .andExpect(jsonPath("$.items[1].itemId").value(firstPotatoId))
-                .andExpect(jsonPath("$.items[2].itemId").value(secondPotatoId))
-                .andExpect(jsonPath("$.items[5].price").value(nullValue()));
+                .andExpect(jsonPath("$.data.items[1].itemId").value(firstPotatoId))
+                .andExpect(jsonPath("$.data.items[2].itemId").value(secondPotatoId))
+                .andExpect(jsonPath("$.data.items[5].price").value(nullValue()));
     }
 
     @Test
@@ -402,9 +402,9 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(2))
-                .andExpect(jsonPath("$.items[*].itemName").value(contains("대파", "양파")))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.items[*].itemName").value(contains("대파", "양파")))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -413,8 +413,8 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(2))
-                .andExpect(jsonPath("$.items[*].itemName").value(contains("대파", "양파")));
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.items[*].itemName").value(contains("대파", "양파")));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -423,11 +423,11 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(2))
-                .andExpect(jsonPath("$.items[*].itemName").value(contains("양파")))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.size").value(1))
-                .andExpect(jsonPath("$.hasNext").value(true));
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.items[*].itemName").value(contains("양파")))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(true));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -436,9 +436,9 @@ class ItemQueryE2ETest {
                         .queryParam("page", "1")
                         .queryParam("size", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(2))
-                .andExpect(jsonPath("$.items[*].itemName").value(contains("대파")))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.items[*].itemName").value(contains("대파")))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
     @Test
@@ -448,21 +448,21 @@ class ItemQueryE2ETest {
                         .queryParam("regionId", REGION_ID)
                         .queryParam("keyword", ""))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(6));
+                .andExpect(jsonPath("$.data.totalCount").value(6));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
                         .queryParam("keyword", "   "))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(6));
+                .andExpect(jsonPath("$.data.totalCount").value(6));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
                         .queryParam("keyword", "없는품목"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(0))
-                .andExpect(jsonPath("$.items").isEmpty())
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.totalCount").value(0))
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
     @Test
@@ -472,30 +472,30 @@ class ItemQueryE2ETest {
                         .queryParam("category", "ROOT_VEGETABLES")
                         .queryParam("keyword", "감자"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(2))
-                .andExpect(jsonPath("$.items[*].itemName").value(contains("감자", "감자")))
-                .andExpect(jsonPath("$.categoryCounts.ROOT_VEGETABLES").value(3))
-                .andExpect(jsonPath("$.categoryCounts.LEAFY_GREENS").value(1))
-                .andExpect(jsonPath("$.categoryCounts.FRUITING_VEGETABLES").value(0))
-                .andExpect(jsonPath("$.categoryCounts.PEPPERS").value(0))
-                .andExpect(jsonPath("$.categoryCounts.SEASONINGS").value(2))
-                .andExpect(jsonPath("$.categoryCounts.MUSHROOMS").value(0))
-                .andExpect(jsonPath("$.categoryCounts.FRUITS").value(0));
+                .andExpect(jsonPath("$.data.totalCount").value(2))
+                .andExpect(jsonPath("$.data.items[*].itemName").value(contains("감자", "감자")))
+                .andExpect(jsonPath("$.data.categoryCounts.ROOT_VEGETABLES").value(3))
+                .andExpect(jsonPath("$.data.categoryCounts.LEAFY_GREENS").value(1))
+                .andExpect(jsonPath("$.data.categoryCounts.FRUITING_VEGETABLES").value(0))
+                .andExpect(jsonPath("$.data.categoryCounts.PEPPERS").value(0))
+                .andExpect(jsonPath("$.data.categoryCounts.SEASONINGS").value(2))
+                .andExpect(jsonPath("$.data.categoryCounts.MUSHROOMS").value(0))
+                .andExpect(jsonPath("$.data.categoryCounts.FRUITS").value(0));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
                         .queryParam("category", "ROOT_VEGETABLES")
                         .queryParam("keyword", "없는품목"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalCount").value(0))
-                .andExpect(jsonPath("$.items").isEmpty())
-                .andExpect(jsonPath("$.categoryCounts.ROOT_VEGETABLES").value(3))
-                .andExpect(jsonPath("$.categoryCounts.LEAFY_GREENS").value(1))
-                .andExpect(jsonPath("$.categoryCounts.FRUITING_VEGETABLES").value(0))
-                .andExpect(jsonPath("$.categoryCounts.PEPPERS").value(0))
-                .andExpect(jsonPath("$.categoryCounts.SEASONINGS").value(2))
-                .andExpect(jsonPath("$.categoryCounts.MUSHROOMS").value(0))
-                .andExpect(jsonPath("$.categoryCounts.FRUITS").value(0));
+                .andExpect(jsonPath("$.data.totalCount").value(0))
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.categoryCounts.ROOT_VEGETABLES").value(3))
+                .andExpect(jsonPath("$.data.categoryCounts.LEAFY_GREENS").value(1))
+                .andExpect(jsonPath("$.data.categoryCounts.FRUITING_VEGETABLES").value(0))
+                .andExpect(jsonPath("$.data.categoryCounts.PEPPERS").value(0))
+                .andExpect(jsonPath("$.data.categoryCounts.SEASONINGS").value(2))
+                .andExpect(jsonPath("$.data.categoryCounts.MUSHROOMS").value(0))
+                .andExpect(jsonPath("$.data.categoryCounts.FRUITS").value(0));
     }
 
     @Test
@@ -541,17 +541,17 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].itemName")
+                .andExpect(jsonPath("$.data.items[*].itemName")
                         .value(contains(
                                 "시금치", "대파", "양파", "사과", "오이",
                                 "감자", "감자", "당근", "토마토", "양배추")))
-                .andExpect(jsonPath("$.items[0].price").value(1700))
-                .andExpect(jsonPath("$.items[0].priceGap").value(200))
-                .andExpect(jsonPath("$.items[3].price").value(3000))
-                .andExpect(jsonPath("$.items[4].price").value(3000))
-                .andExpect(jsonPath("$.items[8].price").value(5000))
-                .andExpect(jsonPath("$.items[8].priceGap").value(500))
-                .andExpect(jsonPath("$.items[9].price").value(nullValue()));
+                .andExpect(jsonPath("$.data.items[0].price").value(1700))
+                .andExpect(jsonPath("$.data.items[0].priceGap").value(200))
+                .andExpect(jsonPath("$.data.items[3].price").value(3000))
+                .andExpect(jsonPath("$.data.items[4].price").value(3000))
+                .andExpect(jsonPath("$.data.items[8].price").value(5000))
+                .andExpect(jsonPath("$.data.items[8].priceGap").value(500))
+                .andExpect(jsonPath("$.data.items[9].price").value(nullValue()));
 
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID)
@@ -559,17 +559,17 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].itemName")
+                .andExpect(jsonPath("$.data.items[*].itemName")
                         .value(contains(
                                 "토마토", "당근", "감자", "감자", "사과",
                                 "오이", "양파", "대파", "시금치", "양배추")))
-                .andExpect(jsonPath("$.items[0].price").value(5000))
-                .andExpect(jsonPath("$.items[0].priceGap").value(500))
-                .andExpect(jsonPath("$.items[4].price").value(3000))
-                .andExpect(jsonPath("$.items[5].price").value(3000))
-                .andExpect(jsonPath("$.items[8].price").value(1700))
-                .andExpect(jsonPath("$.items[8].priceGap").value(200))
-                .andExpect(jsonPath("$.items[9].price").value(nullValue()));
+                .andExpect(jsonPath("$.data.items[0].price").value(5000))
+                .andExpect(jsonPath("$.data.items[0].priceGap").value(500))
+                .andExpect(jsonPath("$.data.items[4].price").value(3000))
+                .andExpect(jsonPath("$.data.items[5].price").value(3000))
+                .andExpect(jsonPath("$.data.items[8].price").value(1700))
+                .andExpect(jsonPath("$.data.items[8].priceGap").value(200))
+                .andExpect(jsonPath("$.data.items[9].price").value(nullValue()));
     }
 
     @Test
@@ -595,12 +595,12 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].itemName").value("동일날짜품목"))
-                .andExpect(jsonPath("$.items[0].price").value(1200))
-                .andExpect(jsonPath("$.items[0].priceGap").value(300))
-                .andExpect(jsonPath("$.items[0].priceDiffRate").value(33.3))
-                .andExpect(jsonPath("$.items[1].itemName").value("동일날짜보조품목"))
-                .andExpect(jsonPath("$.items[1].price").value(1300));
+                .andExpect(jsonPath("$.data.items[0].itemName").value("동일날짜품목"))
+                .andExpect(jsonPath("$.data.items[0].price").value(1200))
+                .andExpect(jsonPath("$.data.items[0].priceGap").value(300))
+                .andExpect(jsonPath("$.data.items[0].priceDiffRate").value(33.3))
+                .andExpect(jsonPath("$.data.items[1].itemName").value("동일날짜보조품목"))
+                .andExpect(jsonPath("$.data.items[1].price").value(1300));
     }
 
     @Test
@@ -618,9 +618,9 @@ class ItemQueryE2ETest {
                         .queryParam("page", "0")
                         .queryParam("size", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].price").value(1000))
-                .andExpect(jsonPath("$.items[0].priceGap").value(1000))
-                .andExpect(jsonPath("$.items[0].priceDiffRate").value(nullValue()));
+                .andExpect(jsonPath("$.data.items[0].price").value(1000))
+                .andExpect(jsonPath("$.data.items[0].priceGap").value(1000))
+                .andExpect(jsonPath("$.data.items[0].priceDiffRate").value(nullValue()));
     }
 
     @Test
@@ -639,8 +639,8 @@ class ItemQueryE2ETest {
         mockMvc.perform(get("/api/v1/items")
                         .queryParam("regionId", REGION_ID))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.size").value(10));
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(10));
     }
 
     @Test
@@ -690,9 +690,9 @@ class ItemQueryE2ETest {
                         .queryParam("page", "2")
                         .queryParam("size", "3"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items").isEmpty())
-                .andExpect(jsonPath("$.page").value(2))
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.page").value(2))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
     @Test
@@ -702,8 +702,8 @@ class ItemQueryE2ETest {
                         .queryParam("page", "10")
                         .queryParam("size", "3"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items").isEmpty())
-                .andExpect(jsonPath("$.hasNext").value(false));
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
     @Test
@@ -743,7 +743,11 @@ class ItemQueryE2ETest {
                         .value("NAME_ASC"))
                 .andExpect(jsonPath("$.paths['/api/v1/items'].get.parameters[3].schema.enum")
                         .value(contains("NAME_ASC", "PRICE_ASC", "PRICE_DESC")))
-                .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['200'].content['application/json'].schema.$ref")
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['200'].content['application/json'].schema.properties.code.example")
+                        .value("SUCCESS"))
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['200'].content['application/json'].schema.properties.message.example")
+                        .value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.paths['/api/v1/items'].get.responses['200'].content['application/json'].schema.properties.data.$ref")
                         .value("#/components/schemas/ItemPageResponse"))
                 .andExpect(jsonPath("$.components.schemas.ItemResponse.properties.defaultUnit")
                         .exists())

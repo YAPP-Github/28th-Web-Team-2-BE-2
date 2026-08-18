@@ -37,23 +37,22 @@ class NewsQueryE2ETest {
     }
 
     @Test
-    void 공개_뉴스_목록의_최신_5개를_wrapper_없이_조회한다() throws Exception {
+    void 공개_뉴스_목록의_최신_5개를_공통_응답으로_조회한다() throws Exception {
         mockMvc.perform(get("/api/v1/news"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isNotEmpty())
-                .andExpect(jsonPath("$.length()").value(5))
-                .andExpect(jsonPath("$.code").doesNotExist())
-                .andExpect(jsonPath("$.message").doesNotExist())
-                .andExpect(jsonPath("$.data").doesNotExist())
-                .andExpect(jsonPath("$[*].title").value(org.hamcrest.Matchers.contains("뉴스 1", "뉴스 2", "뉴스 3", "뉴스 4", "뉴스 5")))
-                .andExpect(jsonPath("$[0].summary").value("요약 1"))
-                .andExpect(jsonPath("$[0].originalUrl").value("https://news.example.com/1"))
-                .andExpect(jsonPath("$[0].publishedAt").value("2026-08-16T06:00:00Z"))
-                .andExpect(jsonPath("$[0].thumbnailUrl").value("https://image.example.com/1.jpg"))
-                .andExpect(jsonPath("$[1].thumbnailUrl").value(org.hamcrest.Matchers.nullValue()))
-                .andExpect(jsonPath("$[5]").doesNotExist());
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.length()").value(5))
+                .andExpect(jsonPath("$.data[*].title").value(org.hamcrest.Matchers.contains("뉴스 1", "뉴스 2", "뉴스 3", "뉴스 4", "뉴스 5")))
+                .andExpect(jsonPath("$.data[0].summary").value("요약 1"))
+                .andExpect(jsonPath("$.data[0].originalUrl").value("https://news.example.com/1"))
+                .andExpect(jsonPath("$.data[0].publishedAt").value("2026-08-16T06:00:00Z"))
+                .andExpect(jsonPath("$.data[0].thumbnailUrl").value("https://image.example.com/1.jpg"))
+                .andExpect(jsonPath("$.data[1].thumbnailUrl").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.data[5]").doesNotExist());
     }
 
     @Test

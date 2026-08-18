@@ -1,6 +1,7 @@
 package com.example.demo.item.presentation;
 
 import com.example.demo.auth.domain.UserRole;
+import com.example.demo.common.presentation.DirectResponse;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.item.application.result.ItemDetailResult;
 import com.example.demo.item.application.result.ItemQueryResult;
@@ -39,6 +40,7 @@ public class ItemController implements ItemControllerSpec {
     private final ItemQueryRequestConverter itemQueryRequestConverter;
     private final ItemResultConverter itemResultConverter;
 
+    @DirectResponse
     @GetMapping("/{itemId}")
     @Override
     public ResponseEntity<ItemDetailResponse> getItemDetail(

@@ -107,10 +107,12 @@ class UserReportE2ETest {
 
         reportWithPrice(accessToken(user), item.id(), "16618597", 4000)
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.reportId").isNumber())
-                .andExpect(jsonPath("$.itemId").value(item.id()))
-                .andExpect(jsonPath("$.storeId").isNumber())
-                .andExpect(jsonPath("$.reportedAt").isNotEmpty());
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.data.reportId").isNumber())
+                .andExpect(jsonPath("$.data.itemId").value(item.id()))
+                .andExpect(jsonPath("$.data.storeId").isNumber())
+                .andExpect(jsonPath("$.data.reportedAt").isNotEmpty());
 
         final Long reportId = jdbcTemplate.queryForObject(
                 "SELECT report_id FROM user_reports ORDER BY report_id DESC LIMIT 1", Long.class);
@@ -160,10 +162,12 @@ class UserReportE2ETest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(reportBodyWithoutStore()))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.reportId").isNumber())
-                .andExpect(jsonPath("$.itemId").value(item.id()))
-                .andExpect(jsonPath("$.storeId").value((Object) null))
-                .andExpect(jsonPath("$.reportedAt").isNotEmpty());
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.data.reportId").isNumber())
+                .andExpect(jsonPath("$.data.itemId").value(item.id()))
+                .andExpect(jsonPath("$.data.storeId").value((Object) null))
+                .andExpect(jsonPath("$.data.reportedAt").isNotEmpty());
 
         final var snapshot = jdbcTemplate.queryForMap("""
                 SELECT region_id, report_type, store_id
@@ -268,7 +272,9 @@ class UserReportE2ETest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(reportBodyWithStoreId(storeId)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.storeId").value(storeId));
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.data.storeId").value(storeId));
 
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM stores", Integer.class)).isEqualTo(1);
     }
@@ -322,6 +328,12 @@ class UserReportE2ETest {
                 .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.responses['400']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.responses['401']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.responses['404']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.responses['201'].content['application/json'].schema.properties.code.example")
+                        .value("SUCCESS"))
+                .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.responses['201'].content['application/json'].schema.properties.message.example")
+                        .value("요청이 성공적으로 처리되었습니다."))
+                .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.responses['201'].content['application/json'].schema.properties.data.$ref")
+                        .value("#/components/schemas/CreateUserReportResponse"))
                 .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.responses['409']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.security[0].bearerAuth")
                         .isArray())
