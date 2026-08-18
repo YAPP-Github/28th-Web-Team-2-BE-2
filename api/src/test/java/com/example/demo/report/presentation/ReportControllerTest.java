@@ -29,6 +29,8 @@ import com.example.demo.report.presentation.converter.UserReportResultConverter;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -97,6 +99,20 @@ class ReportControllerTest {
                                 {"reportType":"PURCHASE","price":3500,"unit":"1kg","amount":2,
                                  "store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"}}
                                 """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1", "abcdefghij"})
+    void regionId가_10자리_숫자가_아니면_bad_request를_응답한다(final String regionId) throws Exception {
+        mockMvc.perform(post(REPORT_PATH)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"regionId":"%s","reportType":"PURCHASE","price":3500,"unit":"1kg","amount":2,
+                                 "store":{"id":"16618597","placeName":"장보고 마트","addressName":"서울"}}
+                                """.formatted(regionId)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
     }

@@ -12,7 +12,8 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public record CreateUserReportRequest(
-        @NotBlank @Size(max = 10) @Schema(description = "법정동 코드", example = "1121510100") String regionId,
+        @NotBlank @Pattern(regexp = "\\d{10}")
+        @Schema(description = "법정동 코드", example = "1121510100") String regionId,
         @NotBlank @Pattern(regexp = "PURCHASE|OBSERVED")
         @Schema(
                 description = "제보 유형",

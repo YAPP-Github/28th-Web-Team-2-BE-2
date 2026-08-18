@@ -25,7 +25,7 @@ public interface UserReportControllerSpec {
                         schema = @Schema(implementation = CreateUserReportResponse.class))),
         @ApiResponse(responseCode = "400", description = "제보 입력값이 올바르지 않다"),
         @ApiResponse(responseCode = "401", description = "로그인이 필요하다"),
-        @ApiResponse(responseCode = "404", description = "품목을 찾을 수 없다"),
+        @ApiResponse(responseCode = "404", description = "품목 또는 매장을 찾을 수 없다"),
         @ApiResponse(responseCode = "409", description = "동일한 제보가 이미 존재한다")
     })
     ResponseEntity<CreateUserReportResponse> createReport(
