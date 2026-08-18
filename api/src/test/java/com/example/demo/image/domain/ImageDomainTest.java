@@ -8,6 +8,7 @@ import com.example.demo.common.exception.ErrorType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ImageDomainTest {
@@ -68,9 +69,34 @@ class ImageDomainTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"receipt.jpg", "../images/evil.png", "uploads/a.png"})
-    void 접두사가_없는_key는_만들_수_없다(final String value) {
+    @ValueSource(strings = {"receipt.jpg", "../images/evil.png", "uploads/a.png", "images/", "images/a.gif"})
+    void 형식을_벗어난_key는_만들_수_없다(final String value) {
         assertThatThrownBy(() -> new ImageKey(value)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // 접두사만 검사하면 images/../secret 같은 값이 통과한다.
+    @ParameterizedTest
+    @ValueSource(strings = {"images/../secret.png", "images/a/b.png"})
+    void 상위_경로로_빠져나가는_key를_거부한다(final String value) {
+        assertThatThrownBy(() -> new ImageKey(value)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // 외부 입력 경로는 500이 아니라 400이어야 한다.
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"uploads/a.png", "images/../secret.png", ""})
+    void 외부_입력의_잘못된_key는_400으로_끝낸다(final String value) {
+        assertThatThrownBy(() -> ImageKey.of(value))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
+    }
+
+    @Test
+    void 생성한_key는_of로_다시_해석할_수_있다() {
+        final ImageKey generated = ImageKey.generate(ImageContentType.PNG);
+
+        assertThat(ImageKey.of(generated.value())).isEqualTo(generated);
     }
 
     @Test

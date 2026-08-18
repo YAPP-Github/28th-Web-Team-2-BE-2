@@ -117,12 +117,9 @@ public class S3ImageStorageAdapter implements ImageStoragePort, ImageReadUrlPort
     private ImageKey toKey(final String imageUrl) {
         final String baseUrl = properties.baseUrl();
         if (imageUrl == null || !imageUrl.startsWith(baseUrl)) {
-            throw new ApiException(
-                    ErrorType.INVALID_PARAMETER_ERROR.description(),
-                    ErrorType.INVALID_PARAMETER_ERROR,
-                    HttpStatus.BAD_REQUEST);
+            throw ApiException.invalidParameter();
         }
-        return new ImageKey(imageUrl.substring(baseUrl.length()));
+        return ImageKey.of(imageUrl.substring(baseUrl.length()));
     }
 
     private String permanentUrl(final ImageKey key) {

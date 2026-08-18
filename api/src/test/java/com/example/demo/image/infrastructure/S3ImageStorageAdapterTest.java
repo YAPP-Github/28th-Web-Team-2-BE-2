@@ -168,10 +168,21 @@ class S3ImageStorageAdapterTest {
                 .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
     }
 
+    // 이전에는 IllegalArgumentException 이 그대로 올라가 클라이언트가 500 을 받았다.
     @Test
-    void 접두사_규칙을_벗어난_key는_거부한다() {
+    void 접두사_규칙을_벗어난_key는_400으로_거부한다() {
         assertThatThrownBy(() -> adapter.presignedReadUrl("https://cdn.example.com/uploads/abc.jpg"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ApiException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
+    }
+
+    @Test
+    void base_URL만_주어져_key가_비면_400으로_거부한다() {
+        assertThatThrownBy(() -> adapter.presignedReadUrl("https://cdn.example.com/"))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
     }
 
     @Test
