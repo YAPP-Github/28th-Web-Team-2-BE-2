@@ -8,6 +8,7 @@ import com.example.demo.item.application.port.OnlinePriceCrawlerPort;
 import com.example.demo.item.application.result.BatchJobStatus;
 import com.example.demo.item.application.result.OnlinePriceCrawlResult;
 import com.example.demo.item.domain.Item;
+import com.example.demo.item.domain.ItemCategory;
 import com.example.demo.item.domain.OnlineChannel;
 import com.example.demo.item.domain.OnlinePrice;
 import com.example.demo.item.infrastructure.ItemJpaRepository;
@@ -65,9 +66,12 @@ class CollectOnlinePriceUseCaseIntegrationTest {
         onlinePriceJpaRepository.deleteAll();
         onlineChannelJpaRepository.deleteAll();
         itemJpaRepository.deleteAll();
-        firstItemId = itemJpaRepository.save(new Item("첫 성공", "1kg")).id();
-        failedItemId = itemJpaRepository.save(new Item("DB 실패", "1kg")).id();
-        unprocessedItemId = itemJpaRepository.save(new Item("미실행", "1kg")).id();
+        firstItemId = itemJpaRepository.save(
+                new Item("첫 성공", "1kg", null, ItemCategory.ROOT_VEGETABLES)).id();
+        failedItemId = itemJpaRepository.save(
+                new Item("DB 실패", "1kg", null, ItemCategory.ROOT_VEGETABLES)).id();
+        unprocessedItemId = itemJpaRepository.save(
+                new Item("미실행", "1kg", null, ItemCategory.ROOT_VEGETABLES)).id();
         channelId = onlineChannelJpaRepository.save(new OnlineChannel("트랜잭션 테스트")).id();
         onlinePriceJpaRepository.save(oldPrice());
         crawler.reset();

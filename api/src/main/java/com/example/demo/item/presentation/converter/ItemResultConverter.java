@@ -13,6 +13,7 @@ public class ItemResultConverter {
         return new ItemPageResponse(
                 result.baseDate(),
                 result.totalCount(),
+                result.categoryCounts(),
                 result.items().stream().map(this::toResponse).toList(),
                 result.page(),
                 result.size(),
