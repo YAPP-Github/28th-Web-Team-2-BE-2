@@ -39,23 +39,40 @@ class FlywayMigrationIntegrationTest {
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
         assertThat(countRows("batch_item_errors")).isZero();
         assertThat(countRows("news_articles")).isZero();
         assertThat(countRows("item_favorites")).isZero();
+        assertThat(countRows("stores")).isZero();
+        assertThat(countRows("store_favorites")).isZero();
         assertThat(columnNames("item_favorites"))
                 .containsExactly("item_favorite_id", "user_id", "item_id", "created_at");
         assertThat(constraintNames("item_favorites"))
                 .contains("uk_item_favorites_user_item", "fk_item_favorites_user", "fk_item_favorites_item");
         assertThat(columnNames("users")).contains("nickname");
         assertThat(constraintNames("users")).contains("uk_users_nickname");
+        assertThat(columnNames("stores"))
+                .containsExactly(
+                        "store_id",
+                        "kakao_place_id",
+                        "store_name",
+                        "latitude",
+                        "longitude",
+                        "address_name",
+                        "road_address_name",
+                        "phone",
+                        "place_url");
+        assertThat(columnNames("store_favorites"))
+                .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
+        assertThat(constraintNames("store_favorites"))
+                .contains("uk_store_favorites_user_store", "fk_store_favorites_user", "fk_store_favorites_store");
     }
 
     @Test
-    void 기존_V1부터_V8까지의_이력에서_V9부터_V11이_추가된다() throws SQLException {
+    void 기존_V1부터_V8까지의_이력에서_V9부터_V12가_추가된다() throws SQLException {
         flyway().clean();
         flyway("8").migrate();
 
@@ -66,7 +83,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -76,6 +93,8 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRows("batch_item_errors")).isZero();
         assertThat(countRows("news_articles")).isZero();
         assertThat(countRows("item_favorites")).isZero();
+        assertThat(countRows("stores")).isZero();
+        assertThat(countRows("store_favorites")).isZero();
     }
 
     @Test

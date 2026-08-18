@@ -1,14 +1,19 @@
 package com.example.demo.store.infrastructure;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
 import com.example.demo.external.kakao.KakaoPlace;
 import com.example.demo.external.kakao.feign.KakaoMapClient;
 import com.example.demo.store.application.port.NearbyStoreSearchPort;
 import com.example.demo.store.application.query.NearbyStoreQuery;
-import com.example.demo.store.application.result.NearbyStoreResult;
+import com.example.demo.store.application.result.NearbyStoreCandidate;
 import com.example.demo.store.application.result.NearbyStoreSearchResult;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,30 +23,68 @@ public class KakaoNearbyStoreSearchAdapter implements NearbyStoreSearchPort {
     private static final String CATEGORY_GROUP_CODE = "MT1";
     private static final String SORT = "distance";
     private static final int SIZE = 15;
+    private static final int MAX_PAGE = 45;
+    private static final int MAX_PAGEABLE_COUNT = 45;
 
     private final KakaoMapClient kakaoMapClient;
 
     @Override
     public NearbyStoreSearchResult search(final NearbyStoreQuery query) {
-        final KakaoCategorySearchResult result = kakaoMapClient.searchCategory(
-                CATEGORY_GROUP_CODE,
-                query.longitude(),
-                query.latitude(),
-                query.radius(),
-                SORT,
-                SIZE);
-        return toSearchResult(result);
+        final Map<String, NearbyStoreCandidate> candidates = new LinkedHashMap<>();
+        long providerTotalCount = -1;
+        long providerPageableCount = -1;
+        int fetchedCount = 0;
+        for (int page = 1; page <= MAX_PAGE; page++) {
+            final KakaoCategorySearchResult result = searchPage(query, page);
+            if (result == null || result.places() == null
+                    || result.totalCount() < 0
+                    || result.pageableCount() < 0
+                    || result.totalCount() > result.pageableCount()
+                    || result.pageableCount() > MAX_PAGEABLE_COUNT
+                    || result.places().size() > SIZE) {
+                throw externalApiException();
+            }
+            if (providerTotalCount == -1) {
+                providerTotalCount = result.totalCount();
+                providerPageableCount = result.pageableCount();
+            }
+            if (providerTotalCount != result.totalCount()
+                    || providerPageableCount != result.pageableCount()) {
+                throw externalApiException();
+            }
+            fetchedCount += result.places().size();
+            for (final KakaoPlace place : result.places()) {
+                candidates.putIfAbsent(place.id(), toCandidate(place));
+            }
+            if (result.end()) {
+                if (fetchedCount != providerPageableCount) {
+                    throw externalApiException();
+                }
+                return new NearbyStoreSearchResult(List.copyOf(candidates.values()));
+            }
+        }
+        throw externalApiException();
     }
 
-    private NearbyStoreSearchResult toSearchResult(final KakaoCategorySearchResult result) {
-        final List<NearbyStoreResult> stores = result.places().stream()
-                .map(this::toStoreResult)
-                .toList();
-        return new NearbyStoreSearchResult(result.totalCount(), stores);
+    private KakaoCategorySearchResult searchPage(final NearbyStoreQuery query, final int page) {
+        try {
+            return kakaoMapClient.searchCategory(
+                    CATEGORY_GROUP_CODE,
+                    query.longitude(),
+                    query.latitude(),
+                    query.radius(),
+                    SORT,
+                    page,
+                    SIZE);
+        } catch (final ApiException exception) {
+            throw exception;
+        } catch (final RuntimeException exception) {
+            throw externalApiException();
+        }
     }
 
-    private NearbyStoreResult toStoreResult(final KakaoPlace place) {
-        return new NearbyStoreResult(
+    private NearbyStoreCandidate toCandidate(final KakaoPlace place) {
+        return new NearbyStoreCandidate(
                 place.id(),
                 place.placeName(),
                 place.latitude(),
@@ -50,7 +93,13 @@ public class KakaoNearbyStoreSearchAdapter implements NearbyStoreSearchPort {
                 place.roadAddressName(),
                 place.phone(),
                 place.placeUrl(),
-                place.distanceMeters(),
-                false);
+                place.distanceMeters());
+    }
+
+    private ApiException externalApiException() {
+        return new ApiException(
+                ErrorType.EXTERNAL_API_ERROR.description(),
+                ErrorType.EXTERNAL_API_ERROR,
+                HttpStatus.BAD_GATEWAY);
     }
 }

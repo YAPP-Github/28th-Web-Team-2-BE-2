@@ -1,9 +1,13 @@
 package com.example.demo.store.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
 import com.example.demo.external.kakao.KakaoPlace;
 import com.example.demo.external.kakao.feign.KakaoMapClient;
@@ -18,30 +22,75 @@ class KakaoNearbyStoreSearchAdapterTest {
     private final KakaoNearbyStoreSearchAdapter adapter = new KakaoNearbyStoreSearchAdapter(kakaoMapClient);
 
     @Test
-    void 카카오_응답을_주변_매장_결과로_변환한다() {
-        when(kakaoMapClient.searchCategory(
-                "MT1", new BigDecimal("127.0276"), new BigDecimal("37.4979"), 1500,
-                "distance", 15))
-                .thenReturn(new KakaoCategorySearchResult(1, List.of(new KakaoPlace(
-                        "123", "강남마트", new BigDecimal("37.4979"), new BigDecimal("127.0276"),
-                        "서울 강남구 삼성동 123", "서울 강남구 테헤란로 123", "02-1234-5678",
-                        "http://place.map.kakao.com/123", 670))));
+    void 모든_Kakao_페이지를_모아_중복_place를_제거한다() {
+        final NearbyStoreQuery query = query();
+        when(kakaoMapClient.searchCategory("MT1", query.longitude(), query.latitude(), 1500,
+                "distance", 1, 15))
+                .thenReturn(new KakaoCategorySearchResult(3, 3, false, List.of(place("1", 100))));
+        when(kakaoMapClient.searchCategory("MT1", query.longitude(), query.latitude(), 1500,
+                "distance", 2, 15))
+                .thenReturn(new KakaoCategorySearchResult(
+                        3, 3, true, List.of(place("1", 100), place("2", 200))));
 
-        final var result = adapter.search(new NearbyStoreQuery(
-                new BigDecimal("37.4979"), new BigDecimal("127.0276"), 1500));
+        final var result = adapter.search(query);
 
-        assertThat(result.totalCount()).isEqualTo(1);
-        assertThat(result.stores())
-                .singleElement()
-                .satisfies(store -> {
-                    assertThat(store.storeId()).isEqualTo("123");
-                    assertThat(store.storeName()).isEqualTo("강남마트");
-                    assertThat(store.latitude()).isEqualByComparingTo("37.4979");
-                    assertThat(store.longitude()).isEqualByComparingTo("127.0276");
-                    assertThat(store.phone()).isEqualTo("02-1234-5678");
-                    assertThat(store.placeUrl()).isEqualTo("http://place.map.kakao.com/123");
-                    assertThat(store.distanceMeters()).isEqualTo(670);
-                    assertThat(store.isLiked()).isFalse();
+        assertThat(result.stores()).extracting("kakaoPlaceId").containsExactly("1", "2");
+        verify(kakaoMapClient).searchCategory("MT1", query.longitude(), query.latitude(), 1500,
+                "distance", 2, 15);
+    }
+
+    @Test
+    void provider_결과가_45페이지를_초과하면_502로_실패한다() {
+        final NearbyStoreQuery query = query();
+        when(kakaoMapClient.searchCategory("MT1", query.longitude(), query.latitude(), 1500,
+                "distance", 1, 15))
+                .thenReturn(new KakaoCategorySearchResult(676, 676, true, List.of()));
+
+        assertThatThrownBy(() -> adapter.search(query))
+                .isInstanceOf(ApiException.class)
+                .satisfies(exception -> {
+                    final ApiException apiException = (ApiException) exception;
+                    assertThat(apiException.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(apiException.httpStatus().value()).isEqualTo(502);
                 });
+    }
+
+    @Test
+    void provider의_total_count가_pageable_count를_초과하면_502로_실패한다() {
+        final NearbyStoreQuery query = query();
+        when(kakaoMapClient.searchCategory("MT1", query.longitude(), query.latitude(), 1500,
+                "distance", 1, 15))
+                .thenReturn(new KakaoCategorySearchResult(100, 45, true, List.of()));
+
+        assertThatThrownBy(() -> adapter.search(query))
+                .isInstanceOf(ApiException.class)
+                .satisfies(exception -> {
+                    final ApiException apiException = (ApiException) exception;
+                    assertThat(apiException.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(apiException.httpStatus().value()).isEqualTo(502);
+                });
+    }
+
+    private NearbyStoreQuery query() {
+        return new NearbyStoreQuery(
+                new BigDecimal("37.4979"),
+                new BigDecimal("127.0276"),
+                1500,
+                false,
+                false,
+                null);
+    }
+
+    private KakaoPlace place(final String id, final int distance) {
+        return new KakaoPlace(
+                id,
+                "강남마트-" + id,
+                new BigDecimal("37.4979"),
+                new BigDecimal("127.0276"),
+                "서울 강남구 삼성동 123",
+                "서울 강남구 테헤란로 123",
+                "02-1234-5678",
+                "http://place.map.kakao.com/" + id,
+                distance);
     }
 }
