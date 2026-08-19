@@ -2,8 +2,10 @@ package com.example.demo.store.presentation.converter;
 
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.application.query.NearbyStoreQuery;
+import com.example.demo.store.application.query.RecommendedStoreQuery;
 import com.example.demo.store.application.query.StoreDetailQuery;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
+import com.example.demo.store.presentation.dto.RecommendedStoreRequest;
 import com.example.demo.store.presentation.dto.StoreDetailRequest;
 import java.util.Objects;
 import org.springframework.security.core.Authentication;
@@ -28,6 +30,12 @@ public class StoreQueryConverter {
                 roleUser,
                 userId,
                 request.keyword());
+    }
+
+    public RecommendedStoreQuery toRecommendedStoreQuery(
+            final RecommendedStoreRequest request) {
+        return new RecommendedStoreQuery(
+                request.regionId(), request.latitude(), request.longitude(), request.radius());
     }
 
     public StoreDetailQuery toStoreDetailQuery(

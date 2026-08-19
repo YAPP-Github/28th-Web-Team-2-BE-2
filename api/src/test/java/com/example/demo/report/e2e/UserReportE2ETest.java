@@ -321,6 +321,83 @@ class UserReportE2ETest {
     }
 
     @Test
+    void 공개_가게별_제보_조회는_가격_스냅샷_필터와_단위_조건을_적용한다() throws Exception {
+        final User user = saveUser("가게 제보 조회 사용자");
+        final User secondUser = saveUser("가게 제보 조회 사용자 2");
+        final User thirdUser = saveUser("가게 제보 조회 사용자 3");
+        final User fourthUser = saveUser("가게 제보 조회 사용자 4");
+        final Long storeId = saveStore("store-report-query");
+        jdbcTemplate.update("""
+                INSERT INTO user_reports (
+                    store_id, item_id, user_id, price, unit, amount, report_date,
+                    public_price_diff, price_diff_rate, report_type
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
+                """, storeId, item.id(), user.id(), 900, item.defaultUnit(), 1,
+                LocalDate.now(), -100, new BigDecimal("-10.00"));
+        jdbcTemplate.update("""
+                INSERT INTO user_reports (
+                    store_id, item_id, user_id, price, unit, amount, report_date,
+                    public_price_diff, price_diff_rate, report_type
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
+                """, storeId, item.id(), secondUser.id(), 1100, item.defaultUnit(), 1,
+                LocalDate.now(), 100, new BigDecimal("10.00"));
+        jdbcTemplate.update("""
+                INSERT INTO user_reports (
+                    store_id, item_id, user_id, price, unit, amount, report_date,
+                    public_price_diff, price_diff_rate, report_type
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
+                """, storeId, item.id(), thirdUser.id(), 1000, item.defaultUnit(), 1,
+                LocalDate.now(), 0, BigDecimal.ZERO);
+        jdbcTemplate.update("""
+                INSERT INTO user_reports (
+                    store_id, item_id, user_id, price, unit, amount, report_date,
+                    public_price_diff, price_diff_rate, report_type
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
+                """, storeId, item.id(), fourthUser.id(), 1000, "2kg", 1,
+                LocalDate.now(), -1, new BigDecimal("-0.10"));
+
+        mockMvc.perform(get("/api/v1/stores/{storeId}/reports", storeId)
+                        .queryParam("filter", "CHEAP"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.storeId").value(storeId))
+                .andExpect(jsonPath("$.data.summary.cheapCount").value(1))
+                .andExpect(jsonPath("$.data.summary.expensiveCount").value(1))
+                .andExpect(jsonPath("$.data.reports").isArray())
+                .andExpect(jsonPath("$.data.reports.length()").value(1))
+                .andExpect(jsonPath("$.data.reports[0].priceClassification").value("CHEAP"))
+                .andExpect(jsonPath("$.data.reports[0].itemName").isNotEmpty())
+                .andExpect(jsonPath("$.data.reports[0].userId").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/stores/{storeId}/reports", storeId)
+                        .queryParam("filter", "EXPENSIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reports.length()").value(1))
+                .andExpect(jsonPath("$.data.reports[0].priceClassification").value("EXPENSIVE"));
+
+        mockMvc.perform(get("/api/v1/stores/{storeId}/reports", storeId)
+                        .queryParam("filter", "ALL")
+                        .queryParam("page", "0")
+                        .queryParam("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reports.length()").value(2))
+                .andExpect(jsonPath("$.data.reports[0].priceClassification").value("EQUAL"))
+                .andExpect(jsonPath("$.data.hasNext").value(true));
+
+        mockMvc.perform(get("/api/v1/stores/{storeId}/reports", storeId)
+                        .queryParam("filter", "ALL")
+                        .queryParam("page", "1")
+                        .queryParam("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reports.length()").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
+
+        mockMvc.perform(get("/api/v1/stores/{storeId}/reports", 999999L))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NO_RESOURCE_ERROR"));
+    }
+
+    @Test
     void 가격_제보_OpenAPI에_생성_및_오류_응답을_노출한다() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
@@ -337,6 +414,9 @@ class UserReportE2ETest {
                 .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.responses['409']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/reports'].post.security[0].bearerAuth")
                         .isArray())
+                .andExpect(jsonPath("$.paths['/api/v1/stores/{storeId}/reports'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/stores/{storeId}/reports'].get.responses['200']").exists())
+                .andExpect(jsonPath("$.components.schemas.StoreReportsResponse.properties.summary").exists())
                 .andExpect(jsonPath("$.components.schemas.CreateUserReportRequest.required")
                         .value(org.hamcrest.Matchers.hasItems("regionId", "reportType")))
                 .andExpect(jsonPath("$.components.schemas.CreateUserReportRequest.required")

@@ -11,16 +11,20 @@ import com.example.demo.common.exception.GlobalExceptionHandler;
 import com.example.demo.common.presentation.ResponseWrapper;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.application.port.NearbyStoreSearchPort;
+import com.example.demo.store.application.port.RecommendedStoreQueryPort;
 import com.example.demo.store.application.port.StorePersistencePort;
 import com.example.demo.store.application.query.StoreDetailQuery;
 import com.example.demo.store.application.result.StoreDetailResult;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
+import com.example.demo.store.application.usecase.GetRecommendedStoresUseCase;
 import com.example.demo.store.application.usecase.GetStoreDetailUseCase;
+import com.example.demo.store.application.usecase.StoreFavoriteUseCase;
 import com.example.demo.store.presentation.dto.StoreDetailRequest;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import com.example.demo.store.presentation.converter.StoreCommandConverter;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
 import com.example.demo.store.presentation.converter.StoreResultConverter;
 import org.hamcrest.Matchers;
@@ -43,6 +47,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @Import({
     GlobalExceptionHandler.class,
     ResponseWrapper.class,
+    StoreCommandConverter.class,
     StoreQueryConverter.class,
     StoreResultConverter.class,
     StoreDetailControllerTest.MockBeans.class
@@ -212,6 +217,22 @@ class StoreDetailControllerTest {
         @Bean
         GetStoreDetailUseCase getStoreDetailUseCase() {
             return Mockito.mock(GetStoreDetailUseCase.class);
+        }
+
+        @Bean
+        RecommendedStoreQueryPort recommendedStoreQueryPort() {
+            return Mockito.mock(RecommendedStoreQueryPort.class);
+        }
+
+        @Bean
+        GetRecommendedStoresUseCase getRecommendedStoresUseCase(
+                final RecommendedStoreQueryPort queryPort) {
+            return new GetRecommendedStoresUseCase(queryPort);
+        }
+
+        @Bean
+        StoreFavoriteUseCase storeFavoriteUseCase() {
+            return Mockito.mock(StoreFavoriteUseCase.class);
         }
     }
 }

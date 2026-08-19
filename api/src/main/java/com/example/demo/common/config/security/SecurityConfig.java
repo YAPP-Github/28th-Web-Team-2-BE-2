@@ -16,6 +16,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -44,6 +45,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers(new RegexRequestMatcher("^/api/v1/stores/[^/]+$", "GET"))
+                        .permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/actuator/health",
@@ -54,7 +57,8 @@ public class SecurityConfig {
                                 "/api/v1/regions/nearby",
                                 "/api/v1/regions/search",
                                 "/api/v1/stores/nearby",
-                                "/api/v1/stores/*",
+                                "/api/v1/stores/recommendation",
+                                "/api/v1/stores/*/reports",
                                 "/api/auth/test/kakao/redirect",
                                 "/api/auth/test/token",
                                 "/swagger-ui/**",
@@ -71,6 +75,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/items/*/favorite")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/stores/*/favorite")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/items/*/reports")
                         .hasRole("USER")
