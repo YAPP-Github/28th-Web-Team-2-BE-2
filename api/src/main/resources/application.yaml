@@ -77,7 +77,6 @@ aws:
     bucket: ${AWS_S3_BUCKET:}
     # key를 그대로 이어 붙이는 접두사다. Terraform output image_base_url 값을 넣는다.
     base-url: ${AWS_S3_BASE_URL:}
-
 qwen:
   # connect/read timeout 은 Feign 규약상 spring.cloud.openfeign.client.config.qwenVisionClient 에 있다.
   # DashScope OpenAI 호환 endpoint. 기본값을 두지 않는다 — 계정마다 host 가 다르고
@@ -88,12 +87,11 @@ qwen:
     model: ${QWEN_VISION_MODEL:qwen-vl-plus}
   # 기본값을 두지 않는다. 누락되면 placeholder 오류에 env 이름이 찍혀 진단이 쉽다(kakao 와 같은 방식).
   api-key: ${QWEN_API_KEY}
-  retry:
+  vision-retry:
     # 사용자가 화면에서 기다리는 동기 호출이라 총 2회(최초 1회 + 재시도 1회)로 제한한다.
     max-attempts: ${QWEN_RETRY_MAX_ATTEMPTS:2}
-    # Feign 자식 컨텍스트에는 Duration 변환기가 없어 밀리초로 둔다.
+    # Feign 자식 컨텍스트에는 Duration 변환기가 없어 "500ms" 를 변환하지 못한다. 밀리초로 둔다.
     period-ms: ${QWEN_RETRY_PERIOD_MS:500}
-    max-period-ms: ${QWEN_RETRY_MAX_PERIOD_MS:2000}
 
 kakao:
   map:
