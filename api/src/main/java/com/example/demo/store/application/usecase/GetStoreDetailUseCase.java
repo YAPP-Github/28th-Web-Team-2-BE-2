@@ -3,30 +3,42 @@ package com.example.demo.store.application.usecase;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.store.application.port.StoreDetailQueryPort;
+import com.example.demo.store.application.port.StoreDetailEnrichmentPort;
 import com.example.demo.store.application.query.StoreDetailQuery;
 import com.example.demo.store.application.result.StoreDetailResult;
 import com.example.demo.store.application.result.StoreDetailSnapshot;
 import com.example.demo.store.application.result.StoreReportSummary;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 public class GetStoreDetailUseCase {
 
     private static final int RECENT_REPORT_DAYS = 30;
     private static final double EARTH_RADIUS_METERS = 6_371_000;
 
     private final StoreDetailQueryPort storeDetailQueryPort;
+    private final StoreDetailEnrichmentPort enrichmentPort;
 
-    @Transactional(readOnly = true)
+    @Autowired
+    public GetStoreDetailUseCase(
+            final StoreDetailQueryPort storeDetailQueryPort,
+            final StoreDetailEnrichmentPort enrichmentPort) {
+        this.storeDetailQueryPort = storeDetailQueryPort;
+        this.enrichmentPort = enrichmentPort;
+    }
+
+    public GetStoreDetailUseCase(final StoreDetailQueryPort storeDetailQueryPort) {
+        this(storeDetailQueryPort, snapshot -> snapshot);
+    }
+
     public StoreDetailResult execute(final StoreDetailQuery query) {
-        final StoreDetailSnapshot store = storeDetailQueryPort.findStore(query.storeId())
+        StoreDetailSnapshot store = storeDetailQueryPort.findStore(query.storeId())
                 .orElseThrow(this::storeNotFound);
+        store = enrich(store);
         final StoreReportSummary reports = storeDetailQueryPort.findReportSummary(
                 query.storeId(), LocalDate.now().minusDays(RECENT_REPORT_DAYS - 1L));
         final boolean isLiked = query.userId() != null
@@ -35,7 +47,7 @@ public class GetStoreDetailUseCase {
         return new StoreDetailResult(
                 store.storeId(),
                 store.storeName(),
-                null,
+                store.storeImageUrl(),
                 isLiked,
                 storeDetailQueryPort.countFavorites(store.storeId()),
                 reports.cheapItemCount(),
@@ -50,8 +62,22 @@ public class GetStoreDetailUseCase {
                 store.longitude(),
                 distanceMeters(store, query.latitude(), query.longitude()),
                 null,
-                null,
-                "UNKNOWN");
+                store.businessHours(),
+                store.openStatus());
+    }
+
+    private StoreDetailSnapshot enrich(final StoreDetailSnapshot store) {
+        if (store.placeUrl() == null || store.placeUrl().isBlank()
+                || store.kakaoDetailsCollectedAt() != null || store.hasKakaoDetails()) {
+            return store;
+        }
+        try {
+            final StoreDetailSnapshot enriched = enrichmentPort.enrich(store);
+            final StoreDetailSnapshot saved = storeDetailQueryPort.saveDetails(enriched);
+            return saved == null ? enriched : saved;
+        } catch (final RuntimeException exception) {
+            return store;
+        }
     }
 
     private ApiException storeNotFound() {

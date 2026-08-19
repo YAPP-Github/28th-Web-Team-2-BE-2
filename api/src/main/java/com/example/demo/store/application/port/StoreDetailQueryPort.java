@@ -9,6 +9,8 @@ public interface StoreDetailQueryPort {
 
     Optional<StoreDetailSnapshot> findStore(Long storeId);
 
+    StoreDetailSnapshot saveDetails(StoreDetailSnapshot snapshot);
+
     boolean isLiked(Long userId, Long storeId);
 
     long countFavorites(Long storeId);

@@ -41,6 +41,17 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
     }
 
     @Override
+    public StoreDetailSnapshot saveDetails(final StoreDetailSnapshot snapshot) {
+        final Store store = storeJpaRepository.findById(snapshot.storeId()).orElseThrow();
+        store.updateKakaoDetails(
+                snapshot.storeImageUrl(),
+                snapshot.businessHours() == null ? null : String.join("\n", snapshot.businessHours()),
+                snapshot.openStatus(),
+                Instant.now());
+        return toSnapshot(storeJpaRepository.save(store));
+    }
+
+    @Override
     public boolean isLiked(final Long userId, final Long storeId) {
         return storeFavoriteJpaRepository.existsByUserIdAndStoreId(userId, storeId);
     }
@@ -64,7 +75,19 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
                 store.placeName(),
                 store.addressName(),
                 store.latitude(),
-                store.longitude());
+                store.longitude(),
+                store.placeUrl(),
+                store.imageUrl(),
+                splitHours(store.businessHours()),
+                store.openStatus() == null ? "UNKNOWN" : store.openStatus(),
+                store.kakaoDetailsCollectedAt());
+    }
+
+    private java.util.List<String> splitHours(final String businessHours) {
+        if (businessHours == null || businessHours.isBlank()) {
+            return null;
+        }
+        return java.util.List.of(businessHours.split("\\n"));
     }
 
     private StoreReportSummary toReportSummary(final ResultSet resultSet, final int rowNumber)

@@ -1,0 +1,4 @@
+ALTER TABLE stores ADD COLUMN image_url VARCHAR(500);
+ALTER TABLE stores ADD COLUMN business_hours VARCHAR(2000);
+ALTER TABLE stores ADD COLUMN open_status VARCHAR(30);
+ALTER TABLE stores ADD COLUMN kakao_details_collected_at TIMESTAMP WITH TIME ZONE;
