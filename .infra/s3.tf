@@ -16,10 +16,12 @@ resource "aws_s3_bucket" "images" {
 resource "aws_s3_bucket_public_access_block" "images" {
   bucket = aws_s3_bucket.images.id
 
+  # ACL 은 계속 차단한다. 공개 읽기는 아래 bucket policy 로만 허용한다 — 어느 객체가 공개인지
+  # 한 곳에서 읽히고, 객체마다 ACL 이 달라지는 상황이 생기지 않는다.
   block_public_acls       = true
-  block_public_policy     = true
   ignore_public_acls      = true
-  restrict_public_buckets = true
+  block_public_policy     = false
+  restrict_public_buckets = false
 }
 
 resource "aws_s3_bucket_ownership_controls" "images" {
@@ -106,7 +108,27 @@ resource "aws_iam_role_policy" "ec2_image_storage" {
 # presigned URL 이 유출되거나 클라이언트가 http 로 붙으면 사진과 SigV4 서명이 평문으로 흐른다.
 # SDK 는 https 로 만들지만 버킷 차원에서 막을 수 있는 것을 열어 둘 이유가 없다.
 # Deny 문장은 public grant 가 아니므로 block_public_policy 와 충돌하지 않는다.
-data "aws_iam_policy_document" "images_tls_only" {
+data "aws_iam_policy_document" "images" {
+  # 제보 사진 공개 읽기.
+  #
+  # 계약(SKILL.md)이 "영구 저장 URL"을 사용자 데이터에 저장하라고 정한다. 그 URL 로 사진이 보이려면
+  # 객체를 직접 가져올 수 있어야 한다. 비공개로 두면 조회마다 presigned GET 을 발급해야 하고
+  # URL 이 만료돼 브라우저·CDN 캐시가 무효가 된다.
+  #
+  # key 가 UUIDv4 라 추측할 수 없고 대상은 매장 가격표 사진이다. 범위를 images/ 접두사로 한정해
+  # 버킷의 다른 경로가 함께 열리지 않게 한다.
+  statement {
+    sid       = "PublicReadReportImages"
+    effect    = "Allow"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.images.arn}/images/*"]
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+  }
+
   statement {
     sid     = "DenyInsecureTransport"
     effect  = "Deny"
@@ -131,7 +153,7 @@ data "aws_iam_policy_document" "images_tls_only" {
 
 resource "aws_s3_bucket_policy" "images" {
   bucket = aws_s3_bucket.images.id
-  policy = data.aws_iam_policy_document.images_tls_only.json
+  policy = data.aws_iam_policy_document.images.json
 
   depends_on = [aws_s3_bucket_public_access_block.images]
 }
