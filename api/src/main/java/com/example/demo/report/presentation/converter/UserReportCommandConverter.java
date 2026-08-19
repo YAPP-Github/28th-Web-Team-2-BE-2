@@ -1,9 +1,11 @@
 package com.example.demo.report.presentation.converter;
 
+import com.example.demo.report.application.command.AnalyzeReportImageCommand;
 import com.example.demo.report.application.command.CreateUserReportCommand;
 import com.example.demo.report.application.command.StoreSnapshot;
 import com.example.demo.report.domain.ReportType;
 import com.example.demo.report.presentation.dto.CreateUserReportRequest;
+import com.example.demo.report.presentation.dto.ImageAnalysisRequest;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,5 +20,9 @@ public class UserReportCommandConverter {
                         store.id(), store.placeName(), store.placeUrl(), store.categoryName(),
                         store.addressName(), store.roadAddressName(), store.phone(), store.categoryGroupCode(),
                         store.categoryGroupName(), store.x(), store.y(), store.distance()), request.photoUrl());
+    }
+
+    public AnalyzeReportImageCommand toAnalyzeReportImageCommand(final ImageAnalysisRequest request) {
+        return new AnalyzeReportImageCommand(request.imageUrl(), request.itemId());
     }
 }

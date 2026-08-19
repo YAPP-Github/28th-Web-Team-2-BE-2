@@ -2,7 +2,8 @@ package com.example.demo.report.presentation;
 
 import com.example.demo.report.application.result.ImageAnalysisResult;
 import com.example.demo.report.application.usecase.AnalyzeReportImageUseCase;
-import com.example.demo.report.presentation.converter.ImageAnalysisConverter;
+import com.example.demo.report.presentation.converter.UserReportCommandConverter;
+import com.example.demo.report.presentation.converter.UserReportResultConverter;
 import com.example.demo.report.presentation.dto.ImageAnalysisRequest;
 import com.example.demo.report.presentation.dto.ImageAnalysisResponse;
 import com.example.demo.report.presentation.spec.UserReportImageAnalysisControllerSpec;
@@ -29,14 +30,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserReportImageAnalysisController implements UserReportImageAnalysisControllerSpec {
 
     private final AnalyzeReportImageUseCase analyzeReportImageUseCase;
-    private final ImageAnalysisConverter converter;
+    private final UserReportCommandConverter commandConverter;
+    private final UserReportResultConverter resultConverter;
 
     @PostMapping("/image-analysis")
     @Override
     public ResponseEntity<ImageAnalysisResponse> analyzeImage(
             @Valid @RequestBody final ImageAnalysisRequest request) {
         final ImageAnalysisResult result = analyzeReportImageUseCase.execute(
-                converter.toCommand(request));
-        return ResponseEntity.ok(converter.toResponse(result));
+                commandConverter.toAnalyzeReportImageCommand(request));
+        return ResponseEntity.ok(resultConverter.toImageAnalysisResponse(result));
     }
 }

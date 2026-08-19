@@ -23,7 +23,8 @@ import com.example.demo.report.application.contract.ItemCandidate;
 import com.example.demo.report.application.result.ImageAnalysisResult;
 import com.example.demo.report.application.usecase.AnalyzeReportImageUseCase;
 import com.example.demo.report.domain.AnalysisConfidence;
-import com.example.demo.report.presentation.converter.ImageAnalysisConverter;
+import com.example.demo.report.presentation.converter.UserReportCommandConverter;
+import com.example.demo.report.presentation.converter.UserReportResultConverter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.List;
@@ -47,7 +48,8 @@ import org.springframework.test.web.servlet.MockMvc;
     SecurityErrorResponseWriter.class,
     JwtAuthenticationEntryPoint.class,
     JwtAccessDeniedHandler.class,
-    ImageAnalysisConverter.class,
+    UserReportCommandConverter.class,
+    UserReportResultConverter.class,
     ImageAnalysisControllerTest.MockBeans.class
 })
 class ImageAnalysisControllerTest {
