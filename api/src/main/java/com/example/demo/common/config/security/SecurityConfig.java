@@ -71,6 +71,8 @@ public class SecurityConfig {
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/items/*/reports")
                         .hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me/regions")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/me/regions")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/users/me/regions/*/current")

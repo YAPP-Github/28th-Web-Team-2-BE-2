@@ -2,6 +2,7 @@ package com.example.demo.user.presentation.spec;
 
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.user.presentation.dto.AddUserRegionRequest;
+import com.example.demo.user.presentation.dto.UserRegionsResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +16,21 @@ import org.springframework.http.ResponseEntity;
 
 @Tag(name = "User Region", description = "사용자 관심 지역 API")
 public interface UserRegionControllerSpec {
+
+    @Operation(
+            summary = "현재 사용자의 관심 지역을 조회한다",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "관심 지역 조회 성공",
+                content = @Content(
+                        mediaType = "application/json",
+                        schema = @Schema(implementation = UserRegionsResponse.class))),
+        @ApiResponse(responseCode = "401", description = "로그인이 필요하다"),
+        @ApiResponse(responseCode = "403", description = "사용자 권한이 필요하다")
+    })
+    ResponseEntity<UserRegionsResponse> getRegions(@Parameter(hidden = true) AuthPrincipal principal);
 
     @Operation(
             summary = "현재 사용자의 관심 지역을 추가한다",

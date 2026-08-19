@@ -18,4 +18,12 @@ public class Region {
 
     @Column(name = "region_name", nullable = false, length = 100)
     private String regionName;
+
+    public String regionId() {
+        return regionId;
+    }
+
+    public String regionName() {
+        return regionName;
+    }
 }
