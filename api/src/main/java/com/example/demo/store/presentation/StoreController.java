@@ -52,7 +52,9 @@ public class StoreController implements StoreControllerSpec {
     @GetMapping("/recommended")
     @Override
     public ResponseEntity<RecommendedStoresResponse> getRecommendedStores(
-            @Valid @ModelAttribute final RecommendedStoreRequest request) {
+            @Valid @ModelAttribute final RecommendedStoreRequest request,
+            final HttpServletRequest servletRequest) {
+        rejectInvalidToken(servletRequest);
         final RecommendedStoresResponse response = storeResultConverter.toRecommendedStoresResponse(
                 getRecommendedStoresUseCase.execute(
                         storeQueryConverter.toRecommendedStoreQuery(request)));

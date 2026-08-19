@@ -68,6 +68,14 @@ class StoreSecurityIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
                 .andExpect(jsonPath("$.data").value(nullValue()));
+
+        mockMvc.perform(get("/api/v1/stores/recommended")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token")
+                        .queryParam("latitude", "37.5")
+                        .queryParam("longitude", "127.0"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
