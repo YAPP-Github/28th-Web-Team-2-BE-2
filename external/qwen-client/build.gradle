@@ -8,4 +8,14 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // 레포의 *.live 관용구. 기본값 false 라 CI 는 항상 skip 한다.
+    systemProperty 'qwen.live', System.getProperty('qwen.live', 'false')
+    ['qwen.live.url', 'qwen.live.model', 'qwen.live.imageUrl'].each { key ->
+        if (System.getProperty(key)) {
+            systemProperty key, System.getProperty(key)
+        }
+    }
+    testLogging {
+        showStandardStreams = System.getProperty('qwen.live', 'false') == 'true'
+    }
 }

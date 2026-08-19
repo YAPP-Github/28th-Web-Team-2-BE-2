@@ -41,7 +41,27 @@ DashScope 의 OpenAI 호환 endpoint(`/compatible-mode/v1/chat/completions`)로 
 5. DashScope 가 우리 S3 URL 을 실제로 가져올 수 있는지. 이 기능 전체가 여기 걸려 있다.
 6. `message.content` 가 문자열이 아니라 파트 배열로 오는 provider 가 있다. 그러면 역직렬화가 실패한다.
 
-확인 방법:
+확인 방법 — `QwenVisionLiveSmokeTest` 를 쓴다. 레포의 다른 live smoke 테스트와 같은 방식으로
+기본값에서는 skip 되고 `-Dqwen.live=true` 일 때만 돈다.
+
+```bash
+QWEN_API_KEY=... ./gradlew :external:qwen-client:test \
+    --tests '*QwenVisionLiveSmokeTest*' -Dqwen.live=true
+```
+
+세 테스트가 각각 (a) 프로덕션과 같은 본문이 200 을 받고 JSON 이 돌아오는지, (b) `response_format`
+을 뺐을 때와 비교, (c) 계정에서 쓸 수 있는 모델 목록을 확인한다. host·model·이미지는 프로퍼티로
+바꿀 수 있다.
+
+```bash
+-Dqwen.live.url=https://dashscope.aliyuncs.com/compatible-mode/v1
+-Dqwen.live.model=qwen-vl-max
+-Dqwen.live.imageUrl=https://<bucket>.s3.ap-northeast-2.amazonaws.com/images/<uuid>.jpg
+```
+
+버킷이 준비되면 마지막 프로퍼티로 5번(우리 S3 URL 접근)까지 확인된다.
+
+수동 확인이 필요하면:
 
 ```bash
 curl -X POST "$QWEN_VISION_URL/chat/completions" \
