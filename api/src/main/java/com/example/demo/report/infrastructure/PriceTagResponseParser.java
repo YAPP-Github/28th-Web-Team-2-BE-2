@@ -25,6 +25,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class PriceTagResponseParser {
 
+    private static final int AMOUNT_SCALE = 3;
+    private static final int AMOUNT_INTEGER_DIGITS = 7;
+
     private final ObjectMapper objectMapper;
 
     public ExtractedPriceTag parse(final String content) {
@@ -34,9 +37,10 @@ public class PriceTagResponseParser {
                 confidence(root, "itemConfidence"),
                 integer(root, "price"),
                 confidence(root, "priceConfidence"),
+                text(root, "priceBasis"),
                 decimal(root, "amount"),
                 confidence(root, "amountConfidence"),
-                numberCount(root));
+                otherNumberCount(root));
     }
 
     private JsonNode readTree(final String content) {
@@ -78,6 +82,10 @@ public class PriceTagResponseParser {
         if (node == null || !node.isNumber()) {
             return null;
         }
+        // asInt() 는 int 범위를 넘는 값을 조용히 잘라낸다 — 99999999999 가 1215752191 이 된다.
+        if (!node.canConvertToInt()) {
+            return null;
+        }
         // 음수 가격은 사진에서 나올 수 없다. 파싱 오류로 보고 버린다.
         if (node.asInt() <= 0) {
             return null;
@@ -94,20 +102,35 @@ public class PriceTagResponseParser {
         if (value.signum() <= 0) {
             return null;
         }
+        // 저장 API 가 @Digits(integer = 7, fraction = 3) 이다. 넘는 값을 실어 보내면 400 이 된다.
+        if (value.scale() > AMOUNT_SCALE || value.precision() - value.scale() > AMOUNT_INTEGER_DIGITS) {
+            return null;
+        }
         return value;
     }
 
+    /**
+     * 신뢰도는 0~1 밖이면 버린다.
+     *
+     * <p>clamp 하지 않는 이유가 있다. 모델이 0~100 스케일로 답하면(프롬프트로 금지해도 흔한 이탈)
+     * 90 이 1.00 으로 올라가 "확신 90%"가 "최대 확신"으로 승격된다. 모르는 값은 모른다고 두는 편이
+     * 낫다 — 신뢰도 하나를 비우는 건 인식 결과를 버리는 게 아니다.
+     */
     private AnalysisConfidence confidence(final JsonNode root, final String field) {
         final JsonNode node = root.get(field);
         if (node == null || !node.isNumber()) {
             return null;
         }
-        return new AnalysisConfidence(node.decimalValue());
+        final BigDecimal value = node.decimalValue();
+        if (value.signum() < 0 || value.compareTo(BigDecimal.ONE) > 0) {
+            return null;
+        }
+        return new AnalysisConfidence(value);
     }
 
-    private int numberCount(final JsonNode root) {
-        final JsonNode node = root.get("numberCount");
-        if (node == null || !node.isNumber() || node.asInt() < 0) {
+    private int otherNumberCount(final JsonNode root) {
+        final JsonNode node = root.get("otherNumberCount");
+        if (node == null || !node.isNumber() || !node.canConvertToInt() || node.asInt() < 0) {
             return 0;
         }
         return node.asInt();

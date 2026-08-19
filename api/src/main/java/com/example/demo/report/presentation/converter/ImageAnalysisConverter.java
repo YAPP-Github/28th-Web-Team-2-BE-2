@@ -7,7 +7,6 @@ import com.example.demo.report.domain.AnalysisConfidence;
 import com.example.demo.report.presentation.dto.ImageAnalysisRequest;
 import com.example.demo.report.presentation.dto.ImageAnalysisResponse;
 import java.math.BigDecimal;
-import java.util.List;
 import org.springframework.stereotype.Component;
 
 /** 인식 요청·결과 변환. */
@@ -21,7 +20,6 @@ public class ImageAnalysisConverter {
     public ImageAnalysisResponse toResponse(final ImageAnalysisResult result) {
         return new ImageAnalysisResponse(
                 toItem(result.item(), result.unit(), result.itemConfidence()),
-                toCandidates(result.candidates()),
                 toPrice(result),
                 toAmount(result));
     }
@@ -35,17 +33,6 @@ public class ImageAnalysisConverter {
                 candidate.itemId(), candidate.name(), unit, valueOf(confidence));
     }
 
-    /**
-     * 후보 목록에도 단위를 담는다. 사용자가 후보를 고른 순간 화면이 저장 요청의 {@code unit}을
-     * 채울 수 있어야 하고, 그 값은 품목마다 다르다.
-     */
-    private List<ImageAnalysisResponse.AnalyzedItem> toCandidates(final List<ItemCandidate> candidates) {
-        return candidates.stream()
-                .map(candidate -> new ImageAnalysisResponse.AnalyzedItem(
-                        candidate.itemId(), candidate.name(), candidate.defaultUnit(), null))
-                .toList();
-    }
-
     private ImageAnalysisResponse.AnalyzedPrice toPrice(final ImageAnalysisResult result) {
         if (result.price() == null) {
             return null;
@@ -53,7 +40,9 @@ public class ImageAnalysisConverter {
         return new ImageAnalysisResponse.AnalyzedPrice(
                 result.price(),
                 ImageAnalysisResponse.AnalyzedPrice.KRW,
-                valueOf(result.priceConfidence()));
+                valueOf(result.priceConfidence()),
+                result.priceBasis(),
+                unitMatched(result));
     }
 
     private ImageAnalysisResponse.AnalyzedAmount toAmount(final ImageAnalysisResult result) {
@@ -62,6 +51,23 @@ public class ImageAnalysisConverter {
         }
         return new ImageAnalysisResponse.AnalyzedAmount(
                 result.amount(), valueOf(result.amountConfidence()));
+    }
+
+    /**
+     * 사진의 가격 기준과 품목 기본 단위가 같은지.
+     *
+     * <p>둘 중 하나라도 모르면 판단할 수 없으므로 {@code null}이다. 억지로 true 로 두면 클라이언트가
+     * 환산 없이 저장해 공시가 대비 차이가 왜곡된다.
+     */
+    private Boolean unitMatched(final ImageAnalysisResult result) {
+        if (result.priceBasis() == null || result.unit() == null) {
+            return null;
+        }
+        return result.unit().equals(normalize(result.priceBasis()));
+    }
+
+    private String normalize(final String basis) {
+        return basis.replaceAll("\\s+", "");
     }
 
     private BigDecimal valueOf(final AnalysisConfidence confidence) {

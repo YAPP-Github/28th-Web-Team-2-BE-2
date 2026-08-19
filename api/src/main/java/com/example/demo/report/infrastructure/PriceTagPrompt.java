@@ -21,16 +21,20 @@ final class PriceTagPrompt {
               "itemConfidence": number|null, // 0~1
               "price": integer|null,         // 판매 가격의 숫자만. 통화기호와 콤마 제외
               "priceConfidence": number|null, // 0~1. 이 숫자가 판매 가격이라는 확신
+              "priceBasis": string|null,     // 그 가격이 적용되는 수량 표기. 사진에 적힌 그대로
               "amount": number|null,         // 수량 또는 중량의 숫자. 사진에 근거가 없으면 null
               "amountConfidence": number|null,
-              "numberCount": integer         // 가격표에서 발견한 숫자의 총 개수
+              "otherNumberCount": integer    // 가격·수량으로 쓰지 않은 나머지 숫자의 개수
             }
 
             규칙:
             - 사진에서 확인할 수 없는 값은 추측하지 말고 null로 둔다.
             - amount는 선택값이다. "1망", "2개"처럼 수량이 적혀 있을 때만 채운다.
-            - 단위(kg, 개, 망 등)는 출력하지 않는다. 우리 시스템이 따로 결정한다.
-            - numberCount에는 가격이 아닌 숫자도 포함한다. 예: "250원 / 1인 10개 제한"이면 250, 1, 10 → 3.
+            - priceBasis는 가격이 어떤 수량에 붙은 값인지다. "3kg 9900원"이면 "3kg",
+              "1개 500원"이면 "1개". 기준이 안 적혀 있으면 null로 둔다. 추측하지 않는다.
+            - otherNumberCount는 price·amount·priceBasis로 쓴 숫자를 '제외'한 나머지 개수다.
+              예: "250원 / 1인 10개 제한" → price=250, priceBasis=null, 남는 숫자는 1과 10 → 2.
+              예: "감자 1kg 3900원" → price=3900, priceBasis="1kg", 남는 숫자 없음 → 0.
             - 통화는 항상 원(KRW)으로 가정한다.
             """;
 

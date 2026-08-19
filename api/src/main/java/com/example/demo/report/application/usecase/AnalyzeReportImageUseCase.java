@@ -1,5 +1,7 @@
 package com.example.demo.report.application.usecase;
 
+import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
 import com.example.demo.report.application.command.AnalyzeReportImageCommand;
 import com.example.demo.report.application.contract.ExtractedPriceTag;
 import com.example.demo.report.application.contract.ItemCandidate;
@@ -8,8 +10,8 @@ import com.example.demo.report.application.port.ItemCandidateQueryPort;
 import com.example.demo.report.application.result.ImageAnalysisResult;
 import com.example.demo.report.domain.AnalysisConfidence;
 import com.example.demo.report.domain.policy.PriceExtractionPolicy;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 /**
@@ -33,55 +35,46 @@ public class AnalyzeReportImageUseCase {
 
     public ImageAnalysisResult execute(final AnalyzeReportImageCommand command) {
         final ExtractedPriceTag extracted = imageAnalysisPort.analyze(command.imageUrl());
-        final List<ItemCandidate> candidates = resolveCandidates(command, extracted);
-        return toResult(extracted, candidates);
+        return toResult(extracted, resolveItem(command, extracted), command.hasSelectedItem());
     }
 
-    private List<ItemCandidate> resolveCandidates(
+    private ItemCandidate resolveItem(
             final AnalyzeReportImageCommand command, final ExtractedPriceTag extracted) {
         if (command.hasSelectedItem()) {
-            // 사용자가 고른 품목이 정본이다. 모델 판단으로 덮지 않는다.
-            return itemCandidateQueryPort.findById(command.itemId()).map(List::of).orElseGet(List::of);
+            // 사용자가 고른 품목이 정본이다. 모델 판단으로 덮지 않는다. 없는 ID 를 준 건 요청이
+            // 잘못된 것이므로 404 로 끝낸다 — 조용히 비우면 "인식 실패"와 구분할 수 없고 저장
+            // 단계에서야 404 를 만난다.
+            return itemCandidateQueryPort.findById(command.itemId())
+                    .orElseThrow(AnalyzeReportImageUseCase::itemNotFound);
         }
         if (!extracted.hasItemName()) {
-            return List.of();
+            return null;
         }
-        return itemCandidateQueryPort.findCandidatesByName(extracted.itemName());
+        return itemCandidateQueryPort.findByName(extracted.itemName()).orElse(null);
     }
 
     private ImageAnalysisResult toResult(
-            final ExtractedPriceTag extracted, final List<ItemCandidate> candidates) {
-        final ItemCandidate matched = singleMatch(candidates);
+            final ExtractedPriceTag extracted, final ItemCandidate matched, final boolean selected) {
         return new ImageAnalysisResult(
                 matched,
-                itemConfidence(extracted, candidates),
-                candidates,
+                itemConfidence(extracted, matched, selected),
                 extracted.price(),
                 priceConfidence(extracted),
+                extracted.priceBasis(),
                 unitOf(matched),
                 extracted.amount(),
                 amountConfidence(extracted));
     }
 
-    /**
-     * 후보가 하나일 때만 확정한다. 여럿이면 {@code item}을 비우고 후보 목록만 준다 — 화면이
-     * 사용자에게 고르게 해야 한다.
-     */
-    private ItemCandidate singleMatch(final List<ItemCandidate> candidates) {
-        if (candidates.size() == 1) {
-            return candidates.getFirst();
-        }
-        return null;
-    }
-
     private AnalysisConfidence itemConfidence(
-            final ExtractedPriceTag extracted, final List<ItemCandidate> candidates) {
-        if (candidates.isEmpty()) {
+            final ExtractedPriceTag extracted, final ItemCandidate matched, final boolean selected) {
+        if (matched == null) {
             return null;
         }
-        if (candidates.size() > 1) {
-            // 우리 목록에서 갈렸다는 사실 자체가 근거 부족이다. 모델 점수를 그대로 쓰지 않는다.
-            return AnalysisConfidence.low();
+        // 사용자가 고른 품목에는 AI 신뢰도가 없다. 모델이 다른 품목에 매긴 점수를 그 품목의
+        // 신뢰도로 내보내면 "오이 96%" 같은 거짓 표시가 된다.
+        if (selected) {
+            return null;
         }
         return extracted.itemConfidence();
     }
@@ -102,7 +95,14 @@ public class AnalyzeReportImageUseCase {
             return null;
         }
         return PriceExtractionPolicy.downgradeIfAmbiguous(
-                extracted.priceConfidence(), extracted.numberCount());
+                extracted.priceConfidence(), extracted.otherNumberCount());
+    }
+
+    private static ApiException itemNotFound() {
+        return new ApiException(
+                ErrorType.NO_RESOURCE_ERROR.description(),
+                ErrorType.NO_RESOURCE_ERROR,
+                HttpStatus.NOT_FOUND);
     }
 
     private AnalysisConfidence amountConfidence(final ExtractedPriceTag extracted) {
@@ -110,6 +110,6 @@ public class AnalyzeReportImageUseCase {
             return null;
         }
         return PriceExtractionPolicy.downgradeIfAmbiguous(
-                extracted.amountConfidence(), extracted.numberCount());
+                extracted.amountConfidence(), extracted.otherNumberCount());
     }
 }

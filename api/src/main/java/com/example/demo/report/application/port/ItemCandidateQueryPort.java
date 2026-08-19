@@ -1,7 +1,6 @@
 package com.example.demo.report.application.port;
 
 import com.example.demo.report.application.contract.ItemCandidate;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -12,13 +11,15 @@ import java.util.Optional;
 public interface ItemCandidateQueryPort {
 
     /**
-     * 인식된 이름에 대응할 수 있는 품목을 찾는다.
+     * 인식된 이름에 대응하는 품목을 찾는다.
      *
-     * <p>여러 개를 돌려줄 수 있다. 품목 목록에 {@code 쥬키니/애호박}, {@code 적상추/청상추},
-     * {@code 방울토마토/대추방울토마토}, {@code 고춧가루-국산/중국산}처럼 사진만으로 가릴 수 없는
-     * 쌍이 있어서다. 하나로 좁히지 않고 사용자가 고르게 한다.
+     * <p>{@code items.item_name}이 유일하고 정확 일치만 하므로 결과는 없거나 하나다. 못 찾으면
+     * 비어 있고, 화면은 사용자가 직접 고르는 경로로 넘어간다.
+     *
+     * <p>별칭·기준명 매핑을 붙여 후보를 여러 개 주고 싶어지면 그때 반환형을 넓힌다. 지금 목록으로
+     * 열어 두면 만들 수 없는 값을 위한 분기만 남는다.
      */
-    List<ItemCandidate> findCandidatesByName(String itemName);
+    Optional<ItemCandidate> findByName(String itemName);
 
     /** 사용자가 이미 품목을 골라 둔 경우의 검증용 조회다. */
     Optional<ItemCandidate> findById(Long itemId);

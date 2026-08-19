@@ -74,15 +74,16 @@ class ImageAnalysisControllerTest {
 
     @Test
     void 인식에_성공하면_품목_가격_단위를_응답한다() throws Exception {
-        when(analyzeReportImageUseCase.execute(any())).thenReturn(new ImageAnalysisResult(
-                new ItemCandidate(12L, "오이", "1개"),
-                new AnalysisConfidence(new BigDecimal("0.96")),
-                List.of(new ItemCandidate(12L, "오이", "1개")),
-                250,
-                new AnalysisConfidence(new BigDecimal("0.95")),
-                "1개",
-                new BigDecimal("1"),
-                new AnalysisConfidence(new BigDecimal("0.72"))));
+        when(analyzeReportImageUseCase.execute(any())).thenReturn(ImageAnalysisResult.builder()
+                .item(new ItemCandidate(12L, "오이", "1개"))
+                .itemConfidence(new AnalysisConfidence(new BigDecimal("0.96")))
+                .price(250)
+                .priceConfidence(new AnalysisConfidence(new BigDecimal("0.95")))
+                .priceBasis("1개")
+                .unit("1개")
+                .amount(new BigDecimal("1"))
+                .amountConfidence(new AnalysisConfidence(new BigDecimal("0.72")))
+                .build());
 
         mockMvc.perform(authorized())
                 .andExpect(status().isOk())
@@ -92,14 +93,16 @@ class ImageAnalysisControllerTest {
                 .andExpect(jsonPath("$.data.item.unit").value("1개"))
                 .andExpect(jsonPath("$.data.price.value").value(250))
                 .andExpect(jsonPath("$.data.price.currency").value("KRW"))
-                .andExpect(jsonPath("$.data.amount.value").value(1));
+                .andExpect(jsonPath("$.data.amount.value").value(1))
+                .andExpect(jsonPath("$.data.price.basis").value("1개"))
+                .andExpect(jsonPath("$.data.price.unitMatched").value(true));
     }
 
     // envelope가 이미 code·message를 주므로 payload에 중복해 두지 않는다.
     @Test
     void payload에_status와_message를_두지_않는다() throws Exception {
-        when(analyzeReportImageUseCase.execute(any())).thenReturn(new ImageAnalysisResult(
-                null, null, List.of(), null, null, null, null, null));
+        when(analyzeReportImageUseCase.execute(any()))
+                .thenReturn(ImageAnalysisResult.builder().build());
 
         mockMvc.perform(authorized())
                 .andExpect(status().isOk())
@@ -109,15 +112,13 @@ class ImageAnalysisControllerTest {
 
     @Test
     void 부분_인식이면_인식하지_못한_값을_null로_응답한다() throws Exception {
-        when(analyzeReportImageUseCase.execute(any())).thenReturn(new ImageAnalysisResult(
-                new ItemCandidate(12L, "오이", "1개"),
-                new AnalysisConfidence(new BigDecimal("0.96")),
-                List.of(new ItemCandidate(12L, "오이", "1개")),
-                250,
-                new AnalysisConfidence(new BigDecimal("0.95")),
-                "1개",
-                null,
-                null));
+        when(analyzeReportImageUseCase.execute(any())).thenReturn(ImageAnalysisResult.builder()
+                .item(new ItemCandidate(12L, "오이", "1개"))
+                .itemConfidence(new AnalysisConfidence(new BigDecimal("0.96")))
+                .price(250)
+                .priceConfidence(new AnalysisConfidence(new BigDecimal("0.95")))
+                .unit("1개")
+                .build());
 
         mockMvc.perform(authorized())
                 .andExpect(status().isOk())
@@ -125,23 +126,34 @@ class ImageAnalysisControllerTest {
                 .andExpect(jsonPath("$.data.amount").doesNotExist());
     }
 
+    // 품목을 못 찾으면 사용자가 직접 고른다. item 이 비고 가격은 남는다.
     @Test
-    void 후보가_여럿이면_item은_비우고_candidates를_응답한다() throws Exception {
-        when(analyzeReportImageUseCase.execute(any())).thenReturn(new ImageAnalysisResult(
-                null,
-                AnalysisConfidence.low(),
-                List.of(new ItemCandidate(10L, "애호박", "1개"), new ItemCandidate(11L, "쥬키니", "1개")),
-                3000,
-                AnalysisConfidence.low(),
-                null,
-                null,
-                null));
+    void 품목을_못_찾으면_item을_비우고_가격만_응답한다() throws Exception {
+        when(analyzeReportImageUseCase.execute(any())).thenReturn(ImageAnalysisResult.builder()
+                .price(3000)
+                .priceConfidence(AnalysisConfidence.low())
+                .build());
 
         mockMvc.perform(authorized())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.item").doesNotExist())
-                .andExpect(jsonPath("$.data.candidates.length()").value(2))
-                .andExpect(jsonPath("$.data.candidates[0].unit").value("1개"));
+                .andExpect(jsonPath("$.data.price.value").value(3000));
+    }
+
+    // basis 가 item.unit 과 다르면 그 가격을 단위 기준값으로 쓸 수 없다.
+    @Test
+    void 가격_기준이_품목_단위와_다르면_unitMatched가_false다() throws Exception {
+        when(analyzeReportImageUseCase.execute(any())).thenReturn(ImageAnalysisResult.builder()
+                .item(new ItemCandidate(1L, "감자", "1kg"))
+                .price(9900)
+                .priceBasis("3kg")
+                .unit("1kg")
+                .build());
+
+        mockMvc.perform(authorized())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.price.basis").value("3kg"))
+                .andExpect(jsonPath("$.data.price.unitMatched").value(false));
     }
 
     @Test
