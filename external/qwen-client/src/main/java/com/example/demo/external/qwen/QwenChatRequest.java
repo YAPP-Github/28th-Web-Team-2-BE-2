@@ -21,6 +21,7 @@ public record QwenChatRequest(
         String model,
         List<QwenMessage> messages,
         Double temperature,
+        @JsonProperty("max_tokens") Integer maxTokens,
         @JsonProperty("response_format") ResponseFormat responseFormat) {
 
     /** 추출 작업이라 표본 다양성이 필요 없다. 같은 사진에 같은 답이 나오는 편이 낫다. */
@@ -28,8 +29,14 @@ public record QwenChatRequest(
 
     private static final ResponseFormat JSON_OBJECT = new ResponseFormat("json_object");
 
+    /**
+     * 상한을 두지 않으면 출력이 잘렸을 때 깨진 JSON 문자열이 오고, 그게 파싱 실패로만 드러난다.
+     * 추출 스키마는 짧으므로 넉넉히 잡아도 이 값에 닿지 않는다.
+     */
+    private static final Integer MAX_TOKENS = 1024;
+
     public static QwenChatRequest jsonOnly(final String model, final List<QwenMessage> messages) {
-        return new QwenChatRequest(model, messages, DETERMINISTIC, JSON_OBJECT);
+        return new QwenChatRequest(model, messages, DETERMINISTIC, MAX_TOKENS, JSON_OBJECT);
     }
 
     /** {@code response_format}. JSON 객체만 받겠다는 선언이다. */

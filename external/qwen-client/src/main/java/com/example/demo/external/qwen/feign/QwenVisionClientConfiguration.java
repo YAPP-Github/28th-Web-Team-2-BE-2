@@ -10,12 +10,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 
 /**
- * Qwen 클라이언트 구성. API key 검증은 Kakao 클라이언트와 같은 방식이다.
+ * Qwen vision 클라이언트 구성. 이름은 형제 규약({@code <클라이언트>Configuration})을 따른다.
+ * API key 검증은 Kakao 클라이언트와 같은 방식이다.
  *
  * <p>키를 로그·에러 응답에 남기지 않는다. 누락 시 예외 메시지에도 키 값이나 설정 경로를 담지 않고
  * {@code CONFIGURATION_ERROR}만 알린다.
  */
-public class QwenClientConfiguration {
+public class QwenVisionClientConfiguration {
 
     @Bean
     public RequestInterceptor qwenRequestInterceptor(@Value("${qwen.api-key}") final String apiKey) {
@@ -45,9 +46,16 @@ public class QwenClientConfiguration {
      */
     @Bean
     public Retryer qwenRetryer(
+<<<<<<< HEAD:external/qwen-client/src/main/java/com/example/demo/external/qwen/feign/QwenClientConfiguration.java
             @Value("${qwen.retry.period-ms:500}") final long periodMs,
             @Value("${qwen.retry.max-period-ms:2000}") final long maxPeriodMs,
             @Value("${qwen.retry.max-attempts:2}") final int maxAttempts) {
         return new Retryer.Default(periodMs, maxPeriodMs, maxAttempts);
+=======
+            @Value("${qwen.retry.period:500ms}") final java.time.Duration period,
+            @Value("${qwen.retry.max-period:2s}") final java.time.Duration maxPeriod,
+            @Value("${qwen.vision-retry.max-attempts:2}") final int maxAttempts) {
+        return new Retryer.Default(period.toMillis(), maxPeriod.toMillis(), maxAttempts);
+>>>>>>> origin/feat/qwen-vision-client:external/qwen-client/src/main/java/com/example/demo/external/qwen/feign/QwenVisionClientConfiguration.java
     }
 }

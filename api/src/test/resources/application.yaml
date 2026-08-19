@@ -52,10 +52,25 @@ kakao:
     issuer: https://kauth.kakao.com
     jwk-set-uri: https://kauth.kakao.com/.well-known/jwks.json
 
-# 컨텍스트가 뜨는 데만 필요하다. 실제 호출은 테스트에서 mock 으로 대체한다.
+
+# 컨텍스트가 뜨는 데만 필요한 값이다. 실제 호출은 테스트에서 mock 으로 대체한다.
+# url 이 없으면 @FeignClient(url = "${qwen.vision.url}") 가 해석되지 않아 컨텍스트가 죽는다.
+qwen:
+  vision:
+    url: https://dashscope-intl.example.com/compatible-mode/v1
+    model: qwen-vl-plus
+  api-key: test-qwen-api-key
+
+# 컨텍스트가 뜨는 데만 필요한 값이다. 실제 호출은 테스트에서 mock 으로 대체한다.
+# qwen.vision.url 이 없으면 @FeignClient(url = "${qwen.vision.url}") 가 해석되지 않아 컨텍스트가 죽는다.
 aws:
   region: ap-northeast-2
   s3:
     bucket: test-marketgo-images
     base-url: https://test-cdn.example.com/
 
+qwen:
+  vision:
+    url: https://dashscope-intl.example.com/compatible-mode/v1
+    model: qwen-vl-plus
+  api-key: test-qwen-api-key
