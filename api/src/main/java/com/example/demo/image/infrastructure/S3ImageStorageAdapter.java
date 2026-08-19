@@ -101,7 +101,7 @@ public class S3ImageStorageAdapter implements ImageStoragePort, ImageUrlPort {
      * 우리 저장소 URL 인지만 본다.
      *
      * <p>영구 URL 은 {@code baseUrl + key} 규칙으로만 만들어지므로 접두사를 떼면 key 가 된다.
-     * {@link ImageKey#of} 가 {@code images/{name}.{png|jpg}} 형식을 강제하므로 상위 경로 이탈과
+     * {@link ImageKey} 생성자가 {@code images/{name}.{png|jpg}} 형식을 강제하므로 상위 경로 이탈과
      * 쿼리스트링 부착도 함께 걸러진다.
      */
     @Override
@@ -110,7 +110,8 @@ public class S3ImageStorageAdapter implements ImageStoragePort, ImageUrlPort {
         if (imageUrl == null || !imageUrl.startsWith(baseUrl)) {
             throw ApiException.invalidParameter();
         }
-        ImageKey.of(imageUrl.substring(baseUrl.length()));
+        // 생성자가 형식을 강제한다. 어긋나면 400 이다.
+        new ImageKey(imageUrl.substring(baseUrl.length()));
         return imageUrl;
     }
 

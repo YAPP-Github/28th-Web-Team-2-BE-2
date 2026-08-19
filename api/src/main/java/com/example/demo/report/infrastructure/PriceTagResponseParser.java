@@ -4,6 +4,7 @@ import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.report.application.contract.ExtractedPriceTag;
 import com.example.demo.report.domain.AnalysisConfidence;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -31,7 +32,7 @@ public class PriceTagResponseParser {
     private final ObjectMapper objectMapper;
 
     public ExtractedPriceTag parse(final String content) {
-        final JsonNode root = readTree(stripCodeFence(content));
+        final JsonNode root = readTree(content.trim());
         return new ExtractedPriceTag(
                 text(root, PriceTagSchema.ITEM_NAME),
                 confidence(root, PriceTagSchema.ITEM_CONFIDENCE),
@@ -50,31 +51,22 @@ public class PriceTagResponseParser {
                 throw invalidPayload(null);
             }
             return root;
-        } catch (final com.fasterxml.jackson.core.JsonProcessingException exception) {
+        } catch (final JsonProcessingException exception) {
             throw invalidPayload(exception);
         }
     }
 
-    /** ```json ... ``` 형태를 걷어낸다. */
-    private String stripCodeFence(final String content) {
-        final String trimmed = content.trim();
-        if (!trimmed.startsWith("```")) {
-            return trimmed;
-        }
-        final int firstNewline = trimmed.indexOf('\n');
-        final int closing = trimmed.lastIndexOf("```");
-        if (firstNewline < 0 || closing <= firstNewline) {
-            return trimmed;
-        }
-        return trimmed.substring(firstNewline + 1, closing).trim();
-    }
 
     private String text(final JsonNode root, final String field) {
         final JsonNode node = root.get(field);
-        if (node == null || !node.isTextual() || node.asText().isBlank()) {
+        if (node == null || !node.isTextual()) {
             return null;
         }
-        return node.asText().trim();
+        final String value = node.asText().trim();
+        if (value.isEmpty()) {
+            return null;
+        }
+        return value;
     }
 
     private Integer integer(final JsonNode root, final String field) {
@@ -82,12 +74,9 @@ public class PriceTagResponseParser {
         if (node == null || !node.isNumber()) {
             return null;
         }
-        // asInt() 는 int 범위를 넘는 값을 조용히 잘라낸다 — 99999999999 가 1215752191 이 된다.
-        if (!node.canConvertToInt()) {
-            return null;
-        }
-        // 음수 가격은 사진에서 나올 수 없다. 파싱 오류로 보고 버린다.
-        if (node.asInt() <= 0) {
+        // canConvertToInt 로 먼저 막는다 — asInt() 는 범위를 넘는 값을 조용히 잘라낸다
+        // (99999999999 -> 1215752191). 음수·0 가격은 사진에서 나올 수 없어 파싱 오류로 본다.
+        if (!node.canConvertToInt() || node.asInt() <= 0) {
             return null;
         }
         return node.asInt();

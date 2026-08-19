@@ -28,16 +28,17 @@ class PriceTagResponseParserTest {
         assertThat(result.otherNumberCount()).isEqualTo(2);
     }
 
-    // 프롬프트로 금지해도 코드펜스를 붙여 오는 모델이 있다.
+    // stripCodeFence 를 지운 뒤의 계약: 코드펜스가 붙어 오면 조용히 넘기지 않고 해석 실패로 끝낸다.
+    // response_format 이 동작함을 실호출로 확인했으므로(ADR 0002) 펜스는 오지 않아야 한다.
     @Test
-    void 코드펜스로_감싼_응답도_파싱한다() {
-        final ExtractedPriceTag result = parser.parse("""
+    void 코드펜스가_붙어_오면_해석_실패로_끝낸다() {
+        assertThatThrownBy(() -> parser.parse("""
                 ```json
-                {"itemName":"오이","price":250,"otherNumberCount":1}
-                ```""");
-
-        assertThat(result.itemName()).isEqualTo("오이");
-        assertThat(result.price()).isEqualTo(250);
+                {"price":250}
+                ```"""))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE);
     }
 
     // 이전에는 응답에 priceConfidence 가 없어 품목 신뢰도를 가격 신뢰도로 내보냈다.

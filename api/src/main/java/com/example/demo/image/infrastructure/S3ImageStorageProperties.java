@@ -31,7 +31,9 @@ public class S3ImageStorageProperties {
             @Value("${aws.s3.bucket:}") final String bucket,
             @Value("${aws.s3.base-url:}") final String baseUrl) {
         this.bucket = bucket;
-        this.baseUrl = baseUrl;
+        // 슬래시 보정을 여기서 한 번만 한다. 설정에서 빠져도 동작하게 관대하게 받는다 — 이 값이
+        // 틀리면 저장된 photo_url 이 전부 깨지고 되돌리려면 DB 를 일괄 수정해야 한다.
+        this.baseUrl = withTrailingSlash(baseUrl);
         if (isMissing(bucket) || isMissing(baseUrl)) {
             // 지연 검증의 대가는 fail-fast 포기다. 기동 시 한 줄이라도 남겨야 운영자가 누락을 안다.
             log.warn("이미지 업로드 비활성: AWS_S3_BUCKET / AWS_S3_BASE_URL 미설정");
@@ -42,22 +44,20 @@ public class S3ImageStorageProperties {
         return required(bucket);
     }
 
-    /**
-     * 영구 URL 접두사. key를 그대로 이어 붙이므로 슬래시로 끝나야 한다.
-     *
-     * <p>설정값에 슬래시가 빠져도 동작하게 보정한다. 이 값이 틀리면 저장된 URL이 전부 깨지는데,
-     * 되돌리려면 DB의 {@code photo_url}을 일괄 수정해야 하므로 관대하게 받는 편이 낫다.
-     */
+    /** 영구 URL 접두사. key 를 그대로 이어 붙이므로 슬래시로 끝난다. */
     public String requireBaseUrl() {
-        final String value = required(baseUrl);
-        if (value.endsWith("/")) {
-            return value;
-        }
-        return value + "/";
+        return required(baseUrl);
     }
 
     public Duration presignExpiry() {
         return PRESIGN_EXPIRY;
+    }
+
+    private static String withTrailingSlash(final String value) {
+        if (isMissing(value) || value.endsWith("/")) {
+            return value;
+        }
+        return value + "/";
     }
 
     private static boolean isMissing(final String value) {

@@ -19,18 +19,18 @@ public class ImageAnalysisConverter {
 
     public ImageAnalysisResponse toResponse(final ImageAnalysisResult result) {
         return new ImageAnalysisResponse(
-                toItem(result.item(), result.unit(), result.itemConfidence()),
+                toItem(result),
                 toPrice(result),
                 toAmount(result));
     }
 
-    private ImageAnalysisResponse.AnalyzedItem toItem(
-            final ItemCandidate candidate, final String unit, final AnalysisConfidence confidence) {
-        if (candidate == null) {
+    private ImageAnalysisResponse.AnalyzedItem toItem(final ImageAnalysisResult result) {
+        final ItemCandidate item = result.item();
+        if (item == null) {
             return null;
         }
         return new ImageAnalysisResponse.AnalyzedItem(
-                candidate.itemId(), candidate.name(), unit, valueOf(confidence));
+                item.itemId(), item.name(), result.unit(), valueOf(result.itemConfidence()));
     }
 
     private ImageAnalysisResponse.AnalyzedPrice toPrice(final ImageAnalysisResult result) {
@@ -63,12 +63,9 @@ public class ImageAnalysisConverter {
         if (result.priceBasis() == null || result.unit() == null) {
             return null;
         }
-        return result.unit().equals(normalize(result.priceBasis()));
+        return result.unit().equals(result.priceBasis().replaceAll("\\s+", ""));
     }
 
-    private String normalize(final String basis) {
-        return basis.replaceAll("\\s+", "");
-    }
 
     private BigDecimal valueOf(final AnalysisConfidence confidence) {
         if (confidence == null) {

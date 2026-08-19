@@ -95,32 +95,32 @@ class ImageDomainTest {
     @ParameterizedTest
     @ValueSource(strings = {"receipt.jpg", "../images/evil.png", "uploads/a.png", "images/", "images/a.gif"})
     void 형식을_벗어난_key는_만들_수_없다(final String value) {
-        assertThatThrownBy(() -> new ImageKey(value)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new ImageKey(value)).isInstanceOf(ImageValidationException.class);
     }
 
     // 접두사만 검사하면 images/../secret 같은 값이 통과한다.
     @ParameterizedTest
     @ValueSource(strings = {"images/../secret.png", "images/a/b.png"})
     void 상위_경로로_빠져나가는_key를_거부한다(final String value) {
-        assertThatThrownBy(() -> new ImageKey(value)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new ImageKey(value)).isInstanceOf(ImageValidationException.class);
     }
 
     // 외부 입력 경로는 500이 아니라 400이어야 한다.
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"uploads/a.png", "images/../secret.png", ""})
-    void 외부_입력의_잘못된_key는_400으로_끝낸다(final String value) {
-        assertThatThrownBy(() -> ImageKey.of(value))
+    void 잘못된_key는_400으로_끝낸다(final String value) {
+        assertThatThrownBy(() -> new ImageKey(value))
                 .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
     }
 
     @Test
-    void 생성한_key는_of로_다시_해석할_수_있다() {
+    void 생성한_key는_다시_해석할_수_있다() {
         final ImageKey generated = ImageKey.generate(ImageContentType.PNG);
 
-        assertThat(ImageKey.of(generated.value())).isEqualTo(generated);
+        assertThat(new ImageKey(generated.value())).isEqualTo(generated);
     }
 
     @Test
