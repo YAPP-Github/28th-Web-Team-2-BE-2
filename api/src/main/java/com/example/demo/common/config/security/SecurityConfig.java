@@ -54,6 +54,8 @@ public class SecurityConfig {
                                 "/api/v1/regions/nearby",
                                 "/api/v1/regions/search",
                                 "/api/v1/stores/nearby",
+                                "/api/v1/stores/recommendation",
+                                "/api/v1/stores/*/reports",
                                 "/api/auth/test/kakao/redirect",
                                 "/api/auth/test/token",
                                 "/swagger-ui/**",
@@ -69,6 +71,10 @@ public class SecurityConfig {
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/items/*/favorite")
                         .hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/stores/*/favorite")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/items/*/reports")
                         .hasRole("USER")
                         // 계약 문서는 업로드를 공개 경로로 적었지만 인증을 요구한다.
@@ -76,8 +82,13 @@ public class SecurityConfig {
                         // 제보 작성 자체가 이미 ROLE_USER라 공개로 둘 이유가 없다.
                         .requestMatchers(HttpMethod.POST, "/api/v1/images")
                         .hasRole("USER")
-                        // 외부 유료 모델을 호출하는 경로다. 무인증으로 열면 비용이 그대로 노출된다.
-                        .requestMatchers(HttpMethod.POST, "/api/v1/user-reports/image-analysis")
+                        .requestMatchers(HttpMethod.HEAD, "/api/v1/users/me/regions")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me/regions")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users/me/regions")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/me/regions/*/current")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout")
                         .authenticated()
