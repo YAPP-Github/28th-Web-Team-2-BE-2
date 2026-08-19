@@ -11,7 +11,16 @@ public class UserResultConverter {
         return new UserMeResponse(
                 result.nickname(),
                 toCurrentRegion(result.currentRegion()),
-                UserMeResponse.OnboardingStep.valueOf(result.onboardingStep().name()));
+                toOnboardingStep(result.onboardingStep()));
+    }
+
+    private UserMeResponse.OnboardingStep toOnboardingStep(
+            final GetUserMeResult.OnboardingStep onboardingStep) {
+        return switch (onboardingStep) {
+            case NICKNAME -> UserMeResponse.OnboardingStep.NICKNAME;
+            case REGION -> UserMeResponse.OnboardingStep.REGION;
+            case COMPLETED -> UserMeResponse.OnboardingStep.COMPLETED;
+        };
     }
 
     private UserMeResponse.CurrentRegion toCurrentRegion(
