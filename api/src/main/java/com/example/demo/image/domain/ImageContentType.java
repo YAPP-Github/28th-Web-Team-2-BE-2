@@ -2,6 +2,7 @@ package com.example.demo.image.domain;
 
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.common.exception.ImageValidationException;
+import java.util.Arrays;
 import java.util.Locale;
 
 /**
@@ -17,6 +18,12 @@ public enum ImageContentType {
 
     /** 표준이 아니지만 일부 브라우저와 이전 클라이언트가 보낸다. */
     private static final String JPEG_ALIAS = "image/jpg";
+
+    private static final byte[] PNG_SIGNATURE = {
+        (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
+    };
+
+    private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
 
     private final String mimeType;
     private final String extension;
@@ -55,28 +62,18 @@ public enum ImageContentType {
      * 있다. 서버를 거치는 경로는 바이트를 손에 들고 있으므로 선두 시그니처를 대조한다.
      */
     public boolean matchesSignature(final byte[] content) {
-        return switch (this) {
-            case PNG -> startsWith(content, PNG_SIGNATURE);
-            case JPEG -> startsWith(content, JPEG_SIGNATURE);
-        };
-    }
-
-    private static final byte[] PNG_SIGNATURE = {
-        (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
-    };
-
-    private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
-
-    private static boolean startsWith(final byte[] content, final byte[] signature) {
+        final byte[] signature = signature();
         if (content == null || content.length < signature.length) {
             return false;
         }
-        for (int index = 0; index < signature.length; index++) {
-            if (content[index] != signature[index]) {
-                return false;
-            }
-        }
-        return true;
+        return Arrays.equals(content, 0, signature.length, signature, 0, signature.length);
+    }
+
+    private byte[] signature() {
+        return switch (this) {
+            case PNG -> PNG_SIGNATURE;
+            case JPEG -> JPEG_SIGNATURE;
+        };
     }
 
     private static ImageValidationException invalidFormat() {
