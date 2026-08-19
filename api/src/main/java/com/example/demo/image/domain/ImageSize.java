@@ -1,8 +1,7 @@
 package com.example.demo.image.domain;
 
-import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
-import org.springframework.http.HttpStatus;
+import com.example.demo.common.exception.ImageValidationException;
 
 /**
  * 업로드 이미지의 바이트 크기. 계약이 5MB 상한을 정하고 있다.
@@ -20,16 +19,10 @@ public record ImageSize(long bytes) {
 
     public ImageSize {
         if (bytes <= 0) {
-            throw new ApiException(
-                    ErrorType.INVALID_IMAGE_FORMAT.description(),
-                    ErrorType.INVALID_IMAGE_FORMAT,
-                    HttpStatus.BAD_REQUEST);
+            throw new ImageValidationException(ErrorType.INVALID_IMAGE_FORMAT);
         }
         if (bytes > MAX_BYTES) {
-            throw new ApiException(
-                    ErrorType.IMAGE_TOO_LARGE.description(),
-                    ErrorType.IMAGE_TOO_LARGE,
-                    HttpStatus.BAD_REQUEST);
+            throw new ImageValidationException(ErrorType.IMAGE_TOO_LARGE);
         }
     }
 }
