@@ -98,11 +98,11 @@ class MyWeeklyReportE2ETest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalReportedDays").value(1))
                 .andExpect(jsonPath("$.data.dailyReports.length()").value(7))
-                .andExpect(jsonPath("$.data.dailyReports[0].reportedAt").value(weekStart.toString()))
+                .andExpect(jsonPath("$.data.dailyReports[0].date").value(weekStart.toString()))
                 .andExpect(jsonPath("$.data.dailyReports[0].hasReported").value(true))
                 .andExpect(jsonPath("$.data.dailyReports[0].itemId").value(potatoId))
                 .andExpect(jsonPath("$.data.dailyReports[0].itemName").value("감자"))
-                .andExpect(jsonPath("$.data.dailyReports[6].reportedAt")
+                .andExpect(jsonPath("$.data.dailyReports[6].date")
                         .value(weekStart.plusDays(6).toString()))
                 .andExpect(jsonPath("$.data.dailyReports[6].hasReported").value(false))
                 .andExpect(jsonPath("$.data.dailyReports[6].itemId").doesNotExist())
@@ -138,6 +138,43 @@ class MyWeeklyReportE2ETest {
                 .andExpect(jsonPath("$.data.totalReportedDays").value(0))
                 .andExpect(jsonPath("$.data.dailyReports[*].hasReported")
                         .value(contains(false, false, false, false, false, false, false)));
+    }
+
+    @Test
+    @DisplayName("주의 마지막 날(일요일) 제보도 이번 주에 포함된다")
+    void includesLastDayOfWeek() throws Exception {
+        final User me = saveUser("나");
+        saveOn(me.id(), potatoId, ReportType.PURCHASE, weekStart.plusDays(6));
+
+        request(accessToken(me))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalReportedDays").value(1))
+                .andExpect(jsonPath("$.data.dailyReports[6].hasReported").value(true));
+    }
+
+    @Test
+    @DisplayName("제보 기준일은 Asia/Seoul 기준이라 저장 직후 이번 주에 잡힌다")
+    void usesServiceZoneOnWrite() throws Exception {
+        final User me = saveUser("나");
+        // 날짜를 덮어쓰지 않고 실제 생성 경로가 정한 기준일을 그대로 쓴다
+        userReportJpaRepository.save(new UserReport(
+                REGION_ID, ReportType.PURCHASE, null, potatoId, me.id(), 3000, "1kg",
+                new BigDecimal("1.000"), null, null, null));
+        final int todayIndex = LocalDate.now(SERVICE_ZONE).getDayOfWeek().getValue() - 1;
+
+        request(accessToken(me))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalReportedDays").value(1))
+                .andExpect(jsonPath("$.data.dailyReports[%d].hasReported".formatted(todayIndex))
+                        .value(true));
+    }
+
+    @Test
+    @DisplayName("주간 제보 현황 API가 OpenAPI 문서에 노출된다")
+    void exposesApiDocs() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me/reports/weekly'].get").exists());
     }
 
     @Test

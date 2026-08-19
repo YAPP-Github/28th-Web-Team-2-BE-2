@@ -73,7 +73,7 @@ public class UserReportResultConverter {
 
     private DailyReportResponse toResponse(final DailyReportResult result) {
         return new DailyReportResponse(
-                result.reportedAt(), result.hasReported(), result.itemId(), result.itemName());
+                result.date(), result.hasReported(), result.itemId(), result.itemName());
     }
 
     public RegionItemReportQuery toQuery(

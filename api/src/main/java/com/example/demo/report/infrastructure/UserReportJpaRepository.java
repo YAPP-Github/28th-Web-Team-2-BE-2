@@ -39,6 +39,5 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
 
     Page<UserReport> findAllByUserId(Long userId, Pageable pageable);
 
-    List<UserReport> findAllByUserIdAndReportDateBetweenOrderByReportDateAscIdAsc(
-            Long userId, LocalDate from, LocalDate to);
+    List<UserReport> findAllByUserIdAndReportDateBetween(Long userId, LocalDate from, LocalDate to);
 }

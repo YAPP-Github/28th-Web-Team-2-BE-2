@@ -10,10 +10,12 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Collection;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class GetMyWeeklyReportQueryUseCase {
 
     private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
-    private static final int DAYS_IN_WEEK = 7;
 
     private final UserReportQueryPort userReportQueryPort;
     private final ItemExistencePort itemExistencePort;
@@ -37,12 +38,12 @@ public class GetMyWeeklyReportQueryUseCase {
     @Transactional(readOnly = true)
     public MyWeeklyReportResult execute(final Long userId) {
         final LocalDate weekStart = weekStart();
-        final List<UserReport> reports = userReportQueryPort.findByUserInPeriod(
-                userId, weekStart, weekStart.plusDays(DAYS_IN_WEEK - 1));
+        final LocalDate weekEnd = weekStart.plusWeeks(1);
+        final List<UserReport> reports =
+                userReportQueryPort.findByUserInPeriod(userId, weekStart, weekEnd.minusDays(1));
         final Map<LocalDate, UserReport> latestByDate = latestByDate(reports);
         final Map<Long, String> itemNames = findItemNames(latestByDate.values());
-        final List<DailyReportResult> dailyReports = IntStream.range(0, DAYS_IN_WEEK)
-                .mapToObj(weekStart::plusDays)
+        final List<DailyReportResult> dailyReports = weekStart.datesUntil(weekEnd)
                 .map(date -> toDailyReport(date, latestByDate.get(date), itemNames))
                 .toList();
         return new MyWeeklyReportResult(latestByDate.size(), dailyReports);
@@ -53,23 +54,23 @@ public class GetMyWeeklyReportQueryUseCase {
                 .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 
-    /** 같은 날짜의 제보 중 가장 최근에 저장된 것만 남긴다. 조회 결과는 날짜·id 오름차순이다. */
+    /** 같은 날짜의 제보 중 가장 나중에 저장된 것을 그날의 대표로 삼는다. */
     private Map<LocalDate, UserReport> latestByDate(final List<UserReport> reports) {
-        final Map<LocalDate, UserReport> latestByDate = new LinkedHashMap<>();
-        reports.forEach(report -> latestByDate.put(report.reportDate(), report));
-        return latestByDate;
+        return reports.stream().collect(Collectors.toMap(
+                UserReport::reportDate,
+                Function.identity(),
+                BinaryOperator.maxBy(Comparator.comparing(UserReport::id))));
     }
 
     private Map<Long, String> findItemNames(final Collection<UserReport> reports) {
-        final List<Long> itemIds =
-                reports.stream().map(UserReport::itemId).distinct().toList();
-        return itemExistencePort.findNamesByIds(itemIds);
+        return itemExistencePort.findNamesByIds(
+                reports.stream().map(UserReport::itemId).toList());
     }
 
     private DailyReportResult toDailyReport(
             final LocalDate date, final UserReport report, final Map<Long, String> itemNames) {
         if (report == null) {
-            return DailyReportResult.empty(date);
+            return new DailyReportResult(date, false, null, null);
         }
         return new DailyReportResult(date, true, report.itemId(), itemNames.get(report.itemId()));
     }
