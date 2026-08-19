@@ -13,27 +13,30 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class ImageDomainTest {
 
+    private static final byte[] PNG_BYTES = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1};
+    private static final byte[] JPEG_BYTES = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 1};
+
     @Test
     void 허용한_MIME을_형식으로_바꾼다() {
-        assertThat(ImageContentType.from("image/png")).isEqualTo(ImageContentType.PNG);
-        assertThat(ImageContentType.from("image/jpeg")).isEqualTo(ImageContentType.JPEG);
+        assertThat(ImageContentType.from("image/png", PNG_BYTES)).isEqualTo(ImageContentType.PNG);
+        assertThat(ImageContentType.from("image/jpeg", JPEG_BYTES)).isEqualTo(ImageContentType.JPEG);
     }
 
     @Test
     void 대소문자와_공백이_섞인_MIME도_받아들인다() {
-        assertThat(ImageContentType.from("  IMAGE/PNG  ")).isEqualTo(ImageContentType.PNG);
+        assertThat(ImageContentType.from("  IMAGE/PNG  ", PNG_BYTES)).isEqualTo(ImageContentType.PNG);
     }
 
     // 표준 MIME은 image/jpeg지만 일부 클라이언트가 image/jpg를 보낸다.
     @Test
     void 비표준_image_jpg를_JPEG로_받아들인다() {
-        assertThat(ImageContentType.from("image/jpg")).isEqualTo(ImageContentType.JPEG);
+        assertThat(ImageContentType.from("image/jpg", JPEG_BYTES)).isEqualTo(ImageContentType.JPEG);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"image/gif", "image/webp", "application/pdf", "text/plain", "image"})
     void 허용하지_않는_MIME은_거부한다(final String mimeType) {
-        assertThatThrownBy(() -> ImageContentType.from(mimeType))
+        assertThatThrownBy(() -> ImageContentType.from(mimeType, PNG_BYTES))
                 .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_IMAGE_FORMAT);
@@ -43,7 +46,7 @@ class ImageDomainTest {
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
     void MIME이_없으면_형식을_판별하지_않고_거부한다(final String mimeType) {
-        assertThatThrownBy(() -> ImageContentType.from(mimeType))
+        assertThatThrownBy(() -> ImageContentType.from(mimeType, PNG_BYTES))
                 .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_IMAGE_FORMAT);
@@ -55,28 +58,29 @@ class ImageDomainTest {
         assertThat(ImageContentType.JPEG.extension()).isEqualTo("jpg");
     }
 
-    // 신고된 Content-Type 만 믿으면 인증 사용자가 우리 버킷을 임의 파일 호스트로 쓸 수 있다.
+    // 신고된 Content-Type 만 믿으면 인증 사용자가 공개 버킷을 임의 파일 호스트로 쓸 수 있다.
     @Test
-    void 선두_바이트가_형식과_맞는지_본다() {
-        final byte[] png = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2};
-        final byte[] jpeg = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 1, 2};
-
-        assertThat(ImageContentType.PNG.matchesSignature(png)).isTrue();
-        assertThat(ImageContentType.JPEG.matchesSignature(jpeg)).isTrue();
+    void MIME_과_선두_바이트가_함께_맞을_때만_형식을_돌려준다() {
+        assertThat(ImageContentType.from("image/png", PNG_BYTES)).isEqualTo(ImageContentType.PNG);
+        assertThat(ImageContentType.from("image/jpeg", JPEG_BYTES)).isEqualTo(ImageContentType.JPEG);
     }
 
     @Test
     void 형식을_위조한_바이트는_거부한다() {
         final byte[] zip = {0x50, 0x4B, 0x03, 0x04, 1, 2, 3, 4, 5};
 
-        assertThat(ImageContentType.PNG.matchesSignature(zip)).isFalse();
-        assertThat(ImageContentType.JPEG.matchesSignature(zip)).isFalse();
+        assertThatThrownBy(() -> ImageContentType.from("image/png", zip))
+                .isInstanceOf(ImageValidationException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.INVALID_IMAGE_FORMAT);
     }
 
     @Test
     void 시그니처보다_짧은_내용은_거부한다() {
-        assertThat(ImageContentType.PNG.matchesSignature(new byte[] {(byte) 0x89, 0x50})).isFalse();
-        assertThat(ImageContentType.JPEG.matchesSignature(null)).isFalse();
+        assertThatThrownBy(() -> ImageContentType.from("image/png", new byte[] {(byte) 0x89, 0x50}))
+                .isInstanceOf(ImageValidationException.class);
+        assertThatThrownBy(() -> ImageContentType.from("image/jpeg", null))
+                .isInstanceOf(ImageValidationException.class);
     }
 
     @Test
