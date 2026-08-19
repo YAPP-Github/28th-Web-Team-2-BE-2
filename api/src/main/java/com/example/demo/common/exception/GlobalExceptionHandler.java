@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -69,6 +70,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
         BindException.class,
         MethodArgumentNotValidException.class,
+        MissingServletRequestPartException.class,
         MethodArgumentTypeMismatchException.class,
         HandlerMethodValidationException.class
     })
@@ -97,17 +99,23 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<?> handleMaxUploadSizeExceeded(final HttpServletRequest request) {
-        if (isV1Request(request)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiResponse<>(
-                            ErrorType.IMAGE_TOO_LARGE.name(),
-                            ErrorType.IMAGE_TOO_LARGE.description(),
-                            null));
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ApiErrorResponse(
-                        ErrorType.IMAGE_TOO_LARGE.name(),
-                        ErrorType.IMAGE_TOO_LARGE.description()));
+        return badRequest(ErrorType.IMAGE_TOO_LARGE, request);
+    }
+
+    /**
+     * 도메인이 알린 이미지 입력 오류.
+     *
+     * <p>도메인은 HTTP 상태 코드를 모른다({@code docs/ARCHITECTURE.md} §8). 매핑을 여기서 한다.
+     */
+    @ExceptionHandler(ImageValidationException.class)
+    public ResponseEntity<?> handleImageValidation(
+            final ImageValidationException exception, final HttpServletRequest request) {
+        return badRequest(exception.errorType(), request);
+    }
+
+    private ResponseEntity<?> badRequest(final ErrorType errorType, final HttpServletRequest request) {
+        return handleApiException(
+                new ApiException(errorType.description(), errorType, HttpStatus.BAD_REQUEST), request);
     }
 
     private boolean isV1Request(final HttpServletRequest request) {

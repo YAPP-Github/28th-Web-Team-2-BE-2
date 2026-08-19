@@ -117,6 +117,27 @@ class ImageControllerTest {
         verify(uploadImageUseCase, never()).execute(any());
     }
 
+    // 확장자·MIME 을 위조해도 바이트가 다르면 거부한다.
+    @Test
+    void 형식을_위조한_내용은_거부한다() throws Exception {
+        mockMvc.perform(multipart(UPLOAD_PATH)
+                        .file(new MockMultipartFile(
+                                "image", "evil.png", "image/png", new byte[] {0x50, 0x4B, 0x03, 0x04}))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_IMAGE_FORMAT.name()));
+
+        verify(uploadImageUseCase, never()).execute(any());
+    }
+
+    @Test
+    void image_part가_없으면_공통_envelope으로_400을_응답한다() throws Exception {
+        mockMvc.perform(multipart(UPLOAD_PATH)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
+    }
+
     @Test
     void 빈_파일은_거부한다() throws Exception {
         mockMvc.perform(multipart(UPLOAD_PATH)
@@ -129,6 +150,9 @@ class ImageControllerTest {
     @Test
     void 상한을_넘는_파일은_IMAGE_TOO_LARGE로_거부한다() throws Exception {
         final byte[] tooLarge = new byte[5 * 1024 * 1024 + 1];
+        tooLarge[0] = (byte) 0xFF;
+        tooLarge[1] = (byte) 0xD8;
+        tooLarge[2] = (byte) 0xFF;
 
         mockMvc.perform(multipart(UPLOAD_PATH)
                         .file(new MockMultipartFile("image", "big.jpg", "image/jpeg", tooLarge))
@@ -203,8 +227,10 @@ class ImageControllerTest {
                 .andExpect(jsonPath("$.code").value(ErrorType.IMAGE_TOO_LARGE.name()));
     }
 
+    /** 선두 바이트가 JPEG 시그니처여야 통과한다. */
     private MockMultipartFile jpegPart() {
-        return new MockMultipartFile("image", "receipt.jpg", "image/jpeg", new byte[] {1, 2, 3});
+        return new MockMultipartFile(
+                "image", "receipt.jpg", "image/jpeg", new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 1});
     }
 
     @TestConfiguration

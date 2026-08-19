@@ -16,6 +16,6 @@ public class IssuePresignedUploadUseCase {
 
     public PresignedUploadResult execute(final IssuePresignedUploadCommand command) {
         final ImageKey key = ImageKey.generate(command.contentType());
-        return imageStoragePort.presign(key, command.contentType(), command.size());
+        return imageStoragePort.presign(key, command);
     }
 }
