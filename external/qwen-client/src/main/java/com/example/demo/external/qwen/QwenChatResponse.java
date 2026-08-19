@@ -1,6 +1,7 @@
 package com.example.demo.external.qwen;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +27,7 @@ public record QwenChatResponse(List<Choice> choices) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Choice(Message message, String finishReason) {}
+    public record Choice(Message message, @JsonProperty("finish_reason") String finishReason) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Message(String role, String content) {}

@@ -81,6 +81,7 @@ aws:
     presign-expiry: ${AWS_S3_PRESIGN_EXPIRY:10m}
 
 qwen:
+  # connect/read timeout 은 Feign 규약상 spring.cloud.openfeign.client.config.qwenVisionClient 에 있다.
   # DashScope OpenAI 호환 endpoint. 리전과 계정 형태에 따라 host가 갈리므로 설정으로 둔다.
   vision:
     url: ${QWEN_VISION_URL:https://dashscope-intl.aliyuncs.com/compatible-mode/v1}

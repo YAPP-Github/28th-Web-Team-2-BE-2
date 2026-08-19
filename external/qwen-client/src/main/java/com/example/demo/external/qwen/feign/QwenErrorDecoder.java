@@ -1,5 +1,6 @@
 package com.example.demo.external.qwen.feign;
 
+import feign.FeignException;
 import feign.Response;
 import feign.RetryableException;
 import feign.codec.ErrorDecoder;
@@ -19,16 +20,18 @@ import org.springframework.http.HttpStatus;
  *
  * <p>연결·읽기 timeout은 여기까지 오지 않는다. Feign이 {@code IOException}을 자체적으로
  * {@link RetryableException}으로 감싸 {@code Retryer}에 넘긴다.
+ *
+ * <p>{@link ErrorDecoder.Default}를 쓰지 않는다. 그쪽은 응답에 {@code Retry-After} 헤더가 있으면
+ * 상태 코드와 무관하게 {@link RetryableException}을 돌려주는데, 그러면 400·401 같은 우리 요청
+ * 오류까지 재시도되어 응답만 두 배 느려진다. 429·5xx 는 아래에서 우리가 직접 감싼다.
  */
 public final class QwenErrorDecoder implements ErrorDecoder {
 
     private static final int TOO_MANY_REQUESTS = HttpStatus.TOO_MANY_REQUESTS.value();
 
-    private final ErrorDecoder delegate = new ErrorDecoder.Default();
-
     @Override
     public Exception decode(final String methodKey, final Response response) {
-        final Exception decoded = delegate.decode(methodKey, response);
+        final FeignException decoded = FeignException.errorStatus(methodKey, response);
         if (isRetryable(response.status())) {
             return asRetryable(decoded, response);
         }
@@ -39,7 +42,7 @@ public final class QwenErrorDecoder implements ErrorDecoder {
         return status == TOO_MANY_REQUESTS || status >= HttpStatus.INTERNAL_SERVER_ERROR.value();
     }
 
-    private RetryableException asRetryable(final Exception decoded, final Response response) {
+    private RetryableException asRetryable(final FeignException decoded, final Response response) {
         return new RetryableException(
                 response.status(),
                 decoded.getMessage(),

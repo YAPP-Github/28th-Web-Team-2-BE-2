@@ -3,14 +3,12 @@ package com.example.demo.external.qwen;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class QwenChatResponseTest {
 
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void 첫_choice의_본문을_꺼낸다() {
@@ -56,6 +54,7 @@ class QwenChatResponseTest {
         final QwenChatResponse response = objectMapper.readValue(json, QwenChatResponse.class);
 
         assertThat(response.firstContent()).contains("{}");
+        // finish_reason 을 매핑하지 못하면 null 이 된다.
         assertThat(response.choices().getFirst().finishReason()).isEqualTo("stop");
     }
 }
