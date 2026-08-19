@@ -1,5 +1,6 @@
 package com.example.demo.item.presentation.spec;
 
+import com.example.demo.item.presentation.dto.ItemOnlinePriceResponse;
 import com.example.demo.item.presentation.dto.ItemPublicPriceRequest;
 import com.example.demo.item.presentation.dto.ItemPublicPriceResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,4 +30,17 @@ public interface ItemPriceControllerSpec {
     ResponseEntity<ItemPublicPriceResponse> getPublicPrices(
             @Positive @Parameter(description = "품목 ID") Long itemId,
             @Valid @ParameterObject ItemPublicPriceRequest request);
+
+    @Operation(summary = "품목의 채널별 온라인 최저가를 조회한다")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "온라인 최저가 조회 성공. 수집 데이터가 없으면 빈 목록이다",
+                content = @Content(
+                        mediaType = "application/json",
+                        schema = @Schema(implementation = ItemOnlinePriceResponse.class))),
+        @ApiResponse(responseCode = "404", description = "품목을 찾을 수 없다")
+    })
+    ResponseEntity<ItemOnlinePriceResponse> getOnlinePrices(
+            @Positive @Parameter(description = "품목 ID") Long itemId);
 }
