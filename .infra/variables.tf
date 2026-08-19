@@ -47,8 +47,10 @@ variable "image_bucket_name" {
   default     = "marketgo-images"
 
   validation {
-    condition     = can(regex("^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$", var.image_bucket_name))
-    error_message = "image_bucket_name must be a valid S3 bucket name."
+    condition     = can(regex("^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$", var.image_bucket_name))
+    # 점을 허용하지 않는다. 점이 든 이름은 virtual-hosted-style HTTPS 에서 와일드카드
+    # 인증서와 매칭되지 않아 image_base_url 로 접근할 때 TLS 오류가 난다.
+    error_message = "image_bucket_name must be a valid S3 bucket name without dots."
   }
 }
 
@@ -56,7 +58,8 @@ variable "image_upload_allowed_origins" {
   description = "Origins allowed to PUT directly to presigned upload URLs. Keep aligned with backend CorsConfig."
   type        = list(string)
   default = [
-    "http://localhost:3000",
+    "http://localhost:*",
+    "http://192.168.0.100:*",
     "https://marketgo.kro.kr",
   ]
 }

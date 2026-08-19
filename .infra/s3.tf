@@ -5,8 +5,7 @@
 #   - 영구 URL은 `AWS_S3_BASE_URL + key`
 #   - 클라이언트 직접 업로드는 10분 만료 presigned PUT
 #
-# 버킷은 공개하지 않는다. 읽기도 presigned GET으로 처리하므로 public access는 전부 차단한다.
-# (SKILL.md의 "영구 저장 URL"은 경로 규칙일 뿐 공개 접근을 뜻하지 않는다.)
+
 
 resource "aws_s3_bucket" "images" {
   bucket = var.image_bucket_name
@@ -38,8 +37,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "images" {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"
     }
-
-    bucket_key_enabled = true
   }
 }
 
@@ -56,6 +53,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "images" {
     id     = "abort-incomplete-multipart-upload"
     status = "Enabled"
 
+    # provider v4+ 는 rule 마다 filter 또는 prefix 를 요구한다. 빈 filter = 전체 객체.
     filter {}
 
     abort_incomplete_multipart_upload {
@@ -65,7 +63,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "images" {
 }
 
 # 브라우저가 presigned URL로 직접 PUT하는 경로에만 필요하다.
-# 허용 origin은 backend `CorsConfig.ALLOWED_ORIGIN_PATTERNS`와 같은 목록을 유지한다.
+#
+# backend `CorsConfig` 목록과 1:1이 아니다 — Spring 의 `[*]` 포트 패턴은 S3 에 대응 문법이
+# 없다(S3 는 `http://host:*`). 브라우저 직접 PUT 이 필요한 origin 만 등록한다.
 resource "aws_s3_bucket_cors_configuration" "images" {
   bucket = aws_s3_bucket.images.id
 
@@ -84,6 +84,8 @@ resource "aws_s3_bucket_cors_configuration" "images" {
 # 별도 권한이 필요 없다. 다만 서명된 요청이 실제로 통과하려면 역할에 그 action이 있어야 한다.
 data "aws_iam_policy_document" "ec2_image_storage" {
   statement {
+    # key prefix 는 SKILL.md 의 images/ 규칙에 묶여 있다. 백엔드가 prefix 를 바꾸면
+    # 여기도 함께 바꿔야 한다 — 안 바꾸면 컴파일·plan 은 통과하고 런타임 AccessDenied 만 난다.
     sid = "ReadWriteReportImages"
     actions = [
       "s3:PutObject",
@@ -97,4 +99,39 @@ resource "aws_iam_role_policy" "ec2_image_storage" {
   name   = "marketgo-image-storage"
   role   = var.ec2_instance_role_name
   policy = data.aws_iam_policy_document.ec2_image_storage.json
+}
+
+# 평문 HTTP 접근 차단.
+#
+# presigned URL 이 유출되거나 클라이언트가 http 로 붙으면 사진과 SigV4 서명이 평문으로 흐른다.
+# SDK 는 https 로 만들지만 버킷 차원에서 막을 수 있는 것을 열어 둘 이유가 없다.
+# Deny 문장은 public grant 가 아니므로 block_public_policy 와 충돌하지 않는다.
+data "aws_iam_policy_document" "images_tls_only" {
+  statement {
+    sid     = "DenyInsecureTransport"
+    effect  = "Deny"
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.images.arn,
+      "${aws_s3_bucket.images.arn}/*",
+    ]
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "images" {
+  bucket = aws_s3_bucket.images.id
+  policy = data.aws_iam_policy_document.images_tls_only.json
+
+  depends_on = [aws_s3_bucket_public_access_block.images]
 }
