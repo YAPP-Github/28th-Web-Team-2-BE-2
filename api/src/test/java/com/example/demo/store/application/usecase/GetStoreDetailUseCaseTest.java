@@ -6,10 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.store.application.port.StoreDetailQueryPort;
+import com.example.demo.store.application.port.StoreDetailEnrichmentPort;
 import com.example.demo.store.application.query.StoreDetailQuery;
 import com.example.demo.store.application.result.StoreDetailSnapshot;
 import com.example.demo.store.application.result.StoreReportSummary;
@@ -22,7 +24,8 @@ import org.mockito.Mockito;
 class GetStoreDetailUseCaseTest {
 
     private final StoreDetailQueryPort queryPort = Mockito.mock(StoreDetailQueryPort.class);
-    private final GetStoreDetailUseCase useCase = new GetStoreDetailUseCase(queryPort);
+    private final StoreDetailEnrichmentPort enrichmentPort = Mockito.mock(StoreDetailEnrichmentPort.class);
+    private final GetStoreDetailUseCase useCase = new GetStoreDetailUseCase(queryPort, enrichmentPort);
 
     @Test
     void 좌표와_출처없는_필드는_null이고_영업상태는_UNKNOWN이다() {
@@ -92,6 +95,20 @@ class GetStoreDetailUseCaseTest {
         assertThat(result.totalReportedItemCount()).isEqualTo(5L);
         assertThat(result.latestReportedDate()).isEqualTo(reportedDate);
         assertThat(result.latestReportedAt()).isEqualTo(reportedAt);
+    }
+
+    @Test
+    void 저장된_Kakao_상세가_있으면_재수집하지_않는다() {
+        when(queryPort.findStore(1L)).thenReturn(java.util.Optional.of(new StoreDetailSnapshot(
+                1L, "장보고 마트", "주소", new BigDecimal("37.5"), new BigDecimal("127"),
+                "https://place.map.kakao.com/1", "https://s3.example/image.jpg",
+                java.util.List.of("월 09:00 - 18:00"), "OPEN")));
+        when(queryPort.findReportSummary(any(), any())).thenReturn(emptyReports());
+        when(queryPort.countFavorites(1L)).thenReturn(0L);
+
+        useCase.execute(new StoreDetailQuery(1L, null, null, null));
+
+        verifyNoInteractions(enrichmentPort);
     }
 
     @Test

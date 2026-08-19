@@ -61,6 +61,15 @@ public class Store {
     @Column
     private Integer distance;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
+    @Column(name = "business_hours", length = 2000)
+    private String businessHours;
+
+    @Column(name = "open_status", length = 30)
+    private String openStatus;
+
     public Store(final String kakaoPlaceId, final String placeName, final String placeUrl,
             final String categoryName, final String addressName, final String roadAddressName,
             final String phone, final String categoryGroupCode, final String categoryGroupName,
@@ -96,5 +105,20 @@ public class Store {
         this.longitude = longitude;
         this.latitude = latitude;
         this.distance = distance;
+    }
+
+    public void updateKakaoDetails(
+            final String imageUrl,
+            final String businessHours,
+            final String openStatus) {
+        if (imageUrl != null) {
+            this.imageUrl = imageUrl;
+        }
+        if (businessHours != null) {
+            this.businessHours = businessHours;
+        }
+        if (openStatus != null) {
+            this.openStatus = openStatus;
+        }
     }
 }
