@@ -10,6 +10,8 @@ public interface UserRepository {
 
     Optional<User> findById(Long userId);
 
+    Optional<User> findByIdForUpdate(Long userId);
+
     Optional<User> findByNickname(String nickname);
 
     Optional<User> findByProviderAndProviderSubject(ProviderType provider, String providerSubject);

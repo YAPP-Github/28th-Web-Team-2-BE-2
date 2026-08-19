@@ -54,6 +54,8 @@ public class SecurityConfig {
                                 "/api/v1/regions/nearby",
                                 "/api/v1/regions/search",
                                 "/api/v1/stores/nearby",
+                                "/api/v1/stores/recommendation",
+                                "/api/v1/stores/*/reports",
                                 "/api/auth/test/kakao/redirect",
                                 "/api/auth/test/token",
                                 "/swagger-ui/**",
@@ -69,7 +71,19 @@ public class SecurityConfig {
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/items/*/favorite")
                         .hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/stores/*/favorite")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/items/*/reports")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.HEAD, "/api/v1/users/me/regions")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/me/regions")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users/me/regions")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/users/me/regions/*/current")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout")
                         .authenticated()

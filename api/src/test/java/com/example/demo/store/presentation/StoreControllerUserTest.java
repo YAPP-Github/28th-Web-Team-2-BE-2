@@ -11,12 +11,16 @@ import com.example.demo.common.exception.GlobalExceptionHandler;
 import com.example.demo.common.presentation.ResponseWrapper;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.application.port.NearbyStoreSearchPort;
+import com.example.demo.store.application.port.RecommendedStoreQueryPort;
 import com.example.demo.store.application.port.StorePersistencePort;
 import com.example.demo.store.application.result.NearbyStoreCandidate;
 import com.example.demo.store.application.result.NearbyStoreResult;
 import com.example.demo.store.application.result.NearbyStoreSearchResult;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
+import com.example.demo.store.application.usecase.GetRecommendedStoresUseCase;
+import com.example.demo.store.application.usecase.StoreFavoriteUseCase;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
+import com.example.demo.store.presentation.converter.StoreCommandConverter;
 import com.example.demo.store.presentation.converter.StoreResultConverter;
 import java.math.BigDecimal;
 import java.util.List;
@@ -35,12 +39,16 @@ class StoreControllerUserTest {
 
     private final NearbyStoreSearchPort nearbyStoreSearchPort = mock(NearbyStoreSearchPort.class);
     private final StorePersistencePort storePersistencePort = mock(StorePersistencePort.class);
+    private final RecommendedStoreQueryPort recommendedStoreQueryPort = mock(RecommendedStoreQueryPort.class);
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new StoreController(
+                mockMvc = MockMvcBuilders.standaloneSetup(new StoreController(
                         new GetNearbyStoresUseCase(nearbyStoreSearchPort, storePersistencePort),
+                        new GetRecommendedStoresUseCase(recommendedStoreQueryPort),
+                        mock(StoreFavoriteUseCase.class),
+                        new StoreCommandConverter(),
                         new StoreQueryConverter(),
                         new StoreResultConverter()))
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
