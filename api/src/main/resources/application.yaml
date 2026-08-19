@@ -67,9 +67,11 @@ jwt:
 
 qwen:
   # connect/read timeout 은 Feign 규약상 spring.cloud.openfeign.client.config.qwenVisionClient 에 있다.
-  # DashScope OpenAI 호환 endpoint. 리전과 계정 형태에 따라 host가 갈리므로 설정으로 둔다.
+  # DashScope OpenAI 호환 endpoint. 기본값을 두지 않는다 — 계정마다 host 가 다르고
+  # (workspace 전용 형태를 쓰는 계정이 있다) 틀린 값으로 조용히 실패하는 편보다 기동 시
+  # placeholder 오류로 드러나는 편이 낫다. 형태는 docs/adr/0002 참조.
   vision:
-    url: ${QWEN_VISION_URL:https://dashscope-intl.aliyuncs.com/compatible-mode/v1}
+    url: ${QWEN_VISION_URL}
     model: ${QWEN_VISION_MODEL:qwen-vl-plus}
   # 기본값을 두지 않는다. 누락되면 placeholder 오류에 env 이름이 찍혀 진단이 쉽다(kakao 와 같은 방식).
   api-key: ${QWEN_API_KEY}

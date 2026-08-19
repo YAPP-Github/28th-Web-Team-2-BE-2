@@ -35,8 +35,11 @@ DashScope 의 OpenAI 호환 endpoint(`/compatible-mode/v1/chat/completions`)로 
    검증하지만, 어느 쪽이 동작하는지 확인이 필요하다.
 2. `temperature: 0.0` 허용 여부. native API 는 `(0, 2)` 개구간을 요구한다. compatible-mode 가 `0` 을
    받는지 확인이 필요하다.
-3. endpoint host. 문서가 리전별로 세 형태(`dashscope.aliyuncs.com`, `dashscope-intl.aliyuncs.com`,
-   `{workspace}.{region}.maas.aliyuncs.com`)를 보여준다.
+3. ~~endpoint host~~ — **해소.** 이 계정은 workspace 전용 형태를 쓴다:
+   `https://{workspaceId}.{region}.maas.aliyuncs.com/compatible-mode/v1` (리전 `ap-southeast-1`).
+   `dashscope-intl.aliyuncs.com` 형태가 아니다. 값은 콘솔이 키와 함께 내려주는 `openAiCompatible`
+   필드에 있다. `application.yaml` 의 기본값을 없애 `QWEN_VISION_URL` 을 필수로 두었다 —
+   틀린 host 로 조용히 실패하는 것보다 기동 시 드러나는 편이 낫다.
 4. 모델 id `qwen-vl-plus` 의 계정 사용 가능 여부. `GET {url}/models` 로 확인.
 5. DashScope 가 우리 S3 URL 을 실제로 가져올 수 있는지. 이 기능 전체가 여기 걸려 있다.
 6. `message.content` 가 문자열이 아니라 파트 배열로 오는 provider 가 있다. 그러면 역직렬화가 실패한다.
@@ -68,6 +71,14 @@ curl -X POST "$QWEN_VISION_URL/chat/completions" \
   -H "Authorization: Bearer $QWEN_API_KEY" -H 'Content-Type: application/json' \
   -d '{"model":"qwen-vl-plus","messages":[{"role":"user","content":[{"type":"image_url","image_url":{"url":"<우리 S3 URL>"}},{"type":"text","text":"이 사진의 가격표를 JSON 으로 읽어라"}]}],"temperature":0,"response_format":{"type":"json_object"}}'
 ```
+
+## 운영 시크릿 취급
+
+키는 콘솔에서 CSV 로 내려온다. 그 파일은 평문이므로 **다운로드 폴더에 두지 않는다** — 비밀 관리자에
+옮기고 원본을 지운다. 실수로 공유했으면 콘솔에서 폐기하고 재발급한다(키 값 자체는 되돌릴 수 없다).
+
+CSV 에는 `workspaceId` 가 든 host 도 함께 온다. 이건 자격증명은 아니지만 계정을 식별하는 값이라
+저장소에 커밋하지 않고 `QWEN_VISION_URL` 로만 주입한다.
 
 ## 결과
 

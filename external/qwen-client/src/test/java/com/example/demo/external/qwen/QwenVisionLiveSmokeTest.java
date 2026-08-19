@@ -40,7 +40,12 @@ class QwenVisionLiveSmokeTest {
 
     private static final String DEFAULT_IMAGE =
             "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg";
-    private static final String DEFAULT_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+    /**
+     * 기본값을 두지 않는다. 계정마다 host 가 다르고(workspace 전용 형태를 쓰는 계정이 있다) 틀린
+     * host 로 돌리면 401·404 가 나서 "모델이 거부했다"로 오진하게 된다. 콘솔이 키와 함께 주는
+     * {@code openAiCompatible} 값을 {@code -Dqwen.live.url} 로 넘긴다.
+     */
+    private static final String URL_PROPERTY = "qwen.live.url";
     private static final String DEFAULT_MODEL = "qwen-vl-plus";
 
     /** common.config.api.JacksonConfig 의 프로덕션 빈과 동일하다. */
@@ -152,7 +157,12 @@ class QwenVisionLiveSmokeTest {
     }
 
     private String baseUrl() {
-        return System.getProperty("qwen.live.url", DEFAULT_URL);
+        final String url = System.getProperty(URL_PROPERTY);
+        assertThat(url)
+                .withFailMessage("-D%s 가 필요하다. 콘솔이 키와 함께 주는 openAiCompatible 값을 쓴다.",
+                        URL_PROPERTY)
+                .isNotBlank();
+        return url;
     }
 
     private String model() {
