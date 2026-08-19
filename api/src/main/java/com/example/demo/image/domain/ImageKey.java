@@ -1,6 +1,7 @@
 package com.example.demo.image.domain;
 
-import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ErrorType;
+import com.example.demo.common.exception.ImageValidationException;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -36,13 +37,13 @@ public record ImageKey(String value) {
     /**
      * 외부에서 들어온 값을 key로 해석한다.
      *
-     * <p>형식이 어긋나면 400으로 끝낸다. 생성자의 {@link IllegalArgumentException}을 그대로
-     * 흘리면 {@code GlobalExceptionHandler}에 catch-all이 없어 클라이언트가 500과 공통 envelope이
-     * 아닌 body를 받는다. 잘못된 요청은 잘못된 요청으로 알려야 한다.
+     * <p>형식이 어긋나면 {@link ImageValidationException}으로 끝낸다. 생성자의
+     * {@link IllegalArgumentException}을 그대로 흘리면 {@code GlobalExceptionHandler}에 catch-all이
+     * 없어 클라이언트가 400 대신 500과 공통 envelope이 아닌 body를 받는다.
      */
     public static ImageKey of(final String value) {
         if (value == null || !FORMAT.matcher(value).matches()) {
-            throw ApiException.invalidParameter();
+            throw new ImageValidationException(ErrorType.INVALID_PARAMETER_ERROR);
         }
         return new ImageKey(value);
     }

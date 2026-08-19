@@ -12,7 +12,7 @@ import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.qwen.QwenChatRequest;
 import com.example.demo.external.qwen.QwenChatResponse;
 import com.example.demo.external.qwen.feign.QwenVisionClient;
-import com.example.demo.image.application.port.ImageReadUrlPort;
+import com.example.demo.image.application.port.ImageUrlPort;
 import com.example.demo.report.application.contract.ExtractedPriceTag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
@@ -29,20 +29,19 @@ import org.mockito.ArgumentCaptor;
 class QwenImageAnalysisAdapterTest {
 
     private static final String IMAGE_URL = "https://cdn.example.com/images/abc.jpg";
-    private static final String READ_URL = "https://s3.example.com/images/abc.jpg?X-Amz-Signature=x";
 
     private QwenVisionClient qwenVisionClient;
-    private ImageReadUrlPort imageReadUrlPort;
+    private ImageUrlPort imageUrlPort;
     private QwenImageAnalysisAdapter adapter;
 
     @BeforeEach
     void setUp() {
         qwenVisionClient = mock(QwenVisionClient.class);
-        imageReadUrlPort = mock(ImageReadUrlPort.class);
-        when(imageReadUrlPort.presignedReadUrl(IMAGE_URL)).thenReturn(READ_URL);
+        imageUrlPort = mock(ImageUrlPort.class);
+        when(imageUrlPort.requireOwnedUrl(IMAGE_URL)).thenReturn(IMAGE_URL);
         adapter = new QwenImageAnalysisAdapter(
                 qwenVisionClient,
-                imageReadUrlPort,
+                imageUrlPort,
                 new PriceTagResponseParser(new ObjectMapper()),
                 "qwen-vl-plus");
     }
@@ -50,7 +49,7 @@ class QwenImageAnalysisAdapterTest {
     @Test
     void 인식_결과를_내부_타입으로_돌려준다() {
         givenContent("""
-                {"itemName":"오이","itemConfidence":0.96,"price":250,"numberCount":1}""");
+                {"itemName":"오이","itemConfidence":0.96,"price":250,"otherNumberCount":0}""");
 
         final ExtractedPriceTag result = adapter.analyze(IMAGE_URL);
 
@@ -58,23 +57,23 @@ class QwenImageAnalysisAdapterTest {
         assertThat(result.price()).isEqualTo(250);
     }
 
-    // 버킷을 공개하지 않으므로 영구 URL로는 모델이 이미지를 가져갈 수 없다.
+    // 임의 URL 을 넘기면 사용자가 우리 비용으로 아무 호스트나 가져오게 만들 수 있다.
     @Test
-    void 영구_URL이_아니라_만료되는_읽기_URL을_모델에_넘긴다() {
-        givenContent("{\"numberCount\":0}");
+    void 우리_저장소_URL인지_확인한_뒤_모델에_넘긴다() {
+        givenContent("{\"otherNumberCount\":0}");
 
         adapter.analyze(IMAGE_URL);
 
-        verify(imageReadUrlPort).presignedReadUrl(IMAGE_URL);
+        verify(imageUrlPort).requireOwnedUrl(IMAGE_URL);
         final ArgumentCaptor<QwenChatRequest> captor = ArgumentCaptor.forClass(QwenChatRequest.class);
         verify(qwenVisionClient).complete(captor.capture());
         assertThat(captor.getValue().messages().getLast().content().getFirst().imageUrl().url())
-                .isEqualTo(READ_URL);
+                .isEqualTo(IMAGE_URL);
     }
 
     @Test
     void 설정한_모델을_사용한다() {
-        givenContent("{\"numberCount\":0}");
+        givenContent("{\"otherNumberCount\":0}");
 
         adapter.analyze(IMAGE_URL);
 

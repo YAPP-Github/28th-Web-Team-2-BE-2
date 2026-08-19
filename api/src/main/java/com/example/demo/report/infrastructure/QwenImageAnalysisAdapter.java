@@ -6,7 +6,7 @@ import com.example.demo.external.qwen.QwenChatRequest;
 import com.example.demo.external.qwen.QwenChatResponse;
 import com.example.demo.external.qwen.QwenMessage;
 import com.example.demo.external.qwen.feign.QwenVisionClient;
-import com.example.demo.image.application.port.ImageReadUrlPort;
+import com.example.demo.image.application.port.ImageUrlPort;
 import com.example.demo.report.application.contract.ExtractedPriceTag;
 import com.example.demo.report.application.port.ImageAnalysisPort;
 import feign.FeignException;
@@ -26,32 +26,32 @@ import org.springframework.stereotype.Component;
  * {@link ApiException}으로 바꾸지 않으면 timeout·rate limit·모델 오류가 사용자에게 모두 같은
  * 응답으로 보인다.
  *
- * <p>외부 모델에 넘기는 것은 영구 URL이 아니라 짧은 만료 읽기 URL이다. 버킷을 공개하지 않고도
- * 모델이 이미지를 가져갈 수 있고, 유출되더라도 유효 기간이 짧다.
+ * <p>모델에는 공개 읽기 영구 URL을 그대로 넘긴다. 다만 그 URL이 우리 저장소의 것인지는 확인한다.
  */
 @Component
 public class QwenImageAnalysisAdapter implements ImageAnalysisPort {
 
     private final QwenVisionClient qwenVisionClient;
-    private final ImageReadUrlPort imageReadUrlPort;
+    private final ImageUrlPort imageUrlPort;
     private final PriceTagResponseParser parser;
     private final String model;
 
     public QwenImageAnalysisAdapter(
             final QwenVisionClient qwenVisionClient,
-            final ImageReadUrlPort imageReadUrlPort,
+            final ImageUrlPort imageUrlPort,
             final PriceTagResponseParser parser,
             @Value("${qwen.vision.model}") final String model) {
         this.qwenVisionClient = qwenVisionClient;
-        this.imageReadUrlPort = imageReadUrlPort;
+        this.imageUrlPort = imageUrlPort;
         this.parser = parser;
         this.model = model;
     }
 
     @Override
     public ExtractedPriceTag analyze(final String imageUrl) {
-        final String readUrl = imageReadUrlPort.presignedReadUrl(imageUrl);
-        final QwenChatResponse response = call(readUrl);
+        // images/ 접두사는 공개 읽기라 서명이 필요 없다. 우리 URL 인지만 확인한다 — 임의 URL 을
+        // 넘기면 사용자가 우리 비용으로 아무 호스트나 가져오게 만들 수 있다.
+        final QwenChatResponse response = call(imageUrlPort.requireOwnedUrl(imageUrl));
         return response.firstContent().map(parser::parse).orElseGet(ExtractedPriceTag::empty);
     }
 

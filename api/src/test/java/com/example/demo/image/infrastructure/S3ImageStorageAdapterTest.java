@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.common.exception.ImageValidationException;
 import com.example.demo.image.application.command.IssuePresignedUploadCommand;
 import com.example.demo.image.application.command.UploadImageCommand;
 import com.example.demo.image.application.result.PresignedUploadResult;
@@ -26,8 +27,6 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -145,24 +144,15 @@ class S3ImageStorageAdapterTest {
     }
 
     @Test
-    void 영구_URL에서_key를_되짚어_읽기_URL을_발급한다() {
-        final PresignedGetObjectRequest presigned = mock(PresignedGetObjectRequest.class);
-        when(presigned.url()).thenReturn(toUrl("https://s3.example.com/images/abc.jpg?X-Amz-Signature=r"));
-        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presigned);
-
-        final String readUrl = adapter.presignedReadUrl("https://cdn.example.com/images/abc.jpg");
-
-        assertThat(readUrl).contains("X-Amz-Signature");
-        final ArgumentCaptor<GetObjectPresignRequest> captor =
-                ArgumentCaptor.forClass(GetObjectPresignRequest.class);
-        verify(s3Presigner).presignGetObject(captor.capture());
-        assertThat(captor.getValue().getObjectRequest().key()).isEqualTo("images/abc.jpg");
+    void 우리_저장소의_URL은_그대로_돌려준다() {
+        assertThat(adapter.requireOwnedUrl("https://cdn.example.com/images/abc.jpg"))
+                .isEqualTo("https://cdn.example.com/images/abc.jpg");
     }
 
-    // 임의 문자열을 그대로 서명해 주면 우리 자격증명으로 외부 URL을 서명해 주는 통로가 된다.
+    // 임의 URL 을 통과시키면 사용자가 우리 비용으로 아무 호스트나 가져오게 만들 수 있다.
     @Test
-    void 우리_저장소의_URL이_아니면_읽기_URL을_발급하지_않는다() {
-        assertThatThrownBy(() -> adapter.presignedReadUrl("https://evil.example.com/images/abc.jpg"))
+    void 우리_저장소의_URL이_아니면_거부한다() {
+        assertThatThrownBy(() -> adapter.requireOwnedUrl("https://evil.example.com/images/abc.jpg"))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
@@ -170,30 +160,19 @@ class S3ImageStorageAdapterTest {
 
     // 이전에는 IllegalArgumentException 이 그대로 올라가 클라이언트가 500 을 받았다.
     @Test
-    void 접두사_규칙을_벗어난_key는_400으로_거부한다() {
-        assertThatThrownBy(() -> adapter.presignedReadUrl("https://cdn.example.com/uploads/abc.jpg"))
-                .isInstanceOf(ApiException.class)
+    void 접두사_규칙을_벗어난_key는_거부한다() {
+        assertThatThrownBy(() -> adapter.requireOwnedUrl("https://cdn.example.com/uploads/abc.jpg"))
+                .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
     }
 
     @Test
-    void base_URL만_주어져_key가_비면_400으로_거부한다() {
-        assertThatThrownBy(() -> adapter.presignedReadUrl("https://cdn.example.com/"))
-                .isInstanceOf(ApiException.class)
+    void base_URL만_주어져_key가_비면_거부한다() {
+        assertThatThrownBy(() -> adapter.requireOwnedUrl("https://cdn.example.com/"))
+                .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
-    }
-
-    @Test
-    void 읽기_URL_발급이_실패하면_저장소_사용_불가를_반환한다() {
-        when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class)))
-                .thenThrow(SdkClientException.create("presign failed"));
-
-        assertThatThrownBy(() -> adapter.presignedReadUrl("https://cdn.example.com/images/abc.jpg"))
-                .isInstanceOf(ApiException.class)
-                .extracting("errorType")
-                .isEqualTo(ErrorType.IMAGE_STORAGE_UNAVAILABLE);
     }
 
     private void givenPresignedUrl(final String url) {

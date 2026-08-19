@@ -111,7 +111,7 @@ class ImageDomainTest {
     @ValueSource(strings = {"uploads/a.png", "images/../secret.png", ""})
     void 외부_입력의_잘못된_key는_400으로_끝낸다(final String value) {
         assertThatThrownBy(() -> ImageKey.of(value))
-                .isInstanceOf(ApiException.class)
+                .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
     }

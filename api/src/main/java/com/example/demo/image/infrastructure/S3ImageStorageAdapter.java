@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.example.demo.image.application.command.IssuePresignedUploadCommand;
 import com.example.demo.image.application.command.UploadImageCommand;
 import com.example.demo.image.application.port.ImageStoragePort;
+import com.example.demo.image.application.port.ImageUrlPort;
 import com.example.demo.image.application.result.PresignedUploadResult;
 import com.example.demo.image.domain.ImageContentType;
 import com.example.demo.image.domain.ImageKey;
@@ -30,7 +31,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
  */
 @Slf4j
 @Component
-public class S3ImageStorageAdapter implements ImageStoragePort {
+public class S3ImageStorageAdapter implements ImageStoragePort, ImageUrlPort {
 
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
@@ -94,6 +95,23 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
         } catch (final SdkException exception) {
             throw storageUnavailable(exception);
         }
+    }
+
+    /**
+     * 우리 저장소 URL 인지만 본다.
+     *
+     * <p>영구 URL 은 {@code baseUrl + key} 규칙으로만 만들어지므로 접두사를 떼면 key 가 된다.
+     * {@link ImageKey#of} 가 {@code images/{name}.{png|jpg}} 형식을 강제하므로 상위 경로 이탈과
+     * 쿼리스트링 부착도 함께 걸러진다.
+     */
+    @Override
+    public String requireOwnedUrl(final String imageUrl) {
+        final String baseUrl = properties.baseUrl();
+        if (imageUrl == null || !imageUrl.startsWith(baseUrl)) {
+            throw ApiException.invalidParameter();
+        }
+        ImageKey.of(imageUrl.substring(baseUrl.length()));
+        return imageUrl;
     }
 
     private String permanentUrl(final ImageKey key) {
