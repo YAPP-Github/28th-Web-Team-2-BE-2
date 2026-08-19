@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import feign.RequestTemplate;
+import feign.Request;
+import feign.RetryableException;
 import feign.Retryer;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
