@@ -3,24 +3,15 @@ package com.example.demo.image.infrastructure;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import lombok.extern.slf4j.Slf4j;
-import com.example.demo.image.application.command.IssuePresignedUploadCommand;
 import com.example.demo.image.application.command.UploadImageCommand;
 import com.example.demo.image.application.port.ImageStoragePort;
-import com.example.demo.image.application.result.PresignedUploadResult;
-import com.example.demo.image.domain.ImageContentType;
 import com.example.demo.image.domain.ImageKey;
-import com.example.demo.image.domain.ImageSize;
-import java.time.Duration;
-import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 /**
  * S3 구현. SDK 예외를 밖으로 흘리지 않고 계약이 정한 503으로 바꾼다.
@@ -33,15 +24,11 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 public class S3ImageStorageAdapter implements ImageStoragePort {
 
     private final S3Client s3Client;
-    private final S3Presigner s3Presigner;
     private final S3ImageStorageProperties properties;
 
     public S3ImageStorageAdapter(
-            final S3Client s3Client,
-            final S3Presigner s3Presigner,
-            final S3ImageStorageProperties properties) {
+            final S3Client s3Client, final S3ImageStorageProperties properties) {
         this.s3Client = s3Client;
-        this.s3Presigner = s3Presigner;
         this.properties = properties;
     }
 
@@ -63,37 +50,6 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
             throw storageUnavailable(exception);
         }
         return imageUrl;
-    }
-
-    @Override
-    public PresignedUploadResult presign(final ImageKey key, final IssuePresignedUploadCommand command) {
-        final ImageContentType contentType = command.contentType();
-        // Content-Type과 Content-Length를 서명에 포함한다. 클라이언트가 다른 header로 PUT하면
-        // S3가 서명 불일치로 거부하므로, 신고한 크기를 넘겨 올리는 경로가 막힌다.
-        final PutObjectRequest objectRequest = PutObjectRequest.builder()
-                .bucket(properties.requireBucket())
-                .key(key.value())
-                .contentType(contentType.mimeType())
-                .contentLength(command.size().bytes())
-                .build();
-        final Duration expiry = properties.presignExpiry();
-        final PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(expiry)
-                .putObjectRequest(objectRequest)
-                .build();
-        try {
-            // 만료는 재계산하지 않고 서명이 알려주는 값을 쓴다. 설정을 SigV4 상한(7일)보다 크게
-            // 잡으면 재계산 값은 실제 수명보다 뒤를 약속한다.
-            final PresignedPutObjectRequest presigned = s3Presigner.presignPutObject(presignRequest);
-            return new PresignedUploadResult(
-                    presigned.url().toString(),
-                    permanentUrl(key),
-                    PresignedUploadResult.PUT_METHOD,
-                    presigned.expiration(),
-                    contentType.mimeType());
-        } catch (final SdkException exception) {
-            throw storageUnavailable(exception);
-        }
     }
 
     private String permanentUrl(final ImageKey key) {

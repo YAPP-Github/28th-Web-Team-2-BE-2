@@ -2,11 +2,9 @@ package com.example.demo.image.presentation.converter;
 
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.common.exception.ImageValidationException;
-import com.example.demo.image.application.command.IssuePresignedUploadCommand;
 import com.example.demo.image.application.command.UploadImageCommand;
 import com.example.demo.image.domain.ImageContentType;
 import com.example.demo.image.domain.ImageSize;
-import com.example.demo.image.presentation.dto.PresignedUploadRequest;
 import java.io.IOException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,10 +26,6 @@ public class ImageCommandConverter {
         return new UploadImageCommand(contentType, new ImageSize(file.getSize()), content);
     }
 
-    public IssuePresignedUploadCommand toPresignedCommand(final PresignedUploadRequest request) {
-        return new IssuePresignedUploadCommand(
-                ImageContentType.from(request.contentType()), new ImageSize(request.size()));
-    }
 
     private byte[] readBytes(final MultipartFile file) {
         try {

@@ -9,15 +9,10 @@ import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
-import com.example.demo.image.application.command.IssuePresignedUploadCommand;
 import com.example.demo.image.application.command.UploadImageCommand;
-import com.example.demo.image.application.result.PresignedUploadResult;
 import com.example.demo.image.domain.ImageContentType;
 import com.example.demo.image.domain.ImageKey;
 import com.example.demo.image.domain.ImageSize;
-import java.net.URL;
-import java.time.Duration;
-import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,26 +20,19 @@ import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 class S3ImageStorageAdapterTest {
 
     private static final ImageKey KEY = new ImageKey("images/abc.jpg");
 
     private S3Client s3Client;
-    private S3Presigner s3Presigner;
     private S3ImageStorageAdapter adapter;
 
     @BeforeEach
     void setUp() {
         s3Client = mock(S3Client.class);
-        s3Presigner = mock(S3Presigner.class);
         adapter = new S3ImageStorageAdapter(
-                s3Client,
-                s3Presigner,
-                new S3ImageStorageProperties("marketgo-images", "https://cdn.example.com/"));
+                s3Client, new S3ImageStorageProperties("marketgo-images", "https://cdn.example.com/"));
     }
 
     @Test
@@ -87,77 +75,6 @@ class S3ImageStorageAdapterTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(ErrorType.IMAGE_STORAGE_UNAVAILABLE.description())
                 .hasMessageNotContaining("marketgo-images");
-    }
-
-    @Test
-    void presigned_URL과_영구_URL을_함께_발급한다() {
-        givenPresignedUrl("https://s3.example.com/images/abc.jpg?X-Amz-Signature=abc");
-
-        final PresignedUploadResult result =
-                adapter.presign(KEY, new IssuePresignedUploadCommand(ImageContentType.JPEG, new ImageSize(3L)));
-
-        assertThat(result.uploadUrl()).contains("X-Amz-Signature");
-        assertThat(result.imageUrl()).isEqualTo("https://cdn.example.com/images/abc.jpg");
-        assertThat(result.method()).isEqualTo("PUT");
-        assertThat(result.contentType()).isEqualTo("image/jpeg");
-    }
-
-    // 만료는 재계산하지 않고 서명이 알려주는 값을 그대로 실어야 한다.
-    @Test
-    void presigned_만료는_서명이_알려주는_값을_쓴다() {
-        final Instant signed = Instant.parse("2026-08-19T00:10:00Z");
-        givenPresignedUrl("https://s3.example.com/images/abc.jpg?X-Amz-Signature=abc", signed);
-
-        final PresignedUploadResult result =
-                adapter.presign(KEY, new IssuePresignedUploadCommand(ImageContentType.JPEG, new ImageSize(3L)));
-
-        assertThat(result.expiresAt()).isEqualTo(signed);
-    }
-
-    // Content-Type과 Content-Length를 서명에 넣지 않으면 클라이언트가 신고보다 큰 파일을 올릴 수 있다.
-    @Test
-    void presigned_서명에_형식과_크기를_묶는다() {
-        givenPresignedUrl("https://s3.example.com/images/abc.jpg?X-Amz-Signature=abc");
-
-        adapter.presign(KEY, new IssuePresignedUploadCommand(ImageContentType.PNG, new ImageSize(2048L)));
-
-        final ArgumentCaptor<PutObjectPresignRequest> captor =
-                ArgumentCaptor.forClass(PutObjectPresignRequest.class);
-        verify(s3Presigner).presignPutObject(captor.capture());
-        final PutObjectRequest signed = captor.getValue().putObjectRequest();
-        assertThat(signed.contentType()).isEqualTo("image/png");
-        assertThat(signed.contentLength()).isEqualTo(2048L);
-        assertThat(captor.getValue().signatureDuration()).isEqualTo(Duration.ofMinutes(10));
-    }
-
-    @Test
-    void presigned_발급이_실패하면_저장소_사용_불가를_반환한다() {
-        when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class)))
-                .thenThrow(SdkClientException.create("presign failed"));
-
-        assertThatThrownBy(() -> adapter.presign(KEY, new IssuePresignedUploadCommand(ImageContentType.JPEG, new ImageSize(3L))))
-                .isInstanceOf(ApiException.class)
-                .extracting("errorType")
-                .isEqualTo(ErrorType.IMAGE_STORAGE_UNAVAILABLE);
-    }
-
-    private void givenPresignedUrl(final String url) {
-        givenPresignedUrl(url, Instant.parse("2026-08-19T00:10:00Z"));
-    }
-
-    private void givenPresignedUrl(final String url, final Instant expiration) {
-        final PresignedPutObjectRequest presigned = mock(PresignedPutObjectRequest.class);
-        when(presigned.url()).thenReturn(toUrl(url));
-        when(presigned.expiration()).thenReturn(expiration);
-        when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presigned);
-    }
-
-    private URL toUrl(final String url) {
-        try {
-            return java.net.URI.create(url).toURL();
-        } catch (final java.net.MalformedURLException exception) {
-            throw new IllegalStateException(exception);
-        }
     }
 
     private UploadImageCommand uploadCommand() {
