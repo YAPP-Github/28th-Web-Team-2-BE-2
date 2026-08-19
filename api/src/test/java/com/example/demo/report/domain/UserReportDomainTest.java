@@ -38,7 +38,7 @@ class UserReportDomainTest {
         assertThat(report.price()).isEqualTo(3500);
         assertThat(report.unit()).isEqualTo("kg");
         assertThat(report.amount()).isEqualByComparingTo("1.5");
-        assertThat(report.reportDate()).isEqualTo(LocalDate.now());
+        assertThat(report.reportDate()).isEqualTo(LocalDate.now(java.time.ZoneId.of("Asia/Seoul")));
         assertThat(report.publicPriceDiff()).isEqualTo(500);
         assertThat(report.priceDiffRate()).isEqualByComparingTo("14.29");
         assertThat(report.createdAt()).isNotNull();

@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,10 @@ import lombok.experimental.Accessors;
 @Getter
 @Accessors(fluent = true)
 public class UserReport {
+
+    /** 제보 기준일은 서비스 기준 시간대로 고정한다. JVM 기본 시간대(배포 컨테이너는 UTC)를 따르면
+     * KST 00:00~09:00 제보가 전날로 기록되어 주간·일자 집계에서 빠진다. */
+    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -89,7 +94,7 @@ public class UserReport {
         this.publicPriceDiff = publicPriceDiff;
         this.priceDiffRate = priceDiffRate;
         this.photoUrl = photoUrl;
-        this.reportDate = LocalDate.now();
+        this.reportDate = LocalDate.now(SERVICE_ZONE);
         this.createdAt = Instant.now();
     }
 }
