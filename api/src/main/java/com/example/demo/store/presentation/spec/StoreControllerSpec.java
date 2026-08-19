@@ -38,7 +38,7 @@ public interface StoreControllerSpec {
         @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다")
     })
     ResponseEntity<RecommendedStoresResponse> getRecommendedStores(
-            @ParameterObject RecommendedStoreRequest request,
+            @Valid @ParameterObject RecommendedStoreRequest request,
             @Parameter(hidden = true) HttpServletRequest servletRequest);
     @Operation(summary = "가게를 단골로 등록한다")
     @ApiResponses({

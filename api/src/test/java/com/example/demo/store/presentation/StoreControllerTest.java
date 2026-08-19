@@ -257,6 +257,7 @@ class StoreControllerTest {
             return new GetRecommendedStoresUseCase(queryPort);
         }
 
+        @Bean
         StoreFavoriteUseCase storeFavoriteUseCase() {
             return mock(StoreFavoriteUseCase.class);
         }

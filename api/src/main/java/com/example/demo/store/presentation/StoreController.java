@@ -66,6 +66,8 @@ public class StoreController implements StoreControllerSpec {
                 getRecommendedStoresUseCase.execute(
                         storeQueryConverter.toRecommendedStoreQuery(request)));
         return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{storeId}/favorite")
     @Override
     public ResponseEntity<Void> addFavorite(
