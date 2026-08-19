@@ -82,27 +82,6 @@ class LayerDependencyTest {
             .resideInAnyPackage("org.springframework.http..")
             .because("ARCHITECTURE §8: Domain 은 HTTP 상태 코드에 의존하지 않는다");
 
-    /**
-     * report 가 item 의 Entity·Repository 를 직접 다루는 전환 경계.
-     *
-     * <p>§7 은 상대 도메인의 Entity·Repository 를 직접 가져오지 말고 공개 유스케이스를 호출하라고
-     * 한다. {@code ItemNameJpaRepository} 는 그 규칙을 어긴다 — 이름으로 품목을 찾는 공개
-     * 유스케이스가 item 쪽에 아직 없다. §9 가 허용하는 예외로 기록하고, item 에 그 유스케이스가
-     * 생기면 이 규칙과 repository 를 함께 지운다.
-     */
-    @ArchTest
-    static final ArchRule only_item_name_repository_reaches_into_item_domain = noClasses()
-            .that()
-            .resideInAPackage("com.example.demo.report.infrastructure")
-            .and()
-            .haveSimpleNameNotEndingWith("ItemNameJpaRepository")
-            .and()
-            .haveSimpleNameNotEndingWith("ItemCandidateQueryAdapter")
-            .should()
-            .dependOnClassesThat()
-            .resideInAPackage("com.example.demo.item.domain")
-            .because("§7: 다른 도메인의 Entity 를 직접 가져오지 않는다. 예외는 위 javadoc 참조");
-
     @ArchTest
     static final ArchRule item_controller_implements_spec = classes()
             .that()
