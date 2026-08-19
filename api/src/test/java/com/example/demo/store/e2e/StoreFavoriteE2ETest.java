@@ -1,6 +1,7 @@
 package com.example.demo.store.e2e;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -120,9 +121,45 @@ class StoreFavoriteE2ETest {
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }
 
+    @Test
+    void 인증_사용자는_자신의_단골만_반복_해제하고_다른_사용자의_관계는_유지한다() throws Exception {
+        final User user = saveUser("단골 해제 사용자");
+        final User otherUser = saveUser("다른 단골 사용자");
+        final String token = accessToken(user);
+
+        favorite(token, store.id()).andExpect(status().isNoContent());
+        favorite(accessToken(otherUser), store.id()).andExpect(status().isNoContent());
+
+        unfavorite(token, store.id()).andExpect(status().isNoContent()).andExpect(content().string(""));
+        unfavorite(token, store.id()).andExpect(status().isNoContent()).andExpect(content().string(""));
+
+        assertThat(storeFavoriteCount(user.id(), store.id())).isZero();
+        assertThat(storeFavoriteCount(otherUser.id(), store.id())).isEqualTo(1);
+    }
+
+    @Test
+    void 존재하지_않는_가게의_단골_해제는_404를_응답한다() throws Exception {
+        unfavorite(accessToken(saveUser("미존재 가게 해제 사용자")), MISSING_STORE_ID)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NO_RESOURCE_ERROR"));
+    }
+
+    @Test
+    void 비로그인_단골_해제는_401을_응답한다() throws Exception {
+        mockMvc.perform(delete(favoritePath(store.id())))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
     private org.springframework.test.web.servlet.ResultActions favorite(
             final String token, final Long storeId) throws Exception {
         return mockMvc.perform(put(favoritePath(storeId))
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions unfavorite(
+            final String token, final Long storeId) throws Exception {
+        return mockMvc.perform(delete(favoritePath(storeId))
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
     }
 
@@ -139,9 +176,10 @@ class StoreFavoriteE2ETest {
     }
 
     private User saveUser(final String nickname) {
+        final String uniqueNickname = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
         final User user = User.oauth(ProviderType.KAKAO, UUID.randomUUID().toString(),
-                nickname + "@example.com", nickname);
-        user.changeNickname(nickname);
+                uniqueNickname + "@example.com", uniqueNickname);
+        user.changeNickname(uniqueNickname);
         return userJpaRepository.save(user);
     }
 

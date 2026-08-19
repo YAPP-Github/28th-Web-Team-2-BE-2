@@ -20,4 +20,9 @@ public class StoreFavoriteCommandAdapter implements StoreFavoriteCommandPort {
     public void add(final Long userId, final Long storeId) {
         storeFavoriteJpaRepository.add(userId, storeId);
     }
+
+    @Override
+    public void remove(final Long userId, final Long storeId) {
+        storeFavoriteJpaRepository.remove(userId, storeId);
+    }
 }
