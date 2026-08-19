@@ -99,7 +99,12 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<?> handleMaxUploadSizeExceeded(final HttpServletRequest request) {
-        return badRequest(ErrorType.IMAGE_TOO_LARGE, request);
+        return handleApiException(
+                new ApiException(
+                        ErrorType.IMAGE_TOO_LARGE.description(),
+                        ErrorType.IMAGE_TOO_LARGE,
+                        HttpStatus.BAD_REQUEST),
+                request);
     }
 
     /**
@@ -110,12 +115,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ImageValidationException.class)
     public ResponseEntity<?> handleImageValidation(
             final ImageValidationException exception, final HttpServletRequest request) {
-        return badRequest(exception.errorType(), request);
-    }
-
-    private ResponseEntity<?> badRequest(final ErrorType errorType, final HttpServletRequest request) {
         return handleApiException(
-                new ApiException(errorType.description(), errorType, HttpStatus.BAD_REQUEST), request);
+                new ApiException(
+                        exception.errorType().description(),
+                        exception.errorType(),
+                        HttpStatus.BAD_REQUEST),
+                request);
     }
 
     private boolean isV1Request(final HttpServletRequest request) {
