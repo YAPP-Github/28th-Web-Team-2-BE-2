@@ -2,8 +2,10 @@ package com.example.demo.store.presentation.converter;
 
 import com.example.demo.store.application.result.NearbyStoreResult;
 import com.example.demo.store.application.result.NearbyStoresResult;
+import com.example.demo.store.application.result.StoreDetailResult;
 import com.example.demo.store.presentation.dto.NearbyStoreResponse;
 import com.example.demo.store.presentation.dto.NearbyStoresResponse;
+import com.example.demo.store.presentation.dto.StoreDetailResponse;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,6 +14,29 @@ public class StoreResultConverter {
     public NearbyStoresResponse toNearbyStoresResponse(final NearbyStoresResult result) {
         return new NearbyStoresResponse(
                 result.totalCount(), result.stores().stream().map(this::toResponse).toList());
+    }
+
+    public StoreDetailResponse toStoreDetailResponse(final StoreDetailResult result) {
+        return new StoreDetailResponse(
+                result.storeId(),
+                result.storeName(),
+                result.storeImageUrl(),
+                result.isLiked(),
+                result.favoriteCount(),
+                result.cheapItemCount(),
+                result.expensiveItemCount(),
+                result.totalReportedItemCount(),
+                result.regionId(),
+                result.regionName(),
+                result.latestReportedDate(),
+                result.latestReportedAt(),
+                result.address(),
+                result.latitude(),
+                result.longitude(),
+                result.distance(),
+                result.walkTimeMinutes(),
+                result.businessHours(),
+                result.openStatus());
     }
 
     private NearbyStoreResponse toResponse(final NearbyStoreResult result) {

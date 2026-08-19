@@ -3,10 +3,14 @@ package com.example.demo.store.presentation.spec;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
 import com.example.demo.store.presentation.dto.NearbyStoresResponse;
+import com.example.demo.store.presentation.dto.StoreDetailRequest;
+import com.example.demo.store.presentation.dto.StoreDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -23,7 +27,21 @@ public interface StoreControllerSpec {
         @ApiResponse(responseCode = "502", description = "외부 가게 provider를 조회할 수 없다")
     })
     ResponseEntity<NearbyStoresResponse> getNearbyStores(
-            @ParameterObject NearbyStoreRequest request,
+            @Valid @ParameterObject NearbyStoreRequest request,
+            @Parameter(hidden = true) AuthPrincipal principal,
+            @Parameter(hidden = true) Authentication authentication,
+            @Parameter(hidden = true) HttpServletRequest servletRequest);
+
+    @Operation(summary = "가게 상세를 조회한다")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "가게 상세 조회 성공"),
+        @ApiResponse(responseCode = "400", description = "가게 ID 또는 좌표가 올바르지 않다"),
+        @ApiResponse(responseCode = "401", description = "인증 토큰이 올바르지 않다"),
+        @ApiResponse(responseCode = "404", description = "가게를 찾을 수 없다")
+    })
+    ResponseEntity<StoreDetailResponse> getStoreDetail(
+            @Parameter(description = "가게 ID") @Positive Long storeId,
+            @Valid @ParameterObject StoreDetailRequest request,
             @Parameter(hidden = true) AuthPrincipal principal,
             @Parameter(hidden = true) Authentication authentication,
             @Parameter(hidden = true) HttpServletRequest servletRequest);

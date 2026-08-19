@@ -22,6 +22,7 @@ import com.example.demo.store.application.result.NearbyStoreResult;
 import com.example.demo.store.application.result.NearbyStoreSearchResult;
 import com.example.demo.store.application.result.NearbyStoresResult;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
+import com.example.demo.store.application.usecase.GetStoreDetailUseCase;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
 import com.example.demo.store.presentation.converter.StoreResultConverter;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
@@ -210,6 +211,11 @@ class StoreControllerTest {
                 final NearbyStoreSearchPort searchPort,
                 final StorePersistencePort persistencePort) {
             return new GetNearbyStoresUseCase(searchPort, persistencePort);
+        }
+
+        @Bean
+        GetStoreDetailUseCase getStoreDetailUseCase() {
+            return mock(GetStoreDetailUseCase.class);
         }
     }
 }
