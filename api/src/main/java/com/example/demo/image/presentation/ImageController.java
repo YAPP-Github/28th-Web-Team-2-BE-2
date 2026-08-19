@@ -11,8 +11,8 @@ import com.example.demo.image.presentation.dto.PresignedUploadRequest;
 import com.example.demo.image.presentation.dto.PresignedUploadResponse;
 import com.example.demo.image.presentation.spec.ImageControllerSpec;
 import jakarta.validation.Valid;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,7 +46,9 @@ public class ImageController implements ImageControllerSpec {
             @RequestPart("image") final MultipartFile image) {
         final UploadedImageResult result = uploadImageUseCase.execute(
                 commandConverter.toUploadCommand(image));
-        return ResponseEntity.status(HttpStatus.CREATED).body(resultConverter.toUploadResponse(result));
+        // 만든 리소스의 절대 URI 가 이미 응답 본문에 있다. UserReportController 와 같은 형태로 채운다.
+        return ResponseEntity.created(URI.create(result.imageUrl()))
+                .body(resultConverter.toUploadResponse(result));
     }
 
     @PostMapping("/presigned-url")

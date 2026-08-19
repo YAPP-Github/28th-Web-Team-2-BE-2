@@ -5,6 +5,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.example.demo.auth.presentation.AuthController;
 import com.example.demo.auth.presentation.spec.AuthControllerSpec;
+import com.example.demo.image.presentation.ImageController;
+import com.example.demo.image.presentation.spec.ImageControllerSpec;
 import com.example.demo.item.presentation.ItemController;
 import com.example.demo.item.presentation.spec.ItemControllerSpec;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -63,6 +65,22 @@ class LayerDependencyTest {
             .haveSimpleName(AuthController.class.getSimpleName())
             .should()
             .implement(AuthControllerSpec.class);
+
+    @ArchTest
+    static final ArchRule image_controller_implements_spec = classes()
+            .that()
+            .haveSimpleName(ImageController.class.getSimpleName())
+            .should()
+            .implement(ImageControllerSpec.class);
+
+    @ArchTest
+    static final ArchRule domain_does_not_depend_on_http_status = noClasses()
+            .that()
+            .resideInAnyPackage("..domain..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("org.springframework.http..")
+            .because("ARCHITECTURE §8: Domain 은 HTTP 상태 코드에 의존하지 않는다");
 
     @ArchTest
     static final ArchRule item_controller_implements_spec = classes()

@@ -3,6 +3,7 @@ package com.example.demo.image.infrastructure;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import java.time.Duration;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -16,23 +17,28 @@ import org.springframework.stereotype.Component;
  * {@code CONFIGURATION_ERROR}로 즉시 실패하는 것과 의도적으로 다르다 — 그쪽은 키가 없으면 해당
  * 기능이 존재할 수 없고, 이쪽은 나머지 API가 정상 동작해야 한다.
  */
+@Slf4j
 @Component
 public class S3ImageStorageProperties {
 
+    /** 계약이 정한 값이다. 늘리면 유출된 URL 의 유효 기간도 함께 늘어나므로 설정으로 열지 않는다. */
+    private static final Duration PRESIGN_EXPIRY = Duration.ofMinutes(10);
+
     private final String bucket;
     private final String baseUrl;
-    private final Duration presignExpiry;
 
     public S3ImageStorageProperties(
             @Value("${aws.s3.bucket:}") final String bucket,
-            @Value("${aws.s3.base-url:}") final String baseUrl,
-            @Value("${aws.s3.presign-expiry:10m}") final Duration presignExpiry) {
+            @Value("${aws.s3.base-url:}") final String baseUrl) {
         this.bucket = bucket;
         this.baseUrl = baseUrl;
-        this.presignExpiry = presignExpiry;
+        if (isMissing(bucket) || isMissing(baseUrl)) {
+            // 지연 검증의 대가는 fail-fast 포기다. 기동 시 한 줄이라도 남겨야 운영자가 누락을 안다.
+            log.warn("이미지 업로드 비활성: AWS_S3_BUCKET / AWS_S3_BASE_URL 미설정");
+        }
     }
 
-    public String bucket() {
+    public String requireBucket() {
         return required(bucket);
     }
 
@@ -42,7 +48,7 @@ public class S3ImageStorageProperties {
      * <p>설정값에 슬래시가 빠져도 동작하게 보정한다. 이 값이 틀리면 저장된 URL이 전부 깨지는데,
      * 되돌리려면 DB의 {@code photo_url}을 일괄 수정해야 하므로 관대하게 받는 편이 낫다.
      */
-    public String baseUrl() {
+    public String requireBaseUrl() {
         final String value = required(baseUrl);
         if (value.endsWith("/")) {
             return value;
@@ -51,11 +57,15 @@ public class S3ImageStorageProperties {
     }
 
     public Duration presignExpiry() {
-        return presignExpiry;
+        return PRESIGN_EXPIRY;
+    }
+
+    private static boolean isMissing(final String value) {
+        return value == null || value.isBlank();
     }
 
     private String required(final String value) {
-        if (value == null || value.isBlank()) {
+        if (isMissing(value)) {
             throw new ApiException(
                     ErrorType.IMAGE_STORAGE_UNAVAILABLE.description(),
                     ErrorType.IMAGE_STORAGE_UNAVAILABLE,

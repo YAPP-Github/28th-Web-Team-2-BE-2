@@ -19,7 +19,7 @@ public class S3ClientConfiguration {
 
     private final String region;
 
-    public S3ClientConfiguration(@Value("${aws.region:ap-northeast-2}") final String region) {
+    public S3ClientConfiguration(@Value("${aws.region}") final String region) {
         this.region = region;
     }
 

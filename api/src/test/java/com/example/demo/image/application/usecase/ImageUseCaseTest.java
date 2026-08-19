@@ -19,7 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-class ImageUploadUseCaseTest {
+class ImageUseCaseTest {
 
     private ImageStoragePort imageStoragePort;
     private UploadImageUseCase uploadImageUseCase;
@@ -34,7 +34,7 @@ class ImageUploadUseCaseTest {
 
     @Test
     void 업로드하면_저장소가_돌려준_영구_URL을_반환한다() {
-        when(imageStoragePort.upload(any(), any())).thenReturn("https://cdn.example.com/images/a.jpg");
+        when(imageStoragePort.uploadAndReturnUrl(any(), any())).thenReturn("https://cdn.example.com/images/a.jpg");
 
         final UploadedImageResult result = uploadImageUseCase.execute(uploadCommand());
 
@@ -47,7 +47,7 @@ class ImageUploadUseCaseTest {
         uploadImageUseCase.execute(uploadCommand());
 
         final ArgumentCaptor<ImageKey> captor = ArgumentCaptor.forClass(ImageKey.class);
-        verify(imageStoragePort).upload(captor.capture(), any());
+        verify(imageStoragePort).uploadAndReturnUrl(captor.capture(), any());
         assertThat(captor.getValue().value()).matches("^images/[0-9a-f-]{36}\\.jpg$");
     }
 
