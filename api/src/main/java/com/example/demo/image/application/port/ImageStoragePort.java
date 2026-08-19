@@ -1,10 +1,9 @@
 package com.example.demo.image.application.port;
 
+import com.example.demo.image.application.command.IssuePresignedUploadCommand;
 import com.example.demo.image.application.command.UploadImageCommand;
 import com.example.demo.image.application.result.PresignedUploadResult;
-import com.example.demo.image.domain.ImageContentType;
 import com.example.demo.image.domain.ImageKey;
-import com.example.demo.image.domain.ImageSize;
 
 /**
  * 이미지 저장소 출력 포트. S3라는 사실을 Application 밖으로 내보내지 않는다.
@@ -18,5 +17,5 @@ public interface ImageStoragePort {
     String upload(ImageKey key, UploadImageCommand command);
 
     /** 클라이언트가 직접 PUT할 수 있는 만료 URL을 발급한다. */
-    PresignedUploadResult presign(ImageKey key, ImageContentType contentType, ImageSize size);
+    PresignedUploadResult presign(ImageKey key, IssuePresignedUploadCommand command);
 }

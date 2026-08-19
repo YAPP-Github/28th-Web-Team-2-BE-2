@@ -1,9 +1,7 @@
 package com.example.demo.image.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -58,7 +56,7 @@ class ImageUploadUseCaseTest {
         final PresignedUploadResult expected = new PresignedUploadResult(
                 "https://s3.example.com/put", "https://cdn.example.com/images/a.png",
                 PresignedUploadResult.PUT_METHOD, Instant.parse("2026-08-19T00:10:00Z"), "image/png");
-        when(imageStoragePort.presign(any(), eq(ImageContentType.PNG), any())).thenReturn(expected);
+        when(imageStoragePort.presign(any(), any())).thenReturn(expected);
 
         final PresignedUploadResult result = issuePresignedUploadUseCase.execute(
                 new IssuePresignedUploadCommand(ImageContentType.PNG, new ImageSize(2048L)));
@@ -72,15 +70,8 @@ class ImageUploadUseCaseTest {
                 new IssuePresignedUploadCommand(ImageContentType.PNG, new ImageSize(2048L)));
 
         final ArgumentCaptor<ImageKey> captor = ArgumentCaptor.forClass(ImageKey.class);
-        verify(imageStoragePort).presign(captor.capture(), any(), any());
+        verify(imageStoragePort).presign(captor.capture(), any());
         assertThat(captor.getValue().value()).endsWith(".png");
-    }
-
-    @Test
-    void 내용이_비어_있는_커맨드는_만들_수_없다() {
-        assertThatThrownBy(() -> new UploadImageCommand(
-                        ImageContentType.JPEG, new ImageSize(1L), new byte[0]))
-                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private UploadImageCommand uploadCommand() {

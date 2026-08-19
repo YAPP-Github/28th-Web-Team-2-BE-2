@@ -3,7 +3,7 @@ package com.example.demo.image.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.example.demo.common.exception.ApiException;
+import com.example.demo.common.exception.ImageValidationException;
 import com.example.demo.common.exception.ErrorType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,7 +33,7 @@ class ImageDomainTest {
     @ValueSource(strings = {"image/gif", "image/webp", "application/pdf", "text/plain", "image"})
     void 허용하지_않는_MIME은_거부한다(final String mimeType) {
         assertThatThrownBy(() -> ImageContentType.from(mimeType))
-                .isInstanceOf(ApiException.class)
+                .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_IMAGE_FORMAT);
     }
@@ -43,7 +43,7 @@ class ImageDomainTest {
     @ValueSource(strings = {"   "})
     void MIME이_없으면_형식을_판별하지_않고_거부한다(final String mimeType) {
         assertThatThrownBy(() -> ImageContentType.from(mimeType))
-                .isInstanceOf(ApiException.class)
+                .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_IMAGE_FORMAT);
     }
@@ -52,6 +52,30 @@ class ImageDomainTest {
     void 확장자는_MIME과_함께_고정된다() {
         assertThat(ImageContentType.PNG.extension()).isEqualTo("png");
         assertThat(ImageContentType.JPEG.extension()).isEqualTo("jpg");
+    }
+
+    // 신고된 Content-Type 만 믿으면 인증 사용자가 우리 버킷을 임의 파일 호스트로 쓸 수 있다.
+    @Test
+    void 선두_바이트가_형식과_맞는지_본다() {
+        final byte[] png = {(byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2};
+        final byte[] jpeg = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 1, 2};
+
+        assertThat(ImageContentType.PNG.matchesSignature(png)).isTrue();
+        assertThat(ImageContentType.JPEG.matchesSignature(jpeg)).isTrue();
+    }
+
+    @Test
+    void 형식을_위조한_바이트는_거부한다() {
+        final byte[] zip = {0x50, 0x4B, 0x03, 0x04, 1, 2, 3, 4, 5};
+
+        assertThat(ImageContentType.PNG.matchesSignature(zip)).isFalse();
+        assertThat(ImageContentType.JPEG.matchesSignature(zip)).isFalse();
+    }
+
+    @Test
+    void 시그니처보다_짧은_내용은_거부한다() {
+        assertThat(ImageContentType.PNG.matchesSignature(new byte[] {(byte) 0x89, 0x50})).isFalse();
+        assertThat(ImageContentType.JPEG.matchesSignature(null)).isFalse();
     }
 
     @Test
@@ -81,7 +105,7 @@ class ImageDomainTest {
     @Test
     void 상한을_넘는_크기는_IMAGE_TOO_LARGE로_거부한다() {
         assertThatThrownBy(() -> new ImageSize(5L * 1024 * 1024 + 1))
-                .isInstanceOf(ApiException.class)
+                .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.IMAGE_TOO_LARGE);
     }
@@ -90,7 +114,7 @@ class ImageDomainTest {
     @ValueSource(longs = {0L, -1L})
     void 빈_이미지는_형식_오류로_거부한다(final long bytes) {
         assertThatThrownBy(() -> new ImageSize(bytes))
-                .isInstanceOf(ApiException.class)
+                .isInstanceOf(ImageValidationException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.INVALID_IMAGE_FORMAT);
     }

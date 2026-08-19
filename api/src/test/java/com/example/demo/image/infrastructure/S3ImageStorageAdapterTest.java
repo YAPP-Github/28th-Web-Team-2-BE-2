@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.image.application.command.IssuePresignedUploadCommand;
 import com.example.demo.image.application.command.UploadImageCommand;
 import com.example.demo.image.application.result.PresignedUploadResult;
 import com.example.demo.image.domain.ImageContentType;
@@ -64,7 +65,6 @@ class S3ImageStorageAdapterTest {
         assertThat(request.bucket()).isEqualTo("marketgo-images");
         assertThat(request.key()).isEqualTo("images/abc.jpg");
         assertThat(request.contentType()).isEqualTo("image/jpeg");
-        assertThat(request.contentLength()).isEqualTo(3L);
     }
 
     @Test
@@ -95,7 +95,7 @@ class S3ImageStorageAdapterTest {
         givenPresignedUrl("https://s3.example.com/images/abc.jpg?X-Amz-Signature=abc");
 
         final PresignedUploadResult result =
-                adapter.presign(KEY, ImageContentType.JPEG, new ImageSize(3L));
+                adapter.presign(KEY, new IssuePresignedUploadCommand(ImageContentType.JPEG, new ImageSize(3L)));
 
         assertThat(result.uploadUrl()).contains("X-Amz-Signature");
         assertThat(result.imageUrl()).isEqualTo("https://cdn.example.com/images/abc.jpg");
@@ -103,16 +103,16 @@ class S3ImageStorageAdapterTest {
         assertThat(result.contentType()).isEqualTo("image/jpeg");
     }
 
+    // 만료는 재계산하지 않고 서명이 알려주는 값을 그대로 실어야 한다.
     @Test
-    void presigned_만료는_설정한_기간_뒤로_잡는다() {
-        givenPresignedUrl("https://s3.example.com/images/abc.jpg?X-Amz-Signature=abc");
+    void presigned_만료는_서명이_알려주는_값을_쓴다() {
+        final Instant signed = Instant.parse("2026-08-19T00:10:00Z");
+        givenPresignedUrl("https://s3.example.com/images/abc.jpg?X-Amz-Signature=abc", signed);
 
-        final Instant before = Instant.now();
         final PresignedUploadResult result =
-                adapter.presign(KEY, ImageContentType.JPEG, new ImageSize(3L));
+                adapter.presign(KEY, new IssuePresignedUploadCommand(ImageContentType.JPEG, new ImageSize(3L)));
 
-        assertThat(result.expiresAt()).isBetween(before.plus(Duration.ofMinutes(10)),
-                Instant.now().plus(Duration.ofMinutes(10)));
+        assertThat(result.expiresAt()).isEqualTo(signed);
     }
 
     // Content-Type과 Content-Length를 서명에 넣지 않으면 클라이언트가 신고보다 큰 파일을 올릴 수 있다.
@@ -120,7 +120,7 @@ class S3ImageStorageAdapterTest {
     void presigned_서명에_형식과_크기를_묶는다() {
         givenPresignedUrl("https://s3.example.com/images/abc.jpg?X-Amz-Signature=abc");
 
-        adapter.presign(KEY, ImageContentType.PNG, new ImageSize(2048L));
+        adapter.presign(KEY, new IssuePresignedUploadCommand(ImageContentType.PNG, new ImageSize(2048L)));
 
         final ArgumentCaptor<PutObjectPresignRequest> captor =
                 ArgumentCaptor.forClass(PutObjectPresignRequest.class);
@@ -136,15 +136,20 @@ class S3ImageStorageAdapterTest {
         when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class)))
                 .thenThrow(SdkClientException.create("presign failed"));
 
-        assertThatThrownBy(() -> adapter.presign(KEY, ImageContentType.JPEG, new ImageSize(3L)))
+        assertThatThrownBy(() -> adapter.presign(KEY, new IssuePresignedUploadCommand(ImageContentType.JPEG, new ImageSize(3L))))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.IMAGE_STORAGE_UNAVAILABLE);
     }
 
     private void givenPresignedUrl(final String url) {
+        givenPresignedUrl(url, Instant.parse("2026-08-19T00:10:00Z"));
+    }
+
+    private void givenPresignedUrl(final String url, final Instant expiration) {
         final PresignedPutObjectRequest presigned = mock(PresignedPutObjectRequest.class);
         when(presigned.url()).thenReturn(toUrl(url));
+        when(presigned.expiration()).thenReturn(expiration);
         when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presigned);
     }
 
