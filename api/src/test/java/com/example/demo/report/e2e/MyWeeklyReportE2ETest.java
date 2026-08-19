@@ -110,7 +110,7 @@ class MyWeeklyReportE2ETest {
     }
 
     @Test
-    @DisplayName("PURCHASE와 OBSERVED가 모두 활동 일수에 반영되고 같은 날짜는 하루로 집계된다")
+    @DisplayName("같은 날짜는 하루로 집계하고 그날 가장 먼저 등록한 제보를 대표로 삼는다")
     void countsBothReportTypesOncePerDay() throws Exception {
         final User me = saveUser("나");
         saveOn(me.id(), potatoId, ReportType.PURCHASE, weekStart);
@@ -121,7 +121,7 @@ class MyWeeklyReportE2ETest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalReportedDays").value(2))
                 .andExpect(jsonPath("$.data.dailyReports[0].hasReported").value(true))
-                .andExpect(jsonPath("$.data.dailyReports[0].itemName").value("양파"))
+                .andExpect(jsonPath("$.data.dailyReports[0].itemName").value("감자"))
                 .andExpect(jsonPath("$.data.dailyReports[1].hasReported").value(true))
                 .andExpect(jsonPath("$.data.dailyReports[2].hasReported").value(false));
     }

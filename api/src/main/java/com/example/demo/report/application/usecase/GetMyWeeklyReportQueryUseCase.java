@@ -41,12 +41,12 @@ public class GetMyWeeklyReportQueryUseCase {
         final LocalDate weekEnd = weekStart.plusWeeks(1);
         final List<UserReport> reports =
                 userReportQueryPort.findByUserInPeriod(userId, weekStart, weekEnd.minusDays(1));
-        final Map<LocalDate, UserReport> latestByDate = latestByDate(reports);
-        final Map<Long, String> itemNames = findItemNames(latestByDate.values());
+        final Map<LocalDate, UserReport> firstByDate = firstByDate(reports);
+        final Map<Long, String> itemNames = findItemNames(firstByDate.values());
         final List<DailyReportResult> dailyReports = weekStart.datesUntil(weekEnd)
-                .map(date -> toDailyReport(date, latestByDate.get(date), itemNames))
+                .map(date -> toDailyReport(date, firstByDate.get(date), itemNames))
                 .toList();
-        return new MyWeeklyReportResult(latestByDate.size(), dailyReports);
+        return new MyWeeklyReportResult(firstByDate.size(), dailyReports);
     }
 
     private LocalDate weekStart() {
@@ -54,12 +54,12 @@ public class GetMyWeeklyReportQueryUseCase {
                 .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 
-    /** 같은 날짜의 제보 중 가장 나중에 저장된 것을 그날의 대표로 삼는다. */
-    private Map<LocalDate, UserReport> latestByDate(final List<UserReport> reports) {
+    /** 같은 날짜의 제보 중 가장 먼저 등록된 것을 그날의 대표로 삼는다. */
+    private Map<LocalDate, UserReport> firstByDate(final List<UserReport> reports) {
         return reports.stream().collect(Collectors.toMap(
                 UserReport::reportDate,
                 Function.identity(),
-                BinaryOperator.maxBy(Comparator.comparing(UserReport::id))));
+                BinaryOperator.minBy(Comparator.comparing(UserReport::id))));
     }
 
     private Map<Long, String> findItemNames(final Collection<UserReport> reports) {
