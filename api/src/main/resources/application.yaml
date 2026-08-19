@@ -87,11 +87,11 @@ qwen:
     model: ${QWEN_VISION_MODEL:qwen-vl-plus}
   # 기본값을 두지 않는다. 누락되면 placeholder 오류에 env 이름이 찍혀 진단이 쉽다(kakao 와 같은 방식).
   api-key: ${QWEN_API_KEY}
-  retry:
-    # 사용자가 화면에서 기다리는 동기 호출이라 총 2회로 제한한다.
+  vision-retry:
+    # 사용자가 화면에서 기다리는 동기 호출이라 총 2회(최초 1회 + 재시도 1회)로 제한한다.
     max-attempts: ${QWEN_RETRY_MAX_ATTEMPTS:2}
-    period: ${QWEN_RETRY_PERIOD:500ms}
-    max-period: ${QWEN_RETRY_MAX_PERIOD:2s}
+    # Feign 자식 컨텍스트에는 Duration 변환기가 없어 "500ms" 를 변환하지 못한다. 밀리초로 둔다.
+    period-ms: ${QWEN_RETRY_PERIOD_MS:500}
 
 kakao:
   map:

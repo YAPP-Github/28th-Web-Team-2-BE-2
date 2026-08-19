@@ -9,7 +9,6 @@ import feign.RequestTemplate;
 import feign.Request;
 import feign.RetryableException;
 import feign.Retryer;
-import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -44,12 +43,44 @@ class QwenVisionClientConfigurationTest {
         assertThat(template.headers().get("Authorization")).containsExactly("Bearer secret-key");
     }
 
+    // 이전 이름은 "설정한 횟수를 따른다"였지만 isInstanceOf 만 봐서 횟수를 검증하지 않았다.
     @Test
-    void 재시도는_설정한_횟수를_따른다() {
-        final Retryer retryer = configuration.qwenRetryer(
-                Duration.ofMillis(500), Duration.ofSeconds(2), 2);
+    void 재시도를_소진하면_예외를_전파한다() {
+        final Retryer retryer = configuration.qwenRetryer(1L, 2);
+        final Request request = Request.create(
+                Request.HttpMethod.POST, "https://qwen.test/chat/completions",
+                java.util.Map.of(), new byte[0], java.nio.charset.StandardCharsets.UTF_8, null);
+        final RetryableException failure = new RetryableException(
+                503, "unavailable", Request.HttpMethod.POST, (Long) null, request);
 
-        assertThat(retryer).isInstanceOf(Retryer.Default.class);
+        retryer.continueOrPropagate(failure);
+
+        assertThatThrownBy(() -> retryer.continueOrPropagate(failure)).isSameAs(failure);
+    }
+
+    /**
+     * yaml 의 키 이름과 {@code @Value} 의 키 이름이 어긋나면 잡는다.
+     *
+     * <p>이 회귀가 한 번 있었다 — 코드는 {@code qwen.vision-retry.*} 를 읽는데 yaml 은
+     * {@code qwen.retry.*} 였고, {@code @Value} 에 기본값이 있어서 조용히 동작했다. Feign 빈은
+     * lazy 라 컨텍스트 테스트도 생성하지 않아 CI 가 통과했다. 기본값을 없앤 뒤로는 키가 없으면
+     * 여기서 터진다.
+     */
+    @Test
+    void 재시도_설정_키가_yaml_에_있다() {
+        assertThat(readQwenBlock())
+                .as("코드가 읽는 키가 yaml 에 있어야 한다")
+                .contains("vision-retry:", "period-ms:", "max-attempts:");
+    }
+
+    private String readQwenBlock() {
+        try {
+            final var path = java.nio.file.Path.of("..", "..", "api", "src", "main", "resources",
+                    "application.yaml");
+            return java.nio.file.Files.readString(path);
+        } catch (final java.io.IOException exception) {
+            throw new IllegalStateException("application.yaml 을 읽을 수 없다", exception);
+        }
     }
 
     @Test

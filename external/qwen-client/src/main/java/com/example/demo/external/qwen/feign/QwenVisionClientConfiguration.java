@@ -42,9 +42,8 @@ public class QwenVisionClientConfiguration {
      */
     @Bean
     public Retryer qwenRetryer(
-            @Value("${qwen.retry.period:500ms}") final java.time.Duration period,
-            @Value("${qwen.retry.max-period:2s}") final java.time.Duration maxPeriod,
-            @Value("${qwen.vision-retry.max-attempts:2}") final int maxAttempts) {
-        return new Retryer.Default(period.toMillis(), maxPeriod.toMillis(), maxAttempts);
+            @Value("${qwen.vision-retry.period-ms}") final long periodMs,
+            @Value("${qwen.vision-retry.max-attempts}") final int maxAttempts) {
+        return new Retryer.Default(periodMs, periodMs * maxAttempts, maxAttempts);
     }
 }
