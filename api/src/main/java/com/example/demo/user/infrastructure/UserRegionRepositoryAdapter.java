@@ -2,6 +2,7 @@ package com.example.demo.user.infrastructure;
 
 import com.example.demo.user.application.port.UserRegionRepository;
 import com.example.demo.user.domain.UserRegion;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -30,6 +31,11 @@ public class UserRegionRepositoryAdapter implements UserRegionRepository {
     @Override
     public Optional<UserRegion> findByUserIdAndRegionId(final Long userId, final String regionId) {
         return userRegionJpaRepository.findByUserIdAndRegionId(userId, regionId);
+    }
+
+    @Override
+    public List<UserRegion> findAllByUserId(final Long userId) {
+        return userRegionJpaRepository.findAllByUserId(userId);
     }
 
     @Override

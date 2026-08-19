@@ -240,6 +240,52 @@ class UserRegionHttpTest {
     }
 
     @Test
+    void ROLE_USER가_관심_지역을_조회하면_직접_응답하고_지역_정보와_current를_매핑한다() throws Exception {
+        final User user = saveUser("관심 지역 조회 사용자");
+        final String token = accessToken(user);
+
+        setCurrent(token, "1121510100").andExpect(status().isNoContent());
+
+        mockMvc.perform(get(PATH).header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").doesNotExist())
+                .andExpect(jsonPath("$.message").doesNotExist())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.regions.length()").value(1))
+                .andExpect(jsonPath("$.regions[0].regionId").value("1121510100"))
+                .andExpect(jsonPath("$.regions[0].regionName").value("서울특별시 광진구 중곡동"))
+                .andExpect(jsonPath("$.regions[0].isCurrent").value(true));
+    }
+
+    @Test
+    void 관심_지역이_없으면_200과_빈_배열을_직접_응답한다() throws Exception {
+        final User user = saveUser("관심 지역 없는 조회 사용자");
+
+        mockMvc.perform(get(PATH).header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").doesNotExist())
+                .andExpect(jsonPath("$.message").doesNotExist())
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.regions").isArray())
+                .andExpect(jsonPath("$.regions").isEmpty());
+    }
+
+    @Test
+    void 관심_지역_조회는_JWT_사용자_자신의_지역만_반환한다() throws Exception {
+        final User firstUser = saveUser("첫 관심 지역 조회 사용자");
+        final User secondUser = saveUser("둘째 관심 지역 조회 사용자");
+
+        add(accessToken(firstUser), "1121510100").andExpect(status().isNoContent());
+        add(accessToken(secondUser), "1121510200").andExpect(status().isNoContent());
+
+        mockMvc.perform(get(PATH).header(HttpHeaders.AUTHORIZATION, bearer(accessToken(firstUser))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.regions.length()").value(1))
+                .andExpect(jsonPath("$.regions[0].regionId").value("1121510100"));
+    }
+
+    @Test
     void 비로그인과_잘못된_JWT는_401을_응답한다() throws Exception {
         mockMvc.perform(post(PATH)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -262,6 +308,14 @@ class UserRegionHttpTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(ErrorType.INVALID_TOKEN.name()));
+
+        mockMvc.perform(get(PATH))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(ErrorType.UNAUTHORIZED.name()));
+
+        mockMvc.perform(get(PATH).header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_TOKEN.name()));
     }
 
     @Test
@@ -277,6 +331,10 @@ class UserRegionHttpTest {
                         .with(user("guest").roles("GUEST")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(ErrorType.FORBIDDEN.name()));
+
+        mockMvc.perform(get(PATH).with(user("guest").roles("GUEST")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(ErrorType.FORBIDDEN.name()));
     }
 
     @Test
@@ -289,6 +347,9 @@ class UserRegionHttpTest {
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].post.responses['403']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].post.responses['404']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].post.responses['409']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].get.responses['200']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].get.responses['401']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me/regions'].get.responses['403']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['204']")
                         .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/users/me/regions/{regionId}/current'].put.responses['400']")
