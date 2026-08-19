@@ -38,6 +38,7 @@ public class UserReportResultConverter {
                 result.reports().stream().map(this::toResponse).toList();
         return new RegionItemReportResponse(
                 result.regionId(),
+                result.regionName(),
                 result.itemId(),
                 result.totalCount(),
                 reports,

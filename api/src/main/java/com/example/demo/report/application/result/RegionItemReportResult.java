@@ -4,6 +4,7 @@ import java.util.List;
 
 public record RegionItemReportResult(
         String regionId,
+        String regionName,
         Long itemId,
         long totalCount,
         List<UserReportSummaryResult> reports,

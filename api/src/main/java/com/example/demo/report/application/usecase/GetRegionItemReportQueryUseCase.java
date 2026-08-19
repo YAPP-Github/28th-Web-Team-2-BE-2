@@ -5,6 +5,7 @@ import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.port.ItemExistencePort;
 import com.example.demo.item.domain.Item;
 import com.example.demo.report.application.port.StoreNameQueryPort;
+import com.example.demo.user.application.port.RegionReferenceRepository;
 import com.example.demo.report.application.port.UserReportQueryPort;
 import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.application.result.RegionItemReportResult;
@@ -27,6 +28,7 @@ public class GetRegionItemReportQueryUseCase {
     private final ItemExistencePort itemExistencePort;
     private final UserReportQueryPort userReportQueryPort;
     private final StoreNameQueryPort storeNameQueryPort;
+    private final RegionReferenceRepository regionReferenceRepository;
 
     @Transactional(readOnly = true)
     public RegionItemReportResult execute(final RegionItemReportQuery query) {
@@ -36,12 +38,18 @@ public class GetRegionItemReportQueryUseCase {
         final Map<Long, String> storeNames = findStoreNames(reports.getContent());
         return new RegionItemReportResult(
                 query.regionId(),
+                regionName(query.regionId()),
                 item.id(),
                 reports.getTotalElements(),
                 toSummaries(reports.getContent(), storeNames),
                 query.page(),
                 query.size(),
                 reports.hasNext());
+    }
+
+    /** 법정동 코드에 해당하는 지역명이다. 참조 데이터에 없는 코드면 null 이다. */
+    private String regionName(final String regionId) {
+        return regionReferenceRepository.findNamesByIds(List.of(regionId)).get(regionId);
     }
 
     private Item findItem(final Long itemId) {

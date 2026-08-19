@@ -1,6 +1,7 @@
 package com.example.demo.report.e2e;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -57,6 +58,10 @@ class RegionItemReportE2ETest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("DELETE FROM regions");
+        jdbcTemplate.update(
+                "INSERT INTO regions (region_id, region_name) VALUES (?, ?)",
+                REGION_ID, "서울특별시 광진구 중곡동");
         userReportJpaRepository.deleteAll();
         storeJpaRepository.deleteAll();
         itemJpaRepository.deleteAll();
@@ -107,6 +112,7 @@ class RegionItemReportE2ETest {
         mockMvc.perform(get(path(REGION_ID, potatoId)).param("sort", "PRICE_ASC"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.regionId").value(REGION_ID))
+                .andExpect(jsonPath("$.data.regionName").value("서울특별시 광진구 중곡동"))
                 .andExpect(jsonPath("$.data.itemId").value(potatoId))
                 .andExpect(jsonPath("$.data.totalCount").value(4))
                 .andExpect(jsonPath("$.data.reports[*].price").value(contains(2500, 3000, 3500, 4000)))
@@ -202,6 +208,15 @@ class RegionItemReportE2ETest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.reports[*].price").value(contains(4000)))
                 .andExpect(jsonPath("$.data.hasNext").value(false));
+    }
+
+    @Test
+    @DisplayName("참조 데이터에 없는 지역 코드면 regionName이 null이다")
+    void returnsNullRegionNameForUnknownRegion() throws Exception {
+        mockMvc.perform(get(path(OTHER_REGION_ID, potatoId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.regionId").value(OTHER_REGION_ID))
+                .andExpect(jsonPath("$.data.regionName").value(nullValue()));
     }
 
     @Test
