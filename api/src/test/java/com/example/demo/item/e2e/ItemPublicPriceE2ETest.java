@@ -1,6 +1,7 @@
 package com.example.demo.item.e2e;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -61,16 +62,25 @@ class ItemPublicPriceE2ETest {
                 new Item("양파", null, null, ItemCategory.SEASONINGS));
         potatoId = potato.id();
         onionId = onion.id();
-        publicPriceJpaRepository.save(new PublicPrice(potatoId, REGION_ID, 3000, today.minusDays(3)));
-        publicPriceJpaRepository.save(new PublicPrice(potatoId, REGION_ID, 3500, today.minusDays(1)));
-        publicPriceJpaRepository.save(new PublicPrice(potatoId, REGION_ID, 3800, today));
-        publicPriceJpaRepository.save(new PublicPrice(potatoId, REGION_ID, 2000, today.minusMonths(2)));
-        publicPriceJpaRepository.save(new PublicPrice(potatoId, REGION_ID, 1000, today.minusYears(2)));
+        // 기간별로 결과가 갈리도록 배치한다. WEEK 구간은 (today-7, today] 이므로
+        // today-7 은 제외되고 today-6 은 포함되어야 한다.
+        savePrice(2500, today.minusDays(7));
+        savePrice(2700, today.minusDays(6));
+        savePrice(3000, today.minusDays(3));
+        savePrice(3500, today.minusDays(1));
+        savePrice(3800, today);
+        savePrice(2200, today.minusDays(10));
+        savePrice(2000, today.minusMonths(2));
+        savePrice(1000, today.minusYears(2));
         publicPriceJpaRepository.save(new PublicPrice(potatoId, OTHER_REGION_ID, 9999, today));
     }
 
+    private void savePrice(final int price, final java.time.LocalDate priceDate) {
+        publicPriceJpaRepository.save(new PublicPrice(potatoId, REGION_ID, price, priceDate));
+    }
+
     @Test
-    @DisplayName("WEEK 기간은 최근 7일 시세만 날짜 오름차순으로 반환한다")
+    @DisplayName("WEEK 기간은 구간 시작일을 제외하고 날짜 오름차순으로 반환한다")
     void returnsWeeklyTrendInDateOrder() throws Exception {
         mockMvc.perform(get(path(potatoId))
                         .param("regionId", REGION_ID)
@@ -79,21 +89,23 @@ class ItemPublicPriceE2ETest {
                 .andExpect(jsonPath("$.itemId").value(potatoId))
                 .andExpect(jsonPath("$.defaultUnit").value("1kg"))
                 .andExpect(jsonPath("$.period").value("WEEK"))
-                .andExpect(jsonPath("$.points[*].price").value(contains(3000, 3500, 3800)))
-                .andExpect(jsonPath("$.points[0].date").value(today.minusDays(3).toString()))
-                .andExpect(jsonPath("$.points[2].date").value(today.toString()));
+                .andExpect(jsonPath("$.points[*].price").value(contains(2700, 3000, 3500, 3800)))
+                .andExpect(jsonPath("$.points[0].date").value(today.minusDays(6).toString()))
+                .andExpect(jsonPath("$.points[3].date").value(today.toString()));
     }
 
     @Test
-    @DisplayName("MONTH 기간은 최근 1개월, YEAR 기간은 최근 1년 시세를 선택한다")
+    @DisplayName("기간마다 선택되는 구간이 다르다")
     void selectsRangeByPeriod() throws Exception {
         mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "MONTH"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.points[*].price").value(contains(3000, 3500, 3800)));
+                .andExpect(jsonPath("$.points[*].price")
+                        .value(contains(2200, 2500, 2700, 3000, 3500, 3800)));
 
         mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "YEAR"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.points[*].price").value(contains(2000, 3000, 3500, 3800)));
+                .andExpect(jsonPath("$.points[*].price")
+                        .value(contains(2000, 2200, 2500, 2700, 3000, 3500, 3800)));
     }
 
     @Test
@@ -102,17 +114,30 @@ class ItemPublicPriceE2ETest {
         mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period").value("MONTH"))
-                .andExpect(jsonPath("$.points[*].price").value(contains(3000, 3500, 3800)));
+                .andExpect(jsonPath("$.points[*].price")
+                        .value(contains(2200, 2500, 2700, 3000, 3500, 3800)));
+    }
+
+    @Test
+    @DisplayName("기준일은 지역의 최신 시세일이라 수집이 밀려도 구간이 비지 않는다")
+    void anchorsWindowOnLatestPriceDate() throws Exception {
+        publicPriceJpaRepository.deleteAll();
+        savePrice(1500, today.minusDays(40));
+        savePrice(1600, today.minusDays(38));
+
+        mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "WEEK"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.points[*].price").value(contains(1500, 1600)));
     }
 
     @Test
     @DisplayName("같은 날짜에 여러 가격이 있으면 가장 최근에 저장된 가격만 남긴다")
     void keepsLatestPricePerDate() throws Exception {
-        publicPriceJpaRepository.save(new PublicPrice(potatoId, REGION_ID, 4200, today));
+        savePrice(4200, today);
 
         mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "WEEK"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.points[*].price").value(contains(3000, 3500, 4200)));
+                .andExpect(jsonPath("$.points[*].price").value(contains(2700, 3000, 3500, 4200)));
     }
 
     @Test
@@ -121,7 +146,7 @@ class ItemPublicPriceE2ETest {
         mockMvc.perform(get(path(onionId)).param("regionId", REGION_ID).param("period", "WEEK"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.itemId").value(onionId))
-                .andExpect(jsonPath("$.defaultUnit").doesNotExist())
+                .andExpect(jsonPath("$.defaultUnit").value(nullValue()))
                 .andExpect(jsonPath("$.points").isEmpty());
     }
 
@@ -139,6 +164,17 @@ class ItemPublicPriceE2ETest {
                 .andExpect(status().isBadRequest());
         mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "DECADE"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("공공가격 추이 API가 OpenAPI 문서에 노출된다")
+    void exposesApiDocs() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/public-prices'].get").exists())
+                .andExpect(jsonPath(
+                                "$.paths['/api/v1/items/{itemId}/public-prices'].get.parameters[?(@.name == 'period')]")
+                        .isNotEmpty());
     }
 
     private String path(final Long itemId) {
