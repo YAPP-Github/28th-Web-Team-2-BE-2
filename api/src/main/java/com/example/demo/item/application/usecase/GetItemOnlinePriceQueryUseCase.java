@@ -11,9 +11,11 @@ import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.OnlineChannel;
 import com.example.demo.item.domain.OnlinePrice;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -34,6 +36,7 @@ public class GetItemOnlinePriceQueryUseCase {
     private static final int NORMALIZED_UNIT = OnlinePriceCrawlResult.PER_100_GRAMS;
     private static final int NORMALIZED_QUANTITY = 1;
     private static final String NORMALIZED_UNIT_TYPE = "g";
+    private static final Set<String> SUPPORTED_CHANNEL_NAMES = Set.of("오아시스", "컬리", "11번가", "GS SHOP");
 
     private final ItemExistencePort itemExistencePort;
     private final OnlineChannelQueryPort onlineChannelQueryPort;
@@ -53,11 +56,11 @@ public class GetItemOnlinePriceQueryUseCase {
     }
 
     private List<ItemOnlinePriceResult.ChannelPrice> findChannelPrices(final Long itemId) {
-        final LocalDate collectionDate = latestCollectionDate(itemId);
+        final Map<Integer, String> channelNames = channelNames();
+        final LocalDate collectionDate = latestCollectionDate(itemId, channelNames.keySet());
         if (collectionDate == null) {
             return List.of();
         }
-        final Map<Integer, String> channelNames = channelNames();
         return channelNames.keySet().stream()
                 .sorted()
                 .map(channelId -> lowestPrice(itemId, channelId, collectionDate))
@@ -67,15 +70,18 @@ public class GetItemOnlinePriceQueryUseCase {
     }
 
     /** 가장 최근 수집 회차만 비교한다. 회차가 섞이면 채널 간 비교가 성립하지 않는다. */
-    private LocalDate latestCollectionDate(final Long itemId) {
+    private LocalDate latestCollectionDate(final Long itemId, final Collection<Integer> channelIds) {
+        if (channelIds.isEmpty()) {
+            return null;
+        }
         return onlinePriceQueryPort
-                .findLowestPriceAtLatestCollectionDate(itemId, NORMALIZED_UNIT)
-                .map(OnlinePrice::createdAt)
+                .findLatestCollectionDate(itemId, NORMALIZED_UNIT, channelIds)
                 .orElse(null);
     }
 
     private Map<Integer, String> channelNames() {
         return onlineChannelQueryPort.findAll().stream()
+                .filter(channel -> SUPPORTED_CHANNEL_NAMES.contains(channel.name()))
                 .collect(Collectors.toMap(
                         OnlineChannel::id, OnlineChannel::name, (left, right) -> left));
     }

@@ -39,6 +39,7 @@ public interface ItemPriceControllerSpec {
                 content = @Content(
                         mediaType = "application/json",
                         schema = @Schema(implementation = ItemOnlinePriceResponse.class))),
+        @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다"),
         @ApiResponse(responseCode = "404", description = "품목을 찾을 수 없다")
     })
     ResponseEntity<ItemOnlinePriceResponse> getOnlinePrices(
