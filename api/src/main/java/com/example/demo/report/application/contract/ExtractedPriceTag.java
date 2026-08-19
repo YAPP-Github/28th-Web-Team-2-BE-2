@@ -30,10 +30,6 @@ public record ExtractedPriceTag(
         AnalysisConfidence amountConfidence,
         int otherNumberCount) {
 
-    public static ExtractedPriceTag empty() {
-        return new ExtractedPriceTag(null, null, null, null, null, null, null, 0);
-    }
-
     public boolean hasItemName() {
         return itemName != null && !itemName.isBlank();
     }

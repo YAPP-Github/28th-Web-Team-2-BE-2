@@ -163,7 +163,7 @@ class AnalyzeReportImageUseCaseTest {
 
     @Test
     void 아무것도_읽지_못하면_빈_결과를_준다() {
-        when(imageAnalysisPort.analyze(IMAGE_URL)).thenReturn(ExtractedPriceTag.empty());
+        when(imageAnalysisPort.analyze(IMAGE_URL)).thenReturn(ExtractedPriceTag.builder().build());
 
         final ImageAnalysisResult result = useCase.execute(command(null));
 

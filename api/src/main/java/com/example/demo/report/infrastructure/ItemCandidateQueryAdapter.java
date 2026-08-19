@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * 끌어와 사용자에게 도움이 되지 않는다. 모델이 이름을 다르게 말하면 결과가 비고, 화면은 사용자가
  * 직접 고르는 경로로 넘어간다 — 그게 잘못 짚는 것보다 낫다.
  *
- * <p>모델 쪽 문자열에서만 공백을 제거한다. DB 이름에는 공백이 없다.
+ * <p>정규화 규칙은 {@link ItemCandidate}가 소유한다.
  */
 @Component
 @RequiredArgsConstructor
@@ -26,7 +26,7 @@ public class ItemCandidateQueryAdapter implements ItemCandidateQueryPort {
 
     @Override
     public Optional<ItemCandidate> findByName(final String itemName) {
-        final String normalized = normalize(itemName);
+        final String normalized = ItemCandidate.normalize(itemName);
         if (normalized.isEmpty()) {
             return Optional.empty();
         }
@@ -40,12 +40,5 @@ public class ItemCandidateQueryAdapter implements ItemCandidateQueryPort {
 
     private ItemCandidate toCandidate(final Item item) {
         return new ItemCandidate(item.id(), item.name(), item.defaultUnit());
-    }
-
-    private String normalize(final String itemName) {
-        if (itemName == null) {
-            return "";
-        }
-        return itemName.replaceAll("\\s+", "");
     }
 }

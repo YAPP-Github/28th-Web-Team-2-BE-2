@@ -2,6 +2,7 @@ package com.example.demo.report.domain;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Objects;
 
 /**
  * 인식 신뢰도. 0 이상 1 이하다.
@@ -19,7 +20,8 @@ public record AnalysisConfidence(BigDecimal value) {
      * 여기서 clamp 하면 모델이 0~100 스케일로 답했을 때 90 이 1.00 으로 승격된다.
      */
     public AnalysisConfidence {
-        value = value.setScale(SCALE, RoundingMode.HALF_UP);
+        value = Objects.requireNonNull(value, "신뢰도 값이 없으면 이 타입을 만들지 않는다")
+                .setScale(SCALE, RoundingMode.HALF_UP);
     }
 
     /** 근거가 약할 때 쓰는 값. 정책이 신뢰도를 깎을 때 이 값으로 내린다. */

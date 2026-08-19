@@ -82,14 +82,15 @@ class QwenImageAnalysisAdapterTest {
         assertThat(captor.getValue().model()).isEqualTo("qwen-vl-plus");
     }
 
+    // 조용히 빈 결과를 주면 프롬프트·모델 설정 오류가 200 으로 묻힌다. 비-JSON 본문과 같은 신호다.
     @Test
-    void 본문이_없는_응답은_빈_결과로_다룬다() {
+    void 본문이_없는_응답은_502로_끝낸다() {
         when(qwenVisionClient.complete(any())).thenReturn(new QwenChatResponse(List.of()));
 
-        final ExtractedPriceTag result = adapter.analyze(IMAGE_URL);
-
-        assertThat(result.itemName()).isNull();
-        assertThat(result.price()).isNull();
+        assertThatThrownBy(() -> adapter.analyze(IMAGE_URL))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE);
     }
 
     // timeout·rate limit·모델 오류가 같은 응답으로 보이면 클라이언트가 재시도 여부를 판단할 수 없다.

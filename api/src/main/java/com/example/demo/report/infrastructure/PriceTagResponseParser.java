@@ -18,9 +18,6 @@ import org.springframework.stereotype.Component;
  * <p>Qwen JSON을 presentation까지 흘리지 않는 경계다. 필드가 빠지거나 타입이 다르면 그 필드만
  * {@code null}로 두고, 본문 자체가 JSON이 아니면 인식 실패로 끝낸다 — 후자는 프롬프트나 모델
  * 설정이 잘못된 신호이므로 조용히 빈 결과를 주면 원인이 드러나지 않는다.
- *
- * <p>모델이 코드펜스를 붙여 오는 경우가 흔해 앞뒤 펜스를 걷어낸 뒤 파싱한다. 프롬프트로 금지해도
- * 지키지 않는 일이 있어 방어한다.
  */
 @Component
 @RequiredArgsConstructor
@@ -55,7 +52,6 @@ public class PriceTagResponseParser {
             throw invalidPayload(exception);
         }
     }
-
 
     private String text(final JsonNode root, final String field) {
         final JsonNode node = root.get(field);

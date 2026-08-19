@@ -58,11 +58,11 @@ public class AnalyzeReportImageUseCase {
                 matched,
                 itemConfidence(extracted, matched, selected),
                 extracted.price(),
-                priceConfidence(extracted),
+                adjusted(extracted.price() != null, extracted.priceConfidence(), extracted),
                 extracted.priceBasis(),
                 unitOf(matched),
                 extracted.amount(),
-                amountConfidence(extracted));
+                adjusted(extracted.amount() != null, extracted.amountConfidence(), extracted));
     }
 
     private AnalysisConfidence itemConfidence(
@@ -88,13 +88,18 @@ public class AnalyzeReportImageUseCase {
     /**
      * 가격표에 숫자가 여럿이면 어느 값이 판매 가격인지 확정할 근거가 약하다. 값은 남기고 신뢰도만
      * 낮춘다 — 후보를 보여 주고 사용자가 고치는 편이 빈 칸을 주는 것보다 낫다.
+     *
+     * <p>값이 없으면 신뢰도도 없다. 모델이 {@code price: null, priceConfidence: 0.9} 처럼 값 없이
+     * 확신만 주는 응답을 보내도 없는 값에 신뢰도가 붙지 않는다.
      */
-    private AnalysisConfidence priceConfidence(final ExtractedPriceTag extracted) {
-        if (extracted.price() == null) {
+    private AnalysisConfidence adjusted(
+            final boolean hasValue,
+            final AnalysisConfidence confidence,
+            final ExtractedPriceTag extracted) {
+        if (!hasValue) {
             return null;
         }
-        return AnalysisConfidence.downgradeIfAmbiguous(
-                extracted.priceConfidence(), extracted.otherNumberCount());
+        return AnalysisConfidence.downgradeIfAmbiguous(confidence, extracted.otherNumberCount());
     }
 
     private static ApiException itemNotFound() {
@@ -104,11 +109,4 @@ public class AnalyzeReportImageUseCase {
                 HttpStatus.NOT_FOUND);
     }
 
-    private AnalysisConfidence amountConfidence(final ExtractedPriceTag extracted) {
-        if (extracted.amount() == null) {
-            return null;
-        }
-        return AnalysisConfidence.downgradeIfAmbiguous(
-                extracted.amountConfidence(), extracted.otherNumberCount());
-    }
 }

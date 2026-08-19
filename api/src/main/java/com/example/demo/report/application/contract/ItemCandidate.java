@@ -10,5 +10,22 @@ package com.example.demo.report.application.contract;
  * {@code unit}이 {@code items.default_unit}과 문자열까지 같아야 통과시킨다
  * ({@code CreateUserReportUseCase.validateUnit}). 즉 단위는 모델이 추측할 값이 아니라
  * 품목이 결정하는 값이다.
+ *
+ * <p>모델 문자열과의 비교는 이 타입이 소유한다. 정규화 규칙이 호출부마다 흩어지면 한쪽만 바뀌어도
+ * 신호가 없다 — 품목 조회는 못 맞히고 단위 일치는 거짓을 답한다.
  */
-public record ItemCandidate(Long itemId, String name, String defaultUnit) {}
+public record ItemCandidate(Long itemId, String name, String defaultUnit) {
+
+    /** DB 의 품목명·단위에는 공백이 없다. 모델이 준 문자열의 공백만 지우고 비교한다. */
+    public static String normalize(final String modelText) {
+        if (modelText == null) {
+            return "";
+        }
+        return modelText.replaceAll("\\s+", "");
+    }
+
+    /** 사진의 가격 기준({@code "1kg"})이 이 품목의 기본 단위와 같은지. */
+    public boolean matchesUnit(final String priceBasis) {
+        return defaultUnit.equals(normalize(priceBasis));
+    }
+}

@@ -60,12 +60,11 @@ public class ImageAnalysisConverter {
      * 환산 없이 저장해 공시가 대비 차이가 왜곡된다.
      */
     private Boolean unitMatched(final ImageAnalysisResult result) {
-        if (result.priceBasis() == null || result.unit() == null) {
+        if (result.item() == null || result.priceBasis() == null) {
             return null;
         }
-        return result.unit().equals(result.priceBasis().replaceAll("\\s+", ""));
+        return result.item().matchesUnit(result.priceBasis());
     }
-
 
     private BigDecimal valueOf(final AnalysisConfidence confidence) {
         if (confidence == null) {

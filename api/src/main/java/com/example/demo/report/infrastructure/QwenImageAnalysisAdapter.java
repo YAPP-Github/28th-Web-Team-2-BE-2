@@ -12,7 +12,6 @@ import com.example.demo.report.application.port.ImageAnalysisPort;
 import feign.FeignException;
 import feign.RetryableException;
 import java.io.InterruptedIOException;
-import java.net.SocketTimeoutException;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -52,7 +51,7 @@ public class QwenImageAnalysisAdapter implements ImageAnalysisPort {
         // images/ 접두사는 공개 읽기라 서명이 필요 없다. 우리 URL 인지만 확인한다 — 임의 URL 을
         // 넘기면 사용자가 우리 비용으로 아무 호스트나 가져오게 만들 수 있다.
         final QwenChatResponse response = call(imageUrlPort.requireOwnedUrl(imageUrl));
-        return response.firstContent().map(parser::parse).orElseGet(ExtractedPriceTag::empty);
+        return response.firstContent().map(parser::parse).orElseThrow(this::emptyResponse);
     }
 
     private QwenChatResponse call(final String readUrl) {
@@ -102,7 +101,8 @@ public class QwenImageAnalysisAdapter implements ImageAnalysisPort {
     private boolean isTimeout(final Throwable exception) {
         Throwable current = exception;
         while (current != null) {
-            if (current instanceof SocketTimeoutException || current instanceof InterruptedIOException) {
+            // SocketTimeoutException 도 InterruptedIOException 이다.
+            if (current instanceof InterruptedIOException) {
                 return true;
             }
             current = current.getCause();
@@ -112,6 +112,19 @@ public class QwenImageAnalysisAdapter implements ImageAnalysisPort {
 
     private boolean isRateLimited(final RetryableException exception) {
         return exception.status() == HttpStatus.TOO_MANY_REQUESTS.value();
+    }
+
+    /**
+     * 모델이 {@code choices} 를 비워 보낸 경우.
+     *
+     * <p>파서가 비-JSON 본문에 쓰는 것과 같은 코드로 끝낸다 — 같은 신호(프롬프트·모델 설정 오류)인데
+     * 한쪽만 조용히 빈 결과를 주면 "인식했지만 아무것도 못 읽음"으로 보여 원인이 묻힌다.
+     */
+    private ApiException emptyResponse() {
+        return new ApiException(
+                ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE.description(),
+                ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE,
+                HttpStatus.BAD_GATEWAY);
     }
 
     private ApiException unavailable(final Throwable cause) {
