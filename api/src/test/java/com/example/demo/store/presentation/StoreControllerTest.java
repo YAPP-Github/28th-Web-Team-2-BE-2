@@ -26,6 +26,8 @@ import com.example.demo.store.application.result.RecommendedStoreResult;
 import com.example.demo.store.application.result.RecommendedStoresResult;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
 import com.example.demo.store.application.usecase.GetRecommendedStoresUseCase;
+import com.example.demo.store.application.usecase.StoreFavoriteUseCase;
+import com.example.demo.store.presentation.converter.StoreCommandConverter;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
 import com.example.demo.store.presentation.converter.StoreResultConverter;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
@@ -49,6 +51,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc(addFilters = false)
 @Import({
     StoreQueryConverter.class,
+    StoreCommandConverter.class,
     StoreResultConverter.class,
     GlobalExceptionHandler.class,
     StoreControllerTest.MockBeans.class
@@ -252,6 +255,10 @@ class StoreControllerTest {
         GetRecommendedStoresUseCase getRecommendedStoresUseCase(
                 final RecommendedStoreQueryPort queryPort) {
             return new GetRecommendedStoresUseCase(queryPort);
+        }
+
+        StoreFavoriteUseCase storeFavoriteUseCase() {
+            return mock(StoreFavoriteUseCase.class);
         }
     }
 }

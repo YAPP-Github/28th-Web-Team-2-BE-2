@@ -6,6 +6,8 @@ import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.common.security.JwtAuthenticationFilter;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
 import com.example.demo.store.application.usecase.GetRecommendedStoresUseCase;
+import com.example.demo.store.application.usecase.StoreFavoriteUseCase;
+import com.example.demo.store.presentation.converter.StoreCommandConverter;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
 import com.example.demo.store.presentation.converter.StoreResultConverter;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
@@ -15,6 +17,7 @@ import com.example.demo.store.presentation.dto.RecommendedStoresResponse;
 import com.example.demo.store.presentation.spec.StoreControllerSpec;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +25,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,6 +37,8 @@ public class StoreController implements StoreControllerSpec {
 
     private final GetNearbyStoresUseCase getNearbyStoresUseCase;
     private final GetRecommendedStoresUseCase getRecommendedStoresUseCase;
+    private final StoreFavoriteUseCase storeFavoriteUseCase;
+    private final StoreCommandConverter storeCommandConverter;
     private final StoreQueryConverter storeQueryConverter;
     private final StoreResultConverter storeResultConverter;
 
@@ -59,6 +66,13 @@ public class StoreController implements StoreControllerSpec {
                 getRecommendedStoresUseCase.execute(
                         storeQueryConverter.toRecommendedStoreQuery(request)));
         return ResponseEntity.ok(response);
+    @PutMapping("/{storeId}/favorite")
+    @Override
+    public ResponseEntity<Void> addFavorite(
+            @Positive @PathVariable final Long storeId,
+            @AuthenticationPrincipal final AuthPrincipal principal) {
+        storeFavoriteUseCase.add(storeCommandConverter.toStoreFavoriteCommand(storeId, principal));
+        return ResponseEntity.noContent().build();
     }
 
     private void rejectInvalidToken(final HttpServletRequest request) {

@@ -39,8 +39,9 @@ class FlywayMigrationIntegrationTest {
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
         assertThat(countRows("regions")).isEqualTo(467);
+        assertThat(regionName("1121510100")).isEqualTo("서울특별시 광진구 중곡동");
         assertThat(countRows("public_prices")).isEqualTo(3);
         assertThat(countRows("batch_job_execution")).isZero();
         assertThat(countRows("batch_item_errors")).isZero();
@@ -92,6 +93,14 @@ class FlywayMigrationIntegrationTest {
                 .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
         assertThat(constraintNames("store_favorites"))
                 .contains("uk_store_favorites_user_store", "fk_store_favorites_user", "fk_store_favorites_store");
+        assertThat(columnNames("user_regions"))
+                .containsExactly("user_region_id", "user_id", "region_id", "is_current", "created_at");
+        assertThat(constraintNames("user_regions"))
+                .contains("uk_user_regions_user_region", "fk_user_regions_user", "fk_user_regions_region");
+        assertThat(foreignKeyTargets("user_regions"))
+                .contains("fk_user_regions_region=regions.region_id");
+        assertThat(indexNames("user_regions"))
+                .contains("idx_user_regions_user_current", "uk_user_regions_current_user");
     }
 
     @Test
@@ -106,7 +115,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -132,7 +141,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
         assertCategoryMapping();
         assertThat(countRows("stores")).isZero();
         assertThat(countRows("user_reports")).isZero();
@@ -149,7 +158,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
         assertThat(columnNames("store_favorites"))
                 .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
         assertThat(constraintNames("store_favorites"))
@@ -179,7 +188,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
         assertThat(columnNullable("user_reports", "store_id")).isTrue();
         assertThat(columnNullable("user_reports", "user_id")).isTrue();
         assertThat(columnNullable("user_reports", "region_id")).isTrue();
@@ -473,6 +482,39 @@ class FlywayMigrationIntegrationTest {
                     constraints.add(resultSet.getString("constraint_name"));
                 }
                 return constraints;
+            }
+        }
+    }
+
+    private List<String> foreignKeyTargets(final String tableName) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT tc.constraint_name || '=' || ccu.table_name || '.' || ccu.column_name "
+                                + "FROM information_schema.table_constraints tc "
+                                + "JOIN information_schema.constraint_column_usage ccu "
+                                + "ON ccu.constraint_schema = tc.constraint_schema "
+                                + "AND ccu.constraint_name = tc.constraint_name "
+                                + "WHERE tc.constraint_schema = 'public' AND tc.table_name = ? "
+                                + "AND tc.constraint_type = 'FOREIGN KEY'")) {
+            statement.setString(1, tableName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                final ArrayList<String> targets = new ArrayList<>();
+                while (resultSet.next()) {
+                    targets.add(resultSet.getString(1));
+                }
+                return targets;
+            }
+        }
+    }
+
+    private String regionName(final String regionId) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT region_name FROM regions WHERE region_id = ?")) {
+            statement.setString(1, regionId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getString(1);
             }
         }
     }
