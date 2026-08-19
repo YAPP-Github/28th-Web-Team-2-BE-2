@@ -7,6 +7,8 @@ import feign.Response;
 import feign.RetryableException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -48,7 +50,31 @@ class QwenErrorDecoderTest {
         assertThat(decoded).hasCauseInstanceOf(feign.FeignException.class);
     }
 
+    // ErrorDecoder.Default 는 Retry-After 가 있으면 상태코드와 무관하게 재시도 대상으로 만든다.
+    @ParameterizedTest
+    @ValueSource(ints = {400, 401, 404})
+    void Retry_After_헤더가_있어도_4xx는_재시도하지_않는다(final int status) {
+        final Exception decoded = decoder.decode("complete", response(status, Map.of(
+                "Retry-After", List.of("30"))));
+
+        assertThat(decoded).isNotInstanceOf(RetryableException.class);
+    }
+
+    // 서버가 지시한 대기 시각을 버리고 우리 백오프로 덮지 않는지 확인한다.
+    @Test
+    void rate_limit의_Retry_After를_이중_포장하지_않는다() {
+        final Exception decoded = decoder.decode("complete", response(429, Map.of(
+                "Retry-After", List.of("30"))));
+
+        assertThat(decoded).isInstanceOf(RetryableException.class);
+        assertThat(decoded.getCause()).isNotInstanceOf(RetryableException.class);
+    }
+
     private Response response(final int status) {
+        return response(status, Collections.emptyMap());
+    }
+
+    private Response response(final int status, final Map<String, java.util.Collection<String>> headers) {
         final Request request = Request.create(
                 Request.HttpMethod.POST,
                 "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
@@ -60,7 +86,7 @@ class QwenErrorDecoderTest {
                 .status(status)
                 .reason("error")
                 .request(request)
-                .headers(Collections.emptyMap())
+                .headers(headers)
                 .body(new byte[0])
                 .build();
     }
