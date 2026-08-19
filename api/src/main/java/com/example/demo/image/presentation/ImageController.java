@@ -1,22 +1,16 @@
 package com.example.demo.image.presentation;
 
-import com.example.demo.image.application.result.PresignedUploadResult;
 import com.example.demo.image.application.result.UploadedImageResult;
-import com.example.demo.image.application.usecase.IssuePresignedUploadUseCase;
 import com.example.demo.image.application.usecase.UploadImageUseCase;
 import com.example.demo.image.presentation.converter.ImageCommandConverter;
 import com.example.demo.image.presentation.converter.ImageResultConverter;
 import com.example.demo.image.presentation.dto.ImageUploadResponse;
-import com.example.demo.image.presentation.dto.PresignedUploadRequest;
-import com.example.demo.image.presentation.dto.PresignedUploadResponse;
 import com.example.demo.image.presentation.spec.ImageControllerSpec;
-import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,7 +30,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class ImageController implements ImageControllerSpec {
 
     private final UploadImageUseCase uploadImageUseCase;
-    private final IssuePresignedUploadUseCase issuePresignedUploadUseCase;
     private final ImageCommandConverter commandConverter;
     private final ImageResultConverter resultConverter;
 
@@ -51,12 +44,4 @@ public class ImageController implements ImageControllerSpec {
                 .body(resultConverter.toUploadResponse(result));
     }
 
-    @PostMapping("/presigned-url")
-    @Override
-    public ResponseEntity<PresignedUploadResponse> issuePresignedUrl(
-            @Valid @RequestBody final PresignedUploadRequest request) {
-        final PresignedUploadResult result = issuePresignedUploadUseCase.execute(
-                commandConverter.toPresignedCommand(request));
-        return ResponseEntity.ok(resultConverter.toPresignedResponse(result));
-    }
 }

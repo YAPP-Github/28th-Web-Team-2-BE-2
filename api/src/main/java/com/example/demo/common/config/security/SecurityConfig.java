@@ -74,7 +74,7 @@ public class SecurityConfig {
                         // 계약 문서는 업로드를 공개 경로로 적었지만 인증을 요구한다.
                         // 무인증 업로드는 우리 버킷에 임의 파일을 쌓는 경로가 되고,
                         // 제보 작성 자체가 이미 ROLE_USER라 공개로 둘 이유가 없다.
-                        .requestMatchers(HttpMethod.POST, "/api/v1/images", "/api/v1/images/presigned-url")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/images")
                         .hasRole("USER")
                         // 외부 유료 모델을 호출하는 경로다. 무인증으로 열면 비용이 그대로 노출된다.
                         .requestMatchers(HttpMethod.POST, "/api/v1/user-reports/image-analysis")
