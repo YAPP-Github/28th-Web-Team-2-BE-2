@@ -42,44 +42,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "images" {
   }
 }
 
-# 중단된 multipart 업로드만 청소한다.
-#
-# 제보에 붙은 사진은 사용자에게 계속 보여야 하므로 객체 만료는 걸지 않는다. 업로드만 되고
-# 제보에 연결되지 않은 orphan 객체를 지우려면 DB와 대조하는 조정 작업이 필요한데,
-# SKILL.md가 "Media DB 상태 머신이나 업로드 확인 API를 새로 만들지 않는다"고 못 박아 두었다.
-# 그 결정이 바뀌면 여기에 expiration 규칙을 추가한다.
-resource "aws_s3_bucket_lifecycle_configuration" "images" {
-  bucket = aws_s3_bucket.images.id
-
-  rule {
-    id     = "abort-incomplete-multipart-upload"
-    status = "Enabled"
-
-    # provider v4+ 는 rule 마다 filter 또는 prefix 를 요구한다. 빈 filter = 전체 객체.
-    filter {}
-
-    abort_incomplete_multipart_upload {
-      days_after_initiation = 7
-    }
-  }
-}
-
-# 브라우저가 presigned URL로 직접 PUT하는 경로에만 필요하다.
-#
-# backend `CorsConfig` 목록과 1:1이 아니다 — Spring 의 `[*]` 포트 패턴은 S3 에 대응 문법이
-# 없다(S3 는 `http://host:*`). 브라우저 직접 PUT 이 필요한 origin 만 등록한다.
-resource "aws_s3_bucket_cors_configuration" "images" {
-  bucket = aws_s3_bucket.images.id
-
-  cors_rule {
-    allowed_methods = ["PUT"]
-    allowed_origins = var.image_upload_allowed_origins
-    allowed_headers = ["Content-Type", "Content-Length"]
-    expose_headers  = ["ETag"]
-    max_age_seconds = 3000
-  }
-}
-
 # EC2 인스턴스 역할에 붙이는 권한.
 #
 # presigned URL 발급 자체는 API 호출이 아니라 역할 자격증명으로 로컬 서명하는 동작이므로

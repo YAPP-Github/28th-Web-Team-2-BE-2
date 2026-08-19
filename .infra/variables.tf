@@ -54,12 +54,3 @@ variable "image_bucket_name" {
   }
 }
 
-variable "image_upload_allowed_origins" {
-  description = "Origins allowed to PUT directly to presigned upload URLs. Keep aligned with backend CorsConfig."
-  type        = list(string)
-  default = [
-    "http://localhost:*",
-    "http://192.168.0.100:*",
-    "https://marketgo.kro.kr",
-  ]
-}
