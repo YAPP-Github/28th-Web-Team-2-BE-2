@@ -46,7 +46,8 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
         store.updateKakaoDetails(
                 snapshot.storeImageUrl(),
                 snapshot.businessHours() == null ? null : String.join("\n", snapshot.businessHours()),
-                snapshot.openStatus());
+                snapshot.openStatus(),
+                Instant.now());
         return toSnapshot(storeJpaRepository.save(store));
     }
 
@@ -78,7 +79,8 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
                 store.placeUrl(),
                 store.imageUrl(),
                 splitHours(store.businessHours()),
-                store.openStatus() == null ? "UNKNOWN" : store.openStatus());
+                store.openStatus() == null ? "UNKNOWN" : store.openStatus(),
+                store.kakaoDetailsCollectedAt());
     }
 
     private java.util.List<String> splitHours(final String businessHours) {

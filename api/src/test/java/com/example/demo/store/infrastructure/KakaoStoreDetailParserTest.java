@@ -27,4 +27,12 @@ class KakaoStoreDetailParserTest {
         assertThat(result.businessHours()).isNull();
         assertThat(result.openStatus()).isNull();
     }
+
+    @Test
+    void org가_아닌_og_이미지는_반환하지_않는다() {
+        final var result = KakaoStoreDetailParser.parse(Jsoup.parse(
+                "<meta property='og:image' content='https://place.map.kakao.com/cover.jpg'>"));
+
+        assertThat(result.imageUrl()).isNull();
+    }
 }

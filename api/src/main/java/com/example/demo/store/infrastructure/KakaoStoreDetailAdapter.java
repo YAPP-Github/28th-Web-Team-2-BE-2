@@ -3,6 +3,7 @@ package com.example.demo.store.infrastructure;
 import com.example.demo.store.application.port.ImageStoragePort;
 import com.example.demo.store.application.port.StoreDetailEnrichmentPort;
 import com.example.demo.store.application.result.StoreDetailSnapshot;
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,9 @@ public class KakaoStoreDetailAdapter implements StoreDetailEnrichmentPort {
                     .userAgent("Mozilla/5.0")
                     .timeout(5000)
                     .maxBodySize(2 * 1024 * 1024)
+                    .followRedirects(false)
                     .execute();
+            ensureSuccessful(response);
             final Document document = response.parse();
             final KakaoStoreDetailParserResult parsed = KakaoStoreDetailParser.parse(document);
             final String imageUrl = uploadOrgImage(parsed.imageUrl());
@@ -52,14 +55,16 @@ public class KakaoStoreDetailAdapter implements StoreDetailEnrichmentPort {
             return null;
         }
         final URI uri = URI.create(imageUrl);
-        if (!ALLOWED_HOSTS.contains(uri.getHost())) {
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || !ALLOWED_HOSTS.contains(uri.getHost())) {
             return null;
         }
         final Connection.Response imageResponse = Jsoup.connect(imageUrl)
                 .ignoreContentType(true)
                 .timeout(5000)
                 .maxBodySize(MAX_IMAGE_BYTES)
+                .followRedirects(false)
                 .execute();
+        ensureSuccessful(imageResponse);
         final byte[] bytes = imageResponse.bodyAsBytes();
         if (bytes.length == 0 || bytes.length > MAX_IMAGE_BYTES) {
             return null;
@@ -70,6 +75,12 @@ public class KakaoStoreDetailAdapter implements StoreDetailEnrichmentPort {
             return null;
         }
         return imageStoragePort.upload(bytes, contentType, extension);
+    }
+
+    private void ensureSuccessful(final Connection.Response response) throws IOException {
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("Unexpected Kakao response status: " + response.statusCode());
+        }
     }
 
 

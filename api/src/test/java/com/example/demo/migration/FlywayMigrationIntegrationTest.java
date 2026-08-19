@@ -71,7 +71,7 @@ class FlywayMigrationIntegrationTest {
                         "store_id", "kakao_place_id", "place_name", "place_url", "category_name",
                         "address_name", "road_address_name", "phone", "category_group_code",
                         "category_group_name", "longitude", "latitude", "distance", "created_at", "updated_at",
-                        "image_url", "business_hours", "open_status");
+                        "image_url", "business_hours", "open_status", "kakao_details_collected_at");
         assertThat(constraintNames("stores"))
                 .contains("stores_pkey", "uk_stores_kakao_place_id");
         assertThat(columnNames("user_reports"))

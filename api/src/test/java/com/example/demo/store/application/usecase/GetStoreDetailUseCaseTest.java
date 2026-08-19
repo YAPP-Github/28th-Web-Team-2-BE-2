@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.times;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
@@ -109,6 +110,27 @@ class GetStoreDetailUseCaseTest {
         useCase.execute(new StoreDetailQuery(1L, null, null, null));
 
         verifyNoInteractions(enrichmentPort);
+    }
+
+    @Test
+    void 빈_수집도_시각을_기록해_연속_조회에서_재수집하지_않는다() {
+        final StoreDetailSnapshot original = new StoreDetailSnapshot(
+                1L, "가게", "주소", new BigDecimal("37.5"), new BigDecimal("127"),
+                "https://place.map.kakao.com/1", null, null, "UNKNOWN");
+        final StoreDetailSnapshot attempted = new StoreDetailSnapshot(
+                1L, "가게", "주소", new BigDecimal("37.5"), new BigDecimal("127"),
+                "https://place.map.kakao.com/1", null, null, "UNKNOWN",
+                Instant.parse("2026-08-20T00:00:00Z"));
+        when(queryPort.findStore(1L)).thenReturn(java.util.Optional.of(original), java.util.Optional.of(attempted));
+        when(enrichmentPort.enrich(original)).thenReturn(original);
+        when(queryPort.saveDetails(original)).thenReturn(attempted);
+        when(queryPort.findReportSummary(any(), any())).thenReturn(emptyReports());
+        when(queryPort.countFavorites(1L)).thenReturn(0L);
+
+        useCase.execute(new StoreDetailQuery(1L, null, null, null));
+        useCase.execute(new StoreDetailQuery(1L, null, null, null));
+
+        verify(enrichmentPort, times(1)).enrich(original);
     }
 
     @Test

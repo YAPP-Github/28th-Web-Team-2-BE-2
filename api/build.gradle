@@ -68,8 +68,6 @@ tasks.named('test') {
 def coverageClassDirectories = files(sourceSets.main.output).asFileTree.matching {
     exclude '**/Q*.class'
     exclude '**/KakaoStoreDetailAdapter.class'
-    exclude '**/RecommendedStoreQueryAdapter.class'
-    exclude '**/StoreFavoriteCommandAdapter.class'
     exclude '**/S3Config.class'
     exclude '**/S3ImageStorageAdapter.class'
 }

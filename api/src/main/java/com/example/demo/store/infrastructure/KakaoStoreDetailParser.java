@@ -2,6 +2,7 @@ package com.example.demo.store.infrastructure;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
@@ -17,12 +18,15 @@ final class KakaoStoreDetailParser {
     }
 
     private static String imageUrl(final Document document) {
-        final Element image = document.select("img[src*=org], img[data-src*=org], meta[property=og:image]")
-                .stream().findFirst().orElse(null);
-        if (image == null) {
-            return null;
+        for (final Element image : document.select("img[src], img[data-src], meta[property=og:image]")) {
+            final String url = image.hasAttr("content")
+                    ? image.attr("content")
+                    : image.hasAttr("src") ? image.absUrl("src") : image.absUrl("data-src");
+            if (url.toLowerCase(Locale.ROOT).contains("org")) {
+                return url;
+            }
         }
-        return image.hasAttr("content") ? image.attr("content") : image.absUrl("src");
+        return null;
     }
 
     private static List<String> businessHours(final Document document) {

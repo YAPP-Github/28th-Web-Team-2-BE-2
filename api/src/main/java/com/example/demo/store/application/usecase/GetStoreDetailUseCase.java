@@ -67,15 +67,14 @@ public class GetStoreDetailUseCase {
     }
 
     private StoreDetailSnapshot enrich(final StoreDetailSnapshot store) {
-        if (store.placeUrl() == null || store.placeUrl().isBlank() || store.hasKakaoDetails()) {
+        if (store.placeUrl() == null || store.placeUrl().isBlank()
+                || store.kakaoDetailsCollectedAt() != null || store.hasKakaoDetails()) {
             return store;
         }
         try {
             final StoreDetailSnapshot enriched = enrichmentPort.enrich(store);
-            if (enriched == store) {
-                return store;
-            }
-            return storeDetailQueryPort.saveDetails(enriched);
+            final StoreDetailSnapshot saved = storeDetailQueryPort.saveDetails(enriched);
+            return saved == null ? enriched : saved;
         } catch (final RuntimeException exception) {
             return store;
         }
