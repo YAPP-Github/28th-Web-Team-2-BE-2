@@ -26,6 +26,6 @@ public class ItemExistenceAdapter implements ItemExistencePort {
             return Map.of();
         }
         return itemJpaRepository.findAllById(itemIds).stream()
-                .collect(Collectors.toMap(Item::id, Item::name));
+                .collect(Collectors.toMap(Item::id, Item::name, (left, right) -> left));
     }
 }

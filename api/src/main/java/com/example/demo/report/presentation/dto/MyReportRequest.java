@@ -1,6 +1,7 @@
 package com.example.demo.report.presentation.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.Objects;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
@@ -15,14 +16,7 @@ public record MyReportRequest(
     private static final int DEFAULT_SIZE = 10;
 
     public MyReportRequest {
-        page = defaultValue(page, DEFAULT_PAGE);
-        size = defaultValue(size, DEFAULT_SIZE);
-    }
-
-    private static int defaultValue(final Integer value, final int defaultValue) {
-        if (value == null) {
-            return defaultValue;
-        }
-        return value;
+        page = Objects.requireNonNullElse(page, DEFAULT_PAGE);
+        size = Objects.requireNonNullElse(size, DEFAULT_SIZE);
     }
 }

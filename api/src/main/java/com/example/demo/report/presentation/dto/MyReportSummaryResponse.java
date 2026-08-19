@@ -5,7 +5,7 @@ import java.time.LocalDate;
 
 public record MyReportSummaryResponse(
         Long reportId,
-        String itemName,
+        @Schema(nullable = true, description = "삭제된 품목이면 null이다") String itemName,
         Integer price,
         String unit,
         @Schema(description = "제보 기준일", example = "2026-08-19") LocalDate reportedDate,

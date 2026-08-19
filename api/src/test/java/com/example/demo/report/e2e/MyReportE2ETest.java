@@ -20,6 +20,8 @@ import io.jsonwebtoken.security.Keys;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
@@ -32,6 +34,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -47,6 +50,7 @@ class MyReportE2ETest {
     private final ItemJpaRepository itemJpaRepository;
     private final UserReportJpaRepository userReportJpaRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final JdbcTemplate jdbcTemplate;
     private final String accessSecret;
     private Long potatoId;
     private Long onionId;
@@ -58,12 +62,14 @@ class MyReportE2ETest {
             final ItemJpaRepository itemJpaRepository,
             final UserReportJpaRepository userReportJpaRepository,
             final JwtTokenProvider jwtTokenProvider,
+            final JdbcTemplate jdbcTemplate,
             @Value("${jwt.access-secret}") final String accessSecret) {
         this.mockMvc = mockMvc;
         this.userJpaRepository = userJpaRepository;
         this.itemJpaRepository = itemJpaRepository;
         this.userReportJpaRepository = userReportJpaRepository;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.jdbcTemplate = jdbcTemplate;
         this.accessSecret = accessSecret;
     }
 
@@ -87,7 +93,7 @@ class MyReportE2ETest {
 
         request(accessToken(me))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.totalCount").value(2))
                 .andExpect(jsonPath("$.data.totalPages").value(1))
                 .andExpect(jsonPath("$.data.reports[*].itemName").value(contains("양파", "감자")))
                 .andExpect(jsonPath("$.data.reports[0].price").value(2800))
@@ -102,14 +108,17 @@ class MyReportE2ETest {
     @DisplayName("page와 size 경계에서 total과 hasNext가 일치한다")
     void paginates() throws Exception {
         final User me = saveUser("나");
+        // (user, item, store, date, type) 부분 유니크 제약을 만족하는 조합으로 나눈다
         save(me.id(), potatoId, 1000, null);
-        save(me.id(), potatoId, 2000, null);
-        save(me.id(), potatoId, 3000, null);
+        save(me.id(), potatoId, 2000, null, ReportType.OBSERVED);
+        save(me.id(), onionId, 3000, null);
+        moveReportDate(1000, LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(2));
+        moveReportDate(2000, LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1));
 
         request(accessToken(me), "0", "2")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.reports[*].price").value(contains(3000, 2000)))
-                .andExpect(jsonPath("$.data.totalElements").value(3))
+                .andExpect(jsonPath("$.data.totalCount").value(3))
                 .andExpect(jsonPath("$.data.totalPages").value(2))
                 .andExpect(jsonPath("$.data.hasNext").value(true));
 
@@ -121,11 +130,19 @@ class MyReportE2ETest {
     }
 
     @Test
+    @DisplayName("제보 목록 API가 OpenAPI 문서에 노출된다")
+    void exposesApiDocs() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/v1/users/me/reports'].get").exists());
+    }
+
+    @Test
     @DisplayName("제보가 없는 사용자는 오류가 아닌 빈 목록을 받는다")
     void returnsEmptyList() throws Exception {
         request(accessToken(saveUser("신규")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.totalElements").value(0))
+                .andExpect(jsonPath("$.data.totalCount").value(0))
                 .andExpect(jsonPath("$.data.reports").isEmpty());
     }
 
@@ -174,9 +191,24 @@ class MyReportE2ETest {
 
     private void save(
             final Long userId, final Long itemId, final int price, final Integer publicPriceDiff) {
+        save(userId, itemId, price, publicPriceDiff, ReportType.PURCHASE);
+    }
+
+    private void save(
+            final Long userId,
+            final Long itemId,
+            final int price,
+            final Integer publicPriceDiff,
+            final ReportType reportType) {
         userReportJpaRepository.save(new UserReport(
-                REGION_ID, ReportType.PURCHASE, null, itemId, userId, price, "1kg",
+                REGION_ID, reportType, null, itemId, userId, price, "1kg",
                 new BigDecimal("1.000"), publicPriceDiff, null, null));
+    }
+
+    /** 제보 기준일은 도메인이 정하므로, 날짜별 정렬을 검증하려면 저장 후 옮긴다. */
+    private void moveReportDate(final int price, final LocalDate reportDate) {
+        jdbcTemplate.update(
+                "UPDATE user_reports SET report_date = ? WHERE price = ?", reportDate, price);
     }
 
     private User saveUser(final String name) {

@@ -6,6 +6,6 @@ public record MyReportPageResponse(
         List<MyReportSummaryResponse> reports,
         int page,
         int size,
-        long totalElements,
+        long totalCount,
         int totalPages,
         boolean hasNext) {}

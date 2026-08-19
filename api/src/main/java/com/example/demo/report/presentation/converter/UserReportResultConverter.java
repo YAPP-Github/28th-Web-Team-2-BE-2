@@ -44,7 +44,7 @@ public class UserReportResultConverter {
                 reports,
                 result.page(),
                 result.size(),
-                result.totalElements(),
+                result.totalCount(),
                 result.totalPages(),
                 result.hasNext());
     }

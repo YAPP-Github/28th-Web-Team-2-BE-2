@@ -34,7 +34,7 @@ public class GetMyReportQueryUseCase {
     }
 
     private Map<Long, String> findItemNames(final List<UserReport> reports) {
-        final List<Long> itemIds = reports.stream().map(UserReport::itemId).distinct().toList();
+        final List<Long> itemIds = reports.stream().map(UserReport::itemId).toList();
         return itemExistencePort.findNamesByIds(itemIds);
     }
 
