@@ -20,11 +20,11 @@ class KakaoStoreDetailParserTest {
     }
 
     @Test
-    void 정보가_없으면_null과_UNKNOWN을_반환한다() {
+    void 정보가_없으면_null을_반환한다() {
         final var result = KakaoStoreDetailParser.parse(Jsoup.parse("<html></html>"));
 
         assertThat(result.imageUrl()).isNull();
         assertThat(result.businessHours()).isNull();
-        assertThat(result.openStatus()).isEqualTo("UNKNOWN");
+        assertThat(result.openStatus()).isNull();
     }
 }

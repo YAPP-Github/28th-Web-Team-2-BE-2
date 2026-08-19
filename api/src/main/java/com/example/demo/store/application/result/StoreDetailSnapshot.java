@@ -14,6 +14,12 @@ public record StoreDetailSnapshot(
         List<String> businessHours,
         String openStatus) {
 
+    public boolean hasKakaoDetails() {
+        return storeImageUrl != null
+                || businessHours != null
+                || (openStatus != null && !"UNKNOWN".equals(openStatus));
+    }
+
     public StoreDetailSnapshot(
             final Long storeId,
             final String storeName,

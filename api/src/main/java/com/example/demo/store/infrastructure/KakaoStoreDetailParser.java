@@ -41,7 +41,7 @@ final class KakaoStoreDetailParser {
                 .stream().map(Element::text).map(String::trim).filter(value -> !value.isBlank())
                 .findFirst().orElse(null);
         if (text == null) {
-            return "UNKNOWN";
+            return null;
         }
         if (text.contains("영업중")) {
             return "OPEN";
@@ -49,6 +49,6 @@ final class KakaoStoreDetailParser {
         if (text.contains("영업종료") || text.contains("휴무")) {
             return "CLOSED";
         }
-        return "UNKNOWN";
+        return null;
     }
 }

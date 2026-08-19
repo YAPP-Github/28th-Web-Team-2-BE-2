@@ -67,6 +67,9 @@ public class GetStoreDetailUseCase {
     }
 
     private StoreDetailSnapshot enrich(final StoreDetailSnapshot store) {
+        if (store.placeUrl() == null || store.placeUrl().isBlank() || store.hasKakaoDetails()) {
+            return store;
+        }
         try {
             final StoreDetailSnapshot enriched = enrichmentPort.enrich(store);
             if (enriched == store) {

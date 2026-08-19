@@ -11,7 +11,7 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
     @Query("select report from UserReport report where report.publicPriceDiff < 0 "
             + "and report.id in (select max(latest.id) from UserReport latest "
             + "where latest.storeId = report.storeId and latest.itemId = report.itemId "
-            + "and latest.publicPriceDiff < 0 group by latest.storeId, latest.itemId)")
+            + "group by latest.storeId, latest.itemId)")
     List<UserReport> findLatestCheapReports();
 
     Optional<UserReport> findFirstByItemIdAndRegionIdAndUnitOrderByReportDateDescIdDesc(
