@@ -9,7 +9,6 @@ import com.example.demo.report.application.port.ImageAnalysisPort;
 import com.example.demo.report.application.port.ItemCandidateQueryPort;
 import com.example.demo.report.application.result.ImageAnalysisResult;
 import com.example.demo.report.domain.AnalysisConfidence;
-import com.example.demo.report.domain.policy.PriceExtractionPolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -94,7 +93,7 @@ public class AnalyzeReportImageUseCase {
         if (extracted.price() == null) {
             return null;
         }
-        return PriceExtractionPolicy.downgradeIfAmbiguous(
+        return AnalysisConfidence.downgradeIfAmbiguous(
                 extracted.priceConfidence(), extracted.otherNumberCount());
     }
 
@@ -109,7 +108,7 @@ public class AnalyzeReportImageUseCase {
         if (extracted.amount() == null) {
             return null;
         }
-        return PriceExtractionPolicy.downgradeIfAmbiguous(
+        return AnalysisConfidence.downgradeIfAmbiguous(
                 extracted.amountConfidence(), extracted.otherNumberCount());
     }
 }

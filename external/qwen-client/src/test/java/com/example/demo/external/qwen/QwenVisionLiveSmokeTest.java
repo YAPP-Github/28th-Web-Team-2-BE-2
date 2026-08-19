@@ -91,6 +91,8 @@ class QwenVisionLiveSmokeTest {
         assertThat(finishReason(parsed))
                 .withFailMessage("출력이 잘렸다. max_tokens 를 늘려야 한다.")
                 .isNotEqualTo("length");
+        // 요청한 모델이 그대로 쓰였는지. 별도로 /models 를 부를 필요가 없다.
+        assertThat(response.body()).contains("\"model\":\"" + model() + "\"");
     }
 
     /** ADR 가정 1 — response_format 을 뺀 요청과 비교해, 그 필드가 실제로 효과가 있는지 본다. */
@@ -109,22 +111,6 @@ class QwenVisionLiveSmokeTest {
 
         // 여기서 200 이고 위 테스트가 400 이면 response_format 이 원인이다.
         assertThat(response.statusCode()).isEqualTo(200);
-    }
-
-    /** ADR 가정 4 — 이 계정에서 쓸 수 있는 모델 목록을 찍는다. */
-    @Test
-    void 사용_가능한_모델을_출력한다() throws Exception {
-        final HttpResponse<String> response = httpClient.send(
-                HttpRequest.newBuilder(URI.create(baseUrl() + "/models"))
-                        .header("Authorization", "Bearer " + apiKey())
-                        .timeout(Duration.ofSeconds(20))
-                        .GET()
-                        .build(),
-                HttpResponse.BodyHandlers.ofString());
-
-        report("models status", String.valueOf(response.statusCode()));
-        report("models", abbreviate(response.body()));
-        assertThat(response.body()).isNotBlank();
     }
 
     private HttpResponse<String> post(final String body) throws Exception {

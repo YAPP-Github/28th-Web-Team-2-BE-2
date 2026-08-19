@@ -25,8 +25,25 @@ public record AnalysisConfidence(BigDecimal value) {
         return new AnalysisConfidence(new BigDecimal("0.30"));
     }
 
-    public boolean isLowerThan(final AnalysisConfidence other) {
-        return value.compareTo(other.value) < 0;
+    /**
+     * 해석하지 못한 숫자가 남았으면 신뢰도를 낮춘다.
+     *
+     * <p>가격표에 {@code 250원}과 {@code 1인 10개 제한}이 함께 있으면 어느 숫자가 판매 가격인지
+     * 사진만으로는 확정할 수 없다. 판정 기준은 "우리가 해석하지 못한 숫자가 남았는가"다 — 전체 숫자
+     * 개수로 판정하면 {@code 감자 1kg 3900원}처럼 정상적인 가격표도 전부 걸려 신뢰도가 상수가 된다.
+     *
+     * <p>값을 버리지 않고 신뢰도만 낮춘다. 이미 더 낮게 나온 값은 그대로 두고({@code null}이면
+     * {@code null}로 남긴다 — 없는 값을 만들면 "모름"과 "0.30을 측정했다"가 구별되지 않는다).
+     */
+    public static AnalysisConfidence downgradeIfAmbiguous(
+            final AnalysisConfidence confidence, final int otherNumberCount) {
+        if (otherNumberCount == 0 || confidence == null) {
+            return confidence;
+        }
+        if (confidence.value.compareTo(low().value) < 0) {
+            return confidence;
+        }
+        return low();
     }
 
     private static BigDecimal normalize(final BigDecimal raw) {
