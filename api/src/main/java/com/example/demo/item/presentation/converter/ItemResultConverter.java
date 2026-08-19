@@ -4,7 +4,6 @@ import com.example.demo.item.application.result.ItemPriceResult;
 import com.example.demo.item.application.result.ItemDetailResult;
 import com.example.demo.item.application.result.ItemPublicPriceResult;
 import com.example.demo.item.application.result.ItemQueryResult;
-import com.example.demo.item.application.result.PublicPricePointResult;
 import com.example.demo.item.presentation.dto.ItemPageResponse;
 import com.example.demo.item.presentation.dto.ItemDetailResponse;
 import com.example.demo.item.presentation.dto.ItemPublicPriceResponse;
@@ -38,7 +37,7 @@ public class ItemResultConverter {
                 result.itemId(), result.defaultUnit(), result.period(), points);
     }
 
-    private PublicPricePointResponse toResponse(final PublicPricePointResult result) {
+    private PublicPricePointResponse toResponse(final ItemPublicPriceResult.Point result) {
         return new PublicPricePointResponse(result.date(), result.price());
     }
 
