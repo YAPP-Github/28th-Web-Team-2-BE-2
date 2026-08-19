@@ -45,7 +45,7 @@ class QwenVisionClientConfigurationTest {
 
     @Test
     void 재시도는_설정한_횟수를_따른다() {
-        final Retryer retryer = configuration.qwenRetryer(500L, 2000L, 2);
+        final Retryer retryer = configuration.qwenRetryer(500L, 2);
 
         assertThat(retryer).isInstanceOf(Retryer.Default.class);
     }

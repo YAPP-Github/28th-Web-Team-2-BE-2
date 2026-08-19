@@ -32,9 +32,8 @@ public interface UserReportImageAnalysisControllerSpec {
         @ApiResponse(responseCode = "400", description = "imageUrl이 우리 저장소의 URL이 아니다"),
         @ApiResponse(responseCode = "401", description = "로그인이 필요하다"),
         @ApiResponse(responseCode = "404", description = "지정한 itemId의 품목이 없다"),
-        @ApiResponse(responseCode = "429", description = "인식 요청이 한도를 넘었다"),
-        @ApiResponse(responseCode = "502", description = "인식 모델을 사용할 수 없거나 응답을 해석할 수 없다"),
-        @ApiResponse(responseCode = "503", description = "이미지 저장소를 사용할 수 없다"),
+        @ApiResponse(responseCode = "503", description = "인식 모델 쿼터를 소진했다. 잠시 후 재시도"),
+        @ApiResponse(responseCode = "502", description = "인식 모델 오류(재시도 가능) 또는 응답 해석 실패(재시도 무의미). code 로 구분한다"),
         @ApiResponse(responseCode = "504", description = "인식이 제한 시간 안에 끝나지 않았다")
     })
     ResponseEntity<ImageAnalysisResponse> analyzeImage(ImageAnalysisRequest request);

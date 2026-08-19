@@ -33,13 +33,13 @@ public class PriceTagResponseParser {
     public ExtractedPriceTag parse(final String content) {
         final JsonNode root = readTree(stripCodeFence(content));
         return new ExtractedPriceTag(
-                text(root, "itemName"),
-                confidence(root, "itemConfidence"),
-                integer(root, "price"),
-                confidence(root, "priceConfidence"),
-                text(root, "priceBasis"),
-                decimal(root, "amount"),
-                confidence(root, "amountConfidence"),
+                text(root, PriceTagSchema.ITEM_NAME),
+                confidence(root, PriceTagSchema.ITEM_CONFIDENCE),
+                integer(root, PriceTagSchema.PRICE),
+                confidence(root, PriceTagSchema.PRICE_CONFIDENCE),
+                text(root, PriceTagSchema.PRICE_BASIS),
+                decimal(root, PriceTagSchema.AMOUNT),
+                confidence(root, PriceTagSchema.AMOUNT_CONFIDENCE),
                 otherNumberCount(root));
     }
 
@@ -129,17 +129,24 @@ public class PriceTagResponseParser {
     }
 
     private int otherNumberCount(final JsonNode root) {
-        final JsonNode node = root.get("otherNumberCount");
+        final JsonNode node = root.get(PriceTagSchema.OTHER_NUMBER_COUNT);
         if (node == null || !node.isNumber() || !node.canConvertToInt() || node.asInt() < 0) {
             return 0;
         }
         return node.asInt();
     }
 
+    /**
+     * 모델이 JSON 을 주지 않은 경우.
+     *
+     * <p>{@code IMAGE_ANALYSIS_UNAVAILABLE}과 구분한다 — 그쪽은 잠시 뒤 성공할 수 있지만 이쪽은
+     * 프롬프트·모델 설정이 잘못된 신호라 재시도해도 같은 답이 온다. 코드가 같으면 클라이언트가
+     * 백오프하며 영원히 반복한다.
+     */
     private ApiException invalidPayload(final Throwable cause) {
         return new ApiException(
-                ErrorType.IMAGE_ANALYSIS_UNAVAILABLE.description(),
-                ErrorType.IMAGE_ANALYSIS_UNAVAILABLE,
+                ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE.description(),
+                ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE,
                 HttpStatus.BAD_GATEWAY,
                 cause);
     }

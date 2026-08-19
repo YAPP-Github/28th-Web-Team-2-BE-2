@@ -88,10 +88,12 @@ public class QwenImageAnalysisAdapter implements ImageAnalysisPort {
                     exception);
         }
         if (isRateLimited(exception)) {
+            // 429 가 아니라 503 이다. 한도를 넘긴 건 클라이언트가 아니라 우리 모델 쿼터다.
+            // 429 를 주면 클라이언트가 자기 호출을 줄여야 한다고 오해한다.
             return new ApiException(
                     ErrorType.IMAGE_ANALYSIS_RATE_LIMITED.description(),
                     ErrorType.IMAGE_ANALYSIS_RATE_LIMITED,
-                    HttpStatus.TOO_MANY_REQUESTS,
+                    HttpStatus.SERVICE_UNAVAILABLE,
                     exception);
         }
         return unavailable(exception);

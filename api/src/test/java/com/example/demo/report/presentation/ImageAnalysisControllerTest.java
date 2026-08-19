@@ -187,12 +187,31 @@ class ImageAnalysisControllerTest {
     }
 
     @Test
-    void rate_limit은_429와_전용_코드로_응답한다() throws Exception {
-        givenFailure(ErrorType.IMAGE_ANALYSIS_RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS);
+    void 모델_쿼터_소진은_503과_전용_코드로_응답한다() throws Exception {
+        givenFailure(ErrorType.IMAGE_ANALYSIS_RATE_LIMITED, HttpStatus.SERVICE_UNAVAILABLE);
 
         mockMvc.perform(authorized())
-                .andExpect(status().isTooManyRequests())
+                .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value(ErrorType.IMAGE_ANALYSIS_RATE_LIMITED.name()));
+    }
+
+    // 스펙이 문서화한 400(우리 저장소 URL 이 아니다)에 테스트가 없었다.
+    @Test
+    void 우리_저장소가_아닌_imageUrl은_400으로_응답한다() throws Exception {
+        givenFailure(ErrorType.INVALID_PARAMETER_ERROR, HttpStatus.BAD_REQUEST);
+
+        mockMvc.perform(authorized())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
+    }
+
+    @Test
+    void 응답_해석_실패는_upstream_장애와_다른_코드로_응답한다() throws Exception {
+        givenFailure(ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE, HttpStatus.BAD_GATEWAY);
+
+        mockMvc.perform(authorized())
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.code").value(ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE.name()));
     }
 
     @Test

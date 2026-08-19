@@ -140,11 +140,12 @@ class PriceTagResponseParserTest {
         "{unclosed",
         "42"
     })
-    void JSON_객체가_아닌_응답은_인식_실패로_끝낸다(final String content) {
+    void JSON_객체가_아닌_응답은_해석_실패로_끝낸다(final String content) {
         assertThatThrownBy(() -> parser.parse(content))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorType")
-                .isEqualTo(ErrorType.IMAGE_ANALYSIS_UNAVAILABLE);
+                // 재시도해도 같은 답이 오므로 upstream 장애와 구분한다.
+                .isEqualTo(ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE);
     }
 
     @Test

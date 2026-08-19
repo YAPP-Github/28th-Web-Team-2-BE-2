@@ -105,8 +105,9 @@ class QwenImageAnalysisAdapterTest {
                 .isEqualTo(ErrorType.IMAGE_ANALYSIS_TIMEOUT);
     }
 
+    // 한도를 넘긴 건 클라이언트가 아니라 우리 모델 쿼터다 — 429 가 아니라 503 이다.
     @Test
-    void rate_limit은_429로_구분한다() {
+    void rate_limit은_503으로_구분한다() {
         when(qwenVisionClient.complete(any())).thenThrow(new RetryableException(
                 429, "too many requests", Request.HttpMethod.POST, (Long) null, request()));
 
@@ -139,13 +140,13 @@ class QwenImageAnalysisAdapterTest {
     }
 
     @Test
-    void JSON이_아닌_본문은_인식_실패로_끝낸다() {
+    void JSON이_아닌_본문은_해석_실패로_끝낸다() {
         givenContent("사진을 읽을 수 없습니다");
 
         assertThatThrownBy(() -> adapter.analyze(IMAGE_URL))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorType")
-                .isEqualTo(ErrorType.IMAGE_ANALYSIS_UNAVAILABLE);
+                .isEqualTo(ErrorType.IMAGE_ANALYSIS_INVALID_RESPONSE);
     }
 
     private void givenContent(final String content) {

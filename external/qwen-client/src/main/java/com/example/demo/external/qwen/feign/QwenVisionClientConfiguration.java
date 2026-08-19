@@ -43,19 +43,14 @@ public class QwenVisionClientConfiguration {
      * <p>간격을 {@code Duration}이 아니라 밀리초로 받는다. Feign은 클라이언트마다 별도 자식
      * 컨텍스트를 만드는데 그 컨텍스트에는 {@code ApplicationConversionService}가 없어
      * {@code "500ms"} 같은 문자열을 {@code Duration}으로 바꾸지 못한다.
+     *
+     * <p>maxPeriod 노브는 두지 않는다. 간격이 {@code period * 1.5^attempt}이고 시도가 2회면
+     * 한 번(750ms)만 잠들므로 상한에 닿을 수 없다.
      */
     @Bean
     public Retryer qwenRetryer(
-<<<<<<< HEAD:external/qwen-client/src/main/java/com/example/demo/external/qwen/feign/QwenClientConfiguration.java
-            @Value("${qwen.retry.period-ms:500}") final long periodMs,
-            @Value("${qwen.retry.max-period-ms:2000}") final long maxPeriodMs,
-            @Value("${qwen.retry.max-attempts:2}") final int maxAttempts) {
-        return new Retryer.Default(periodMs, maxPeriodMs, maxAttempts);
-=======
-            @Value("${qwen.retry.period:500ms}") final java.time.Duration period,
-            @Value("${qwen.retry.max-period:2s}") final java.time.Duration maxPeriod,
+            @Value("${qwen.vision-retry.period-ms:500}") final long periodMs,
             @Value("${qwen.vision-retry.max-attempts:2}") final int maxAttempts) {
-        return new Retryer.Default(period.toMillis(), maxPeriod.toMillis(), maxAttempts);
->>>>>>> origin/feat/qwen-vision-client:external/qwen-client/src/main/java/com/example/demo/external/qwen/feign/QwenVisionClientConfiguration.java
+        return new Retryer.Default(periodMs, periodMs * maxAttempts, maxAttempts);
     }
 }

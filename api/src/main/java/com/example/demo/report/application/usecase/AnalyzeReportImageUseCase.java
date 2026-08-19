@@ -17,8 +17,8 @@ import org.springframework.stereotype.Service;
 /**
  * 사진에서 제보 입력값 후보를 뽑는다.
  *
- * <p>DB를 쓰지 않으므로 {@code @Transactional}을 붙이지 않는다. 외부 모델 호출을 트랜잭션 안에
- * 오래 두지 않는다는 원칙({@code docs/ARCHITECTURE.md} §6)과도 맞다. 이 유스케이스는
+ * <p>쓰기가 없고 외부 모델 호출을 트랜잭션 안에 오래 두지 않으려고 {@code @Transactional}을
+ * 붙이지 않는다({@code docs/ARCHITECTURE.md} §6). 품목 조회로 DB 를 읽기는 한다. 이 유스케이스는
  * {@code user_reports}를 만들지 않는다 — 저장은 사용자가 확인한 뒤 기존 저장 API가 한다.
  *
  * <p><b>단위는 모델에게 묻지 않는다.</b> 저장 API가 {@code unit}을 {@code items.default_unit}과

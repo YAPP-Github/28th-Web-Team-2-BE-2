@@ -106,7 +106,7 @@ public class S3ImageStorageAdapter implements ImageStoragePort, ImageUrlPort {
      */
     @Override
     public String requireOwnedUrl(final String imageUrl) {
-        final String baseUrl = properties.baseUrl();
+        final String baseUrl = properties.requireBaseUrl();
         if (imageUrl == null || !imageUrl.startsWith(baseUrl)) {
             throw ApiException.invalidParameter();
         }

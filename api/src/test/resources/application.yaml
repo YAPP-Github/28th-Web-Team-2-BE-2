@@ -68,9 +68,3 @@ aws:
   s3:
     bucket: test-marketgo-images
     base-url: https://test-cdn.example.com/
-
-qwen:
-  vision:
-    url: https://dashscope-intl.example.com/compatible-mode/v1
-    model: qwen-vl-plus
-  api-key: test-qwen-api-key
