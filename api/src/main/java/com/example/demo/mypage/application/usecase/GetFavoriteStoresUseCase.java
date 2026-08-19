@@ -5,9 +5,9 @@ import com.example.demo.mypage.application.query.FavoriteStoresQuery;
 import com.example.demo.mypage.application.result.FavoriteStoreResult;
 import com.example.demo.mypage.application.result.FavoriteStoreSource;
 import com.example.demo.mypage.application.result.FavoriteStoresResult;
-import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,41 +20,17 @@ public class GetFavoriteStoresUseCase {
 
     @Transactional(readOnly = true)
     public FavoriteStoresResult execute(final FavoriteStoresQuery query) {
-        final List<FavoriteStoreSource> sources = favoriteStoreQueryPort.findAll(query).stream()
-                .sorted(order(query))
-                .toList();
-        final List<FavoriteStoreResult> stores = pageContent(sources, query).stream()
+        final Page<FavoriteStoreSource> page = favoriteStoreQueryPort.findAll(query);
+        final List<FavoriteStoreResult> stores = page.getContent().stream()
                 .map(source -> toResult(source, query))
                 .toList();
         return new FavoriteStoresResult(
                 stores,
                 query.page(),
                 query.size(),
-                sources.size(),
-                totalPages(sources.size(), query.size()),
-                ((long) query.page() + 1) * query.size() < sources.size());
-    }
-
-    private Comparator<FavoriteStoreSource> order(final FavoriteStoresQuery query) {
-        if (!query.hasCoordinates()) {
-            return Comparator.comparing(FavoriteStoreSource::storeId);
-        }
-        final Comparator<Integer> distanceComparator = Comparator.nullsLast(Comparator.naturalOrder());
-        return Comparator.comparing(
-                        (FavoriteStoreSource source) -> distanceMeters(query, source),
-                        distanceComparator)
-                .thenComparing(FavoriteStoreSource::storeId);
-    }
-
-    private List<FavoriteStoreSource> pageContent(
-            final List<FavoriteStoreSource> sources, final FavoriteStoresQuery query) {
-        final long offset = (long) query.page() * query.size();
-        if (offset >= sources.size()) {
-            return List.of();
-        }
-        final int fromIndex = Math.toIntExact(offset);
-        final int toIndex = Math.min(fromIndex + query.size(), sources.size());
-        return sources.subList(fromIndex, toIndex);
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.hasNext());
     }
 
     private FavoriteStoreResult toResult(
@@ -88,10 +64,4 @@ public class GetFavoriteStoresUseCase {
         return Math.toIntExact(Math.round(6_371_000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))));
     }
 
-    private int totalPages(final long totalElements, final int size) {
-        if (totalElements == 0) {
-            return 0;
-        }
-        return Math.toIntExact((totalElements + size - 1) / size);
-    }
 }
