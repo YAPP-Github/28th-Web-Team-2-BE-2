@@ -4,6 +4,7 @@ import com.example.demo.item.application.port.OnlinePricePersistencePort;
 import com.example.demo.item.application.port.OnlinePriceQueryPort;
 import com.example.demo.item.domain.OnlinePrice;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -44,5 +45,14 @@ public class OnlinePricePersistenceAdapter implements OnlinePricePersistencePort
                 .flatMap(price -> onlinePriceJpaRepository
                         .findFirstByItemIdAndCreatedAtAndUnitOrderByPriceAscIdAsc(
                                 itemId, price.createdAt(), unit));
+    }
+
+    @Override
+    public Optional<LocalDate> findLatestCollectionDate(
+            final Long itemId, final Integer unit, final Collection<Integer> channelIds) {
+        return onlinePriceJpaRepository
+                .findFirstByItemIdAndChannelIdInAndUnitOrderByCreatedAtDescIdDesc(
+                        itemId, channelIds, unit)
+                .map(OnlinePrice::createdAt);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.demo.item.e2e;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -93,6 +94,13 @@ class ItemOnlinePriceE2ETest {
                 .andExpect(jsonPath("$.onlinePrices[*].channelName")
                         .value(contains("오아시스", "컬리", "11번가")))
                 .andExpect(jsonPath("$.onlinePrices[*].price").value(contains(320, 450, 280)))
+                .andExpect(jsonPath("$.onlinePrices[*].deliveryNote")
+                        .value(contains("무료배송", "무료배송", "무료배송")))
+                .andExpect(jsonPath("$.onlinePrices[*].productUrl")
+                        .value(contains(
+                                "https://example.com/" + oasis + "/320",
+                                "https://example.com/" + kurly + "/450",
+                                "https://example.com/" + elevenSt + "/280")))
                 .andExpect(jsonPath("$.onlinePrices[0].productName").value("감자 320원"))
                 .andExpect(jsonPath("$.onlinePrices[0].quantity").value(1))
                 .andExpect(jsonPath("$.onlinePrices[0].unit").value("g"))
@@ -127,6 +135,19 @@ class ItemOnlinePriceE2ETest {
     }
 
     @Test
+    @DisplayName("지원하지 않는 온라인 채널은 반환하지 않는다")
+    void excludesUnsupportedChannels() throws Exception {
+        final int unsupportedChannel = onlineChannelJpaRepository.save(new OnlineChannel("온라인몰")).id();
+        save(oasis, 320, today);
+        save(unsupportedChannel, 100, today.plusDays(1));
+
+        mockMvc.perform(get(path(potatoId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.onlinePrices[*].channelId").value(contains(oasis)))
+                .andExpect(jsonPath("$.onlinePrices[*].channelName").value(contains("오아시스")));
+    }
+
+    @Test
     @DisplayName("수집 데이터가 없으면 200과 빈 목록을 반환한다")
     void returnsEmptyListWhenNoData() throws Exception {
         mockMvc.perform(get(path(onionId)))
@@ -142,11 +163,38 @@ class ItemOnlinePriceE2ETest {
     }
 
     @Test
+    @DisplayName("잘못된 품목 ID는 400을 반환한다")
+    void returnsBadRequestForInvalidItemId() throws Exception {
+        mockMvc.perform(get(path(0L))).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("온라인 가격 조회는 저장된 가격을 변경하지 않는다")
+    void doesNotMutateOnlinePrices() throws Exception {
+        save(oasis, 320, today);
+        final long countBefore = onlinePriceJpaRepository.count();
+
+        mockMvc.perform(get(path(potatoId))).andExpect(status().isOk());
+
+        assertThat(onlinePriceJpaRepository.count()).isEqualTo(countBefore);
+    }
+
+    @Test
     @DisplayName("온라인 가격 API가 OpenAPI 문서에 노출된다")
     void exposesApiDocs() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/online-prices'].get").exists());
+                .andExpect(jsonPath("$.paths['/api/v1/items/{itemId}/online-prices'].get").exists())
+                .andExpect(jsonPath(
+                                "$.paths['/api/v1/items/{itemId}/online-prices'].get.responses['400'].description")
+                        .value("조회 조건이 올바르지 않다"))
+                .andExpect(jsonPath("$.components.schemas.ItemOnlinePriceResponse.properties.itemId").exists())
+                .andExpect(jsonPath("$.components.schemas.ItemOnlinePriceResponse.properties.onlinePrices")
+                        .exists())
+                .andExpect(jsonPath("$.components.schemas.OnlineChannelPriceResponse.properties.productUrl")
+                        .exists())
+                .andExpect(jsonPath("$.components.schemas.OnlineChannelPriceResponse.properties.deliveryNote")
+                        .exists());
     }
 
     private String path(final Long itemId) {
