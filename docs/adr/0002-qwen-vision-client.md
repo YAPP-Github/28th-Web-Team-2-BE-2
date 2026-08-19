@@ -59,23 +59,7 @@ DashScope 의 OpenAI 호환 endpoint(`/compatible-mode/v1/chat/completions`)로 
 
 ## 확인 방법 — 남은 1건과 회귀
 
-아래는 문서로 확정하지 못했던 항목의 원래 목록이다(위 표가 결과다).
-
-1. `response_format: {"type":"json_object"}` 의 VL 모델 지원 여부. 텍스트 모델 위주로 문서화돼 있다.
-   미지원이면 무시되거나 400 이다. 프롬프트에도 JSON 지시를 넣어 이중으로 방어했고 서버가 스키마를
-   검증하지만, 어느 쪽이 동작하는지 확인이 필요하다.
-2. `temperature: 0.0` 허용 여부. native API 는 `(0, 2)` 개구간을 요구한다. compatible-mode 가 `0` 을
-   받는지 확인이 필요하다.
-3. ~~endpoint host~~ — **해소(실측).** 이 계정은 workspace 전용 형태를 쓴다:
-   `https://{workspaceId}.{region}.maas.aliyuncs.com/compatible-mode/v1` (리전 `ap-southeast-1`).
-   `dashscope-intl.aliyuncs.com` 형태가 아니다. 값은 콘솔이 키와 함께 내려주는 `openAiCompatible`
-   필드에 있다. `application.yaml` 의 기본값을 없애 `QWEN_VISION_URL` 을 필수로 두었다 —
-   틀린 host 로 조용히 실패하는 것보다 기동 시 드러나는 편이 낫다.
-4. 모델 id `qwen-vl-plus` 의 계정 사용 가능 여부. `GET {url}/models` 로 확인.
-5. DashScope 가 우리 S3 URL 을 실제로 가져올 수 있는지. 이 기능 전체가 여기 걸려 있다.
-6. `message.content` 가 문자열이 아니라 파트 배열로 오는 provider 가 있다. 그러면 역직렬화가 실패한다.
-
-확인 방법 — `QwenVisionLiveSmokeTest` 를 쓴다. 레포의 다른 live smoke 테스트와 같은 방식으로
+`QwenVisionLiveSmokeTest` 를 쓴다. 레포의 다른 live smoke 테스트와 같은 방식으로
 기본값에서는 skip 되고 `-Dqwen.live=true` 일 때만 돈다.
 
 ```bash
@@ -93,7 +77,7 @@ QWEN_API_KEY=... ./gradlew :external:qwen-client:test \
 -Dqwen.live.imageUrl=https://<bucket>.s3.ap-northeast-2.amazonaws.com/images/<uuid>.jpg
 ```
 
-버킷이 준비되면 마지막 프로퍼티로 5번(우리 S3 URL 접근)까지 확인된다.
+버킷이 준비되면 마지막 프로퍼티로 남은 1건(우리 S3 URL 접근)까지 확인된다.
 
 수동 확인이 필요하면:
 
