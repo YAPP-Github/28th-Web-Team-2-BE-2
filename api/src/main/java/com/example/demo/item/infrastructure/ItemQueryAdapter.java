@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -48,7 +48,7 @@ public class ItemQueryAdapter implements ItemQueryPort {
         }
         final List<Item> content = contentQuery
                 .orderBy(orderBy(query.sort(), item, currentPrice))
-                .offset(offset(query))
+                .offset(query.effectiveOffset())
                 .limit(query.size())
                 .fetch();
         final long totalCount = jpaQueryFactory
@@ -56,7 +56,9 @@ public class ItemQueryAdapter implements ItemQueryPort {
                 .from(item)
                 .where(keywordCondition, categoryCondition, favoriteCondition)
                 .fetchOne();
-        return new PageImpl<>(content, PageRequest.of(query.page(), query.size()), totalCount);
+        // Pageable 을 넘기면 PageImpl 이 offset+size>total 일 때 total 을 조회된 건수로 덮어쓴다.
+        // offset 계약에서는 그 offset 이 실제 조회 위치와 달라 총계가 틀어지므로 총계를 그대로 싣는다.
+        return new PageImpl<>(content, Pageable.unpaged(), totalCount);
     }
 
     @Override
@@ -84,13 +86,6 @@ public class ItemQueryAdapter implements ItemQueryPort {
                 .from(itemFavorite)
                 .where(itemFavorite.userId.eq(userId), itemFavorite.itemId.in(itemIds))
                 .fetch());
-    }
-
-    private long offset(final ItemQuery query) {
-        if (query.offset() != null) {
-            return query.offset();
-        }
-        return (long) query.page() * query.size();
     }
 
     private BooleanExpression keywordCondition(final QItem item, final String keyword) {

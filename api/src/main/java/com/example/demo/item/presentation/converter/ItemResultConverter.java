@@ -46,14 +46,9 @@ public class ItemResultConverter {
             final ItemQueryResult result, final ItemSearchRequest request) {
         final List<ItemSearchItemResponse> items =
                 result.items().stream().map(this::toSearchItemResponse).toList();
-        final ItemSearchPagination pagination = new ItemSearchPagination(
-                request.limit(), request.offset(), hasNext(result, request, items.size()));
+        final ItemSearchPagination pagination =
+                new ItemSearchPagination(request.limit(), request.offset(), result.hasNext());
         return new ItemSearchResponse(result.totalCount(), items, pagination);
-    }
-
-    private boolean hasNext(
-            final ItemQueryResult result, final ItemSearchRequest request, final int itemCount) {
-        return request.offset() + itemCount < result.totalCount();
     }
 
     private ItemSearchItemResponse toSearchItemResponse(final ItemPriceResult result) {

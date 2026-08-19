@@ -47,14 +47,15 @@ public class GetItemQueryUseCase {
                         previousPricesByItemId.get(item.id()))
                         .withLiked(favoriteItemIds.contains(item.id())))
                 .toList();
+        final long totalCount = itemPage.getTotalElements();
         return new ItemQueryResult(
                 baseDate,
-                itemPage.getTotalElements(),
+                totalCount,
                 categoryCounts,
                 items,
                 query.page(),
                 query.size(),
-                itemPage.hasNext());
+                query.effectiveOffset() + items.size() < totalCount);
     }
 
     private Map<String, Long> categoryCounts(final Map<ItemCategory, Long> counts) {

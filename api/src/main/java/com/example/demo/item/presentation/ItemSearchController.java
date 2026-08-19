@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/products")
+@RequestMapping("/api/v1/items")
 @RequiredArgsConstructor
 public class ItemSearchController implements ItemSearchControllerSpec {
 
@@ -28,8 +28,9 @@ public class ItemSearchController implements ItemSearchControllerSpec {
     @Override
     public ResponseEntity<ItemSearchResponse> searchItems(
             @Valid @ModelAttribute final ItemSearchRequest request) {
-        final ItemQueryResult result =
-                getItemQueryUseCase.execute(itemQueryRequestConverter.toQuery(request), null);
+        final Long anonymousUserId = null; // 공개 검색이라 찜 여부를 반영하지 않는다
+        final ItemQueryResult result = getItemQueryUseCase.execute(
+                itemQueryRequestConverter.toSearchQuery(request), anonymousUserId);
         return ResponseEntity.ok(itemResultConverter.toSearchResponse(result, request));
     }
 }

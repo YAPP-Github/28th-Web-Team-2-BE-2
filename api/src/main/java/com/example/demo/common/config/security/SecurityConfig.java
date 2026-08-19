@@ -51,7 +51,6 @@ public class SecurityConfig {
                                 "/api/v1/items",
                                 "/api/v1/items/*",
                                 "/api/v1/news",
-                                "/api/v1/products/search",
                                 "/api/v1/regions/nearby",
                                 "/api/v1/regions/search",
                                 "/api/v1/stores/nearby",

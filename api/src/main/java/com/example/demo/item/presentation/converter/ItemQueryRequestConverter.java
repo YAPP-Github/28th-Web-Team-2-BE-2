@@ -2,8 +2,8 @@ package com.example.demo.item.presentation.converter;
 
 import com.example.demo.item.application.query.ItemDetailQuery;
 import com.example.demo.item.application.query.ItemQuery;
-import com.example.demo.item.presentation.dto.ItemDetailRequest;
 import com.example.demo.item.application.query.ItemSort;
+import com.example.demo.item.presentation.dto.ItemDetailRequest;
 import com.example.demo.item.presentation.dto.ItemQueryRequest;
 import com.example.demo.item.presentation.dto.ItemSearchRequest;
 import org.springframework.stereotype.Component;
@@ -27,7 +27,7 @@ public class ItemQueryRequestConverter {
                 null);
     }
 
-    public ItemQuery toQuery(final ItemSearchRequest request) {
+    public ItemQuery toSearchQuery(final ItemSearchRequest request) {
         return new ItemQuery(
                 request.regionId(),
                 0,
