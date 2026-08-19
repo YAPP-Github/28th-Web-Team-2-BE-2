@@ -47,14 +47,14 @@ public class S3ImageStorageAdapter implements ImageStoragePort, ImageUrlPort {
     }
 
     @Override
-    public String upload(final ImageKey key, final UploadImageCommand command) {
+    public String uploadAndReturnUrl(final ImageKey key, final UploadImageCommand command) {
         // URL 을 PUT 전에 확정한다. baseUrl 설정이 비어 있으면 여기서 503 이 나고, 객체를 올린 뒤
         // 503 을 내보내 참조 불가능한 고아 객체가 쌓이는 일이 없다.
         final String imageUrl = permanentUrl(key);
         // contentLength 는 넘기지 않는다. 동기 putObject 는 본문을 aws-chunked 로 감싸며 이 값을
         // 덮고 실제 크기는 RequestBody 에서 가져간다 — 와이어에 나가지 않는 죽은 설정이다.
         final PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(properties.bucket())
+                .bucket(properties.requireBucket())
                 .key(key.value())
                 .contentType(command.contentType().mimeType())
                 .build();
@@ -72,7 +72,7 @@ public class S3ImageStorageAdapter implements ImageStoragePort, ImageUrlPort {
         // Content-Type과 Content-Length를 서명에 포함한다. 클라이언트가 다른 header로 PUT하면
         // S3가 서명 불일치로 거부하므로, 신고한 크기를 넘겨 올리는 경로가 막힌다.
         final PutObjectRequest objectRequest = PutObjectRequest.builder()
-                .bucket(properties.bucket())
+                .bucket(properties.requireBucket())
                 .key(key.value())
                 .contentType(contentType.mimeType())
                 .contentLength(command.size().bytes())
@@ -115,7 +115,7 @@ public class S3ImageStorageAdapter implements ImageStoragePort, ImageUrlPort {
     }
 
     private String permanentUrl(final ImageKey key) {
-        return properties.baseUrl() + key.value();
+        return properties.requireBaseUrl() + key.value();
     }
 
     private ApiException storageUnavailable(final Throwable cause) {

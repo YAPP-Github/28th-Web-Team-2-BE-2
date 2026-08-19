@@ -52,16 +52,10 @@ kakao:
     issuer: https://kauth.kakao.com
     jwk-set-uri: https://kauth.kakao.com/.well-known/jwks.json
 
-# 인식 기능은 컨텍스트가 뜨는 데만 필요한 값이다. 실제 호출은 테스트에서 mock으로 대체한다.
-qwen:
-  vision:
-    url: https://dashscope-intl.example.com/compatible-mode/v1
-    model: qwen-vl-plus
-  api-key: test-qwen-api-key
-
+# 컨텍스트가 뜨는 데만 필요하다. 실제 호출은 테스트에서 mock 으로 대체한다.
 aws:
   region: ap-northeast-2
   s3:
     bucket: test-marketgo-images
     base-url: https://test-cdn.example.com/
-    presign-expiry: 10m
+

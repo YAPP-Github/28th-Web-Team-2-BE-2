@@ -199,13 +199,12 @@ class ImageControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // filename 은 서버가 읽지 않으므로 필수가 아니다 — 없거나 비어도 통과한다.
     @ParameterizedTest
     @ValueSource(strings = {
-        "{\"contentType\":\"image/jpeg\",\"size\":2048}",
         "{\"filename\":\"a.jpg\",\"size\":2048}",
         "{\"filename\":\"a.jpg\",\"contentType\":\"image/jpeg\"}",
-        "{\"filename\":\"a.jpg\",\"contentType\":\"image/jpeg\",\"size\":0}",
-        "{\"filename\":\"\",\"contentType\":\"image/jpeg\",\"size\":2048}"
+        "{\"filename\":\"a.jpg\",\"contentType\":\"image/jpeg\",\"size\":0}"
     })
     void presigned_요청의_필수값이_빠지면_거부한다(final String body) throws Exception {
         mockMvc.perform(post(PRESIGN_PATH)
@@ -214,6 +213,16 @@ class ImageControllerTest {
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(ErrorType.INVALID_PARAMETER_ERROR.name()));
+    }
+
+    @Test
+    void filename_없이도_presigned_발급을_허용한다() throws Exception {
+        mockMvc.perform(post(PRESIGN_PATH)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"contentType":"image/jpeg","size":2048}"""))
+                .andExpect(status().isOk());
     }
 
     @Test

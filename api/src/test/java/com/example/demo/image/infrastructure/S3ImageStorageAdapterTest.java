@@ -45,20 +45,19 @@ class S3ImageStorageAdapterTest {
         adapter = new S3ImageStorageAdapter(
                 s3Client,
                 s3Presigner,
-                new S3ImageStorageProperties(
-                        "marketgo-images", "https://cdn.example.com/", Duration.ofMinutes(10)));
+                new S3ImageStorageProperties("marketgo-images", "https://cdn.example.com/"));
     }
 
     @Test
     void 업로드하면_영구_URL을_돌려준다() {
-        final String imageUrl = adapter.upload(KEY, uploadCommand());
+        final String imageUrl = adapter.uploadAndReturnUrl(KEY, uploadCommand());
 
         assertThat(imageUrl).isEqualTo("https://cdn.example.com/images/abc.jpg");
     }
 
     @Test
     void 업로드_요청에_bucket_key_형식_크기를_담는다() {
-        adapter.upload(KEY, uploadCommand());
+        adapter.uploadAndReturnUrl(KEY, uploadCommand());
 
         final ArgumentCaptor<PutObjectRequest> captor = ArgumentCaptor.forClass(PutObjectRequest.class);
         verify(s3Client).putObject(captor.capture(), any(RequestBody.class));
@@ -73,7 +72,7 @@ class S3ImageStorageAdapterTest {
         when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenThrow(SdkClientException.create("bucket marketgo-images denied"));
 
-        assertThatThrownBy(() -> adapter.upload(KEY, uploadCommand()))
+        assertThatThrownBy(() -> adapter.uploadAndReturnUrl(KEY, uploadCommand()))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorType")
                 .isEqualTo(ErrorType.IMAGE_STORAGE_UNAVAILABLE);
@@ -85,7 +84,7 @@ class S3ImageStorageAdapterTest {
         when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .thenThrow(SdkClientException.create("bucket marketgo-images denied"));
 
-        assertThatThrownBy(() -> adapter.upload(KEY, uploadCommand()))
+        assertThatThrownBy(() -> adapter.uploadAndReturnUrl(KEY, uploadCommand()))
                 .isInstanceOf(ApiException.class)
                 .hasMessage(ErrorType.IMAGE_STORAGE_UNAVAILABLE.description())
                 .hasMessageNotContaining("marketgo-images");

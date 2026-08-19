@@ -77,8 +77,6 @@ aws:
     bucket: ${AWS_S3_BUCKET:}
     # key를 그대로 이어 붙이는 접두사다. Terraform output image_base_url 값을 넣는다.
     base-url: ${AWS_S3_BASE_URL:}
-    # 계약이 정한 10분. 늘리면 유출된 URL의 유효 기간도 함께 늘어난다.
-    presign-expiry: ${AWS_S3_PRESIGN_EXPIRY:10m}
 
 qwen:
   # connect/read timeout 은 Feign 규약상 spring.cloud.openfeign.client.config.qwenVisionClient 에 있다.

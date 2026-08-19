@@ -15,6 +15,7 @@ import com.example.demo.common.exception.ImageValidationException;
  */
 public record ImageSize(long bytes) {
 
+    // 값을 바꾸면 application.yaml 의 multipart 상한과 ErrorType.IMAGE_TOO_LARGE 문구도 함께.
     private static final long MAX_BYTES = 5L * 1024 * 1024;
 
     public ImageSize {

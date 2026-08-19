@@ -21,6 +21,6 @@ public class UploadImageUseCase {
 
     public UploadedImageResult execute(final UploadImageCommand command) {
         final ImageKey key = ImageKey.generate(command.contentType());
-        return new UploadedImageResult(imageStoragePort.upload(key, command));
+        return new UploadedImageResult(imageStoragePort.uploadAndReturnUrl(key, command));
     }
 }
