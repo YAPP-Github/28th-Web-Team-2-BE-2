@@ -1,11 +1,14 @@
 # 제보 사진 저장용 버킷.
 #
-# 계약은 `.agents/skills/image-upload-flow/SKILL.md`에 있다. 요지는 셋이다.
-#   - key는 `images/{UUID}.{png|jpg}`
-#   - 영구 URL은 `AWS_S3_BASE_URL + key`
-#   - 클라이언트 직접 업로드는 10분 만료 presigned PUT
+# 계약은 `.agents/skills/image-upload-flow/SKILL.md`에 있다. 요지는 둘이다.
+#   - key 는 `images/{UUID}.{png|jpg}`
+#   - 영구 URL 은 `AWS_S3_BASE_URL + key` 이고 `images/` 접두사는 공개 읽기다
 #
-
+# 업로드는 서버 경유 단일 PUT 하나뿐이다. 그래서 두지 않는 것이 둘 있다.
+#   - CORS: 브라우저가 S3 에 직접 PUT 하지 않는다.
+#   - lifecycle(중단된 multipart 정리): 5MB 상한이 SDK 의 multipart 임계값보다 작아 multipart
+#     업로드 자체가 생기지 않는다.
+# 클라이언트 직접 업로드가 필요해지면 둘 다 함께 추가한다.
 
 resource "aws_s3_bucket" "images" {
   bucket = var.image_bucket_name
@@ -44,8 +47,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "images" {
 
 # EC2 인스턴스 역할에 붙이는 권한.
 #
-# presigned URL 발급 자체는 API 호출이 아니라 역할 자격증명으로 로컬 서명하는 동작이므로
-# 별도 권한이 필요 없다. 다만 서명된 요청이 실제로 통과하려면 역할에 그 action이 있어야 한다.
+# 백엔드는 access key 를 두지 않고 인스턴스 역할(IMDS)로 S3 에 붙는다. 업로드는 PutObject,
+# 인식에 넘길 URL 검증은 객체를 읽지 않으므로 GetObject 는 향후 서버측 조회용이다.
 data "aws_iam_policy_document" "ec2_image_storage" {
   statement {
     # key prefix 는 SKILL.md 의 images/ 규칙에 묶여 있다. 백엔드가 prefix 를 바꾸면
