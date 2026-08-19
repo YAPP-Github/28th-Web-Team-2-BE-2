@@ -39,11 +39,11 @@ class RecommendedStoreQueryAdapterTest {
         when(store.placeUrl()).thenReturn("url");
         when(item.id()).thenReturn(11L);
         when(item.name()).thenReturn("양파");
-        when(reportRepository.findLatestCheapReports()).thenReturn(List.of(report));
+        when(reportRepository.findLatestCheapReports("1121510100")).thenReturn(List.of(report));
         when(storeRepository.findAllById(List.of(7L))).thenReturn(List.of(store));
         when(itemRepository.findAllById(List.of(11L))).thenReturn(List.of(item));
 
-        final var result = adapter.findLatestCheapReports();
+        final var result = adapter.findLatestCheapReports("1121510100");
 
         assertThat(result).singleElement().satisfies(source -> {
             assertThat(source.storeId()).isEqualTo(7L);
@@ -64,10 +64,10 @@ class RecommendedStoreQueryAdapterTest {
         when(store.longitude()).thenReturn(new BigDecimal("127.0"));
         when(item.id()).thenReturn(11L);
         when(item.name()).thenReturn("양파");
-        when(reportRepository.findLatestCheapReports()).thenReturn(List.of(report));
+        when(reportRepository.findLatestCheapReports("1121510100")).thenReturn(List.of(report));
         when(storeRepository.findAllById(List.of(7L))).thenReturn(List.of(store));
         when(itemRepository.findAllById(List.of(11L))).thenReturn(List.of(item));
 
-        assertThat(adapter.findLatestCheapReports()).isEmpty();
+        assertThat(adapter.findLatestCheapReports("1121510100")).isEmpty();
     }
 }

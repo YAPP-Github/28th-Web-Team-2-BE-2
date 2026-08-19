@@ -51,7 +51,7 @@ public class StoreResultConverter {
                 result.placeUrl(),
                 result.distanceMeters(),
                 result.cheapItemCount(),
-                result.itemNames(),
+                result.cheapItems(),
                 result.remainingItemCount());
     }
 }

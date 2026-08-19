@@ -35,7 +35,8 @@ public interface StoreControllerSpec {
     @Operation(summary = "제보 가격이 저렴한 주변 가게를 조회한다")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "추천 가게 조회 성공"),
-        @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다")
+        @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다"),
+        @ApiResponse(responseCode = "401", description = "Bearer 토큰이 유효하지 않다")
     })
     ResponseEntity<RecommendedStoresResponse> getRecommendedStores(
             @Valid @ParameterObject RecommendedStoreRequest request,

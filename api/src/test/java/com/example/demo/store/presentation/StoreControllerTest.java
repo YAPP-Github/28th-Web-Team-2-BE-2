@@ -115,7 +115,7 @@ class StoreControllerTest {
 
     @Test
     void 추천_조회는_저렴한_제보_근거를_반환한다() throws Exception {
-        when(recommendedStoreQueryPort.findLatestCheapReports()).thenReturn(List.of(
+        when(recommendedStoreQueryPort.findLatestCheapReports("1121510100")).thenReturn(List.of(
                 new com.example.demo.store.application.result.RecommendedStoreSource(
                         1L,
                         "장보고 마트",
@@ -127,14 +127,15 @@ class StoreControllerTest {
                         "http://place.map.kakao.com/1",
                         "양파")));
 
-        mockMvc.perform(get("/api/v1/stores/recommended")
+        mockMvc.perform(get("/api/v1/stores/recommendation")
+                        .queryParam("regionId", "1121510100")
                         .queryParam("latitude", "37.5088")
                         .queryParam("longitude", "127.0632"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalCount").value(1))
                 .andExpect(jsonPath("$.data.stores[0].storeId").value(1))
                 .andExpect(jsonPath("$.data.stores[0].cheapItemCount").value(1))
-                .andExpect(jsonPath("$.data.stores[0].itemNames[0]").value("양파"));
+                .andExpect(jsonPath("$.data.stores[0].cheapItems[0]").value("양파"));
     }
 
     @Test

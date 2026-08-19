@@ -17,6 +17,6 @@ public record RecommendedStoreResponse(
         @Schema(description = "공공 시세보다 저렴한 상품 수", example = "12")
         int cheapItemCount,
         @Schema(description = "대표 저렴 상품명")
-        List<String> itemNames,
+        List<String> cheapItems,
         @Schema(description = "대표 상품명에 표시하지 않은 저렴 상품 수", example = "7")
         int remainingItemCount) {}

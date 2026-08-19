@@ -27,6 +27,7 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
                     )
               )
               AND report.priceDiffRate < 0
+              AND report.regionId = :regionId
             """)
-    List<UserReport> findLatestCheapReports();
+    List<UserReport> findLatestCheapReports(@Param("regionId") String regionId);
 }

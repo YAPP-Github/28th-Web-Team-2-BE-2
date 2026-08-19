@@ -14,5 +14,5 @@ public record RecommendedStoreResult(
         String placeUrl,
         Integer distanceMeters,
         int cheapItemCount,
-        List<String> itemNames,
+        List<String> cheapItems,
         int remainingItemCount) {}

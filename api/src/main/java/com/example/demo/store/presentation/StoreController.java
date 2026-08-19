@@ -56,7 +56,7 @@ public class StoreController implements StoreControllerSpec {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/recommended")
+    @GetMapping("/recommendation")
     @Override
     public ResponseEntity<RecommendedStoresResponse> getRecommendedStores(
             @Valid @ModelAttribute final RecommendedStoreRequest request,

@@ -24,15 +24,16 @@ public class GetRecommendedStoresUseCase {
 
     public RecommendedStoresResult execute(final RecommendedStoreQuery query) {
         final Map<Long, List<RecommendedStoreSource>> sourcesByStore = recommendedStoreQueryPort
-                .findLatestCheapReports().stream()
-                .filter(source -> distanceMeters(query, source) <= query.radius())
+                .findLatestCheapReports(query.regionId()).stream()
+                .filter(source -> !hasLocation(query) || distanceMeters(query, source) <= query.radius())
                 .collect(java.util.stream.Collectors.groupingBy(
                         RecommendedStoreSource::storeId,
                         LinkedHashMap::new,
                         java.util.stream.Collectors.toList()));
         final List<RecommendedStoreResult> stores = sourcesByStore.values().stream()
                 .map(sources -> toResult(sources, query))
-                .sorted(Comparator.comparing(RecommendedStoreResult::distanceMeters)
+                .sorted(Comparator.comparing(RecommendedStoreResult::distanceMeters,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(RecommendedStoreResult::storeId))
                 .toList();
         return new RecommendedStoresResult(
@@ -54,12 +55,16 @@ public class GetRecommendedStoresUseCase {
                 source.roadAddressName(),
                 source.phone(),
                 source.placeUrl(),
-                distanceMeters(query, source),
+                hasLocation(query) ? distanceMeters(query, source) : null,
                 cheapItemCount,
                 sources.stream().limit(displayedItemCount)
                         .map(RecommendedStoreSource::itemName)
                         .toList(),
                 cheapItemCount - displayedItemCount);
+    }
+
+    private boolean hasLocation(final RecommendedStoreQuery query) {
+        return query.latitude() != null && query.longitude() != null;
     }
 
     private int distanceMeters(

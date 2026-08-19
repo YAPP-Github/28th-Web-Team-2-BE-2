@@ -19,7 +19,7 @@ class GetRecommendedStoresUseCaseTest {
     @Test
     void 매장별_저렴한_상품_수를_집계하고_대표_상품명과_나머지_수를_반환한다() {
         final RecommendedStoreQuery query = query(2000);
-        when(queryPort.findLatestCheapReports()).thenReturn(List.of(
+        when(queryPort.findLatestCheapReports("1121510100")).thenReturn(List.of(
                 source(1L, "양파", "37.501", "127.001"),
                 source(1L, "대추방울토마토", "37.501", "127.001"),
                 source(1L, "얼갈이배추", "37.501", "127.001"),
@@ -35,14 +35,27 @@ class GetRecommendedStoresUseCaseTest {
         assertThat(result.stores()).extracting("storeId").containsExactly(1L, 2L);
         assertThat(result.stores().getFirst()).satisfies(store -> {
             assertThat(store.cheapItemCount()).isEqualTo(6);
-            assertThat(store.itemNames()).containsExactly(
+            assertThat(store.cheapItems()).containsExactly(
                     "양파", "대추방울토마토", "얼갈이배추", "새송이버섯", "고춧가루");
             assertThat(store.remainingItemCount()).isEqualTo(1);
         });
     }
 
     private RecommendedStoreQuery query(final int radius) {
-        return new RecommendedStoreQuery(new BigDecimal("37.5"), new BigDecimal("127.0"), radius);
+        return new RecommendedStoreQuery("1121510100", new BigDecimal("37.5"), new BigDecimal("127.0"), radius);
+    }
+
+    @Test
+    void 위치가_없으면_거리_계산없이_지역의_추천_매장을_반환한다() {
+        final RecommendedStoreQuery query = new RecommendedStoreQuery("1121510100", null, null, 2000);
+        when(queryPort.findLatestCheapReports("1121510100")).thenReturn(List.of(
+                source(1L, "양파", null, null),
+                source(2L, "당근", null, null)));
+
+        final var result = useCase.execute(query);
+
+        assertThat(result.stores()).extracting("storeId").containsExactly(1L, 2L);
+        assertThat(result.stores()).allSatisfy(store -> assertThat(store.distanceMeters()).isNull());
     }
 
     private RecommendedStoreSource source(
@@ -53,8 +66,8 @@ class GetRecommendedStoresUseCaseTest {
         return new RecommendedStoreSource(
                 storeId,
                 "store-" + storeId,
-                new BigDecimal(latitude),
-                new BigDecimal(longitude),
+                latitude == null ? null : new BigDecimal(latitude),
+                longitude == null ? null : new BigDecimal(longitude),
                 "address",
                 "road-address",
                 "phone",

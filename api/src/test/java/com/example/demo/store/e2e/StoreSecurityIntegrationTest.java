@@ -42,7 +42,8 @@ class StoreSecurityIntegrationTest {
 
     @Test
     void 추천_매장_경로는_인증없이_호출할_수_있다() throws Exception {
-        mockMvc.perform(get("/api/v1/stores/recommended")
+        mockMvc.perform(get("/api/v1/stores/recommendation")
+                        .queryParam("regionId", "1121510100")
                         .queryParam("latitude", "37.5")
                         .queryParam("longitude", "127.0"))
                 .andExpect(status().isOk())
@@ -69,8 +70,9 @@ class StoreSecurityIntegrationTest {
                 .andExpect(jsonPath("$.code").value("INVALID_TOKEN"))
                 .andExpect(jsonPath("$.data").value(nullValue()));
 
-        mockMvc.perform(get("/api/v1/stores/recommended")
+        mockMvc.perform(get("/api/v1/stores/recommendation")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token")
+                        .queryParam("regionId", "1121510100")
                         .queryParam("latitude", "37.5")
                         .queryParam("longitude", "127.0"))
                 .andExpect(status().isUnauthorized())

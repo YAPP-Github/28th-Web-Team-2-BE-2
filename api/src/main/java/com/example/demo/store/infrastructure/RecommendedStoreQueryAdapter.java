@@ -24,8 +24,8 @@ public class RecommendedStoreQueryAdapter implements RecommendedStoreQueryPort {
     private final ItemJpaRepository itemJpaRepository;
 
     @Override
-    public List<RecommendedStoreSource> findLatestCheapReports() {
-        final List<UserReport> reports = userReportJpaRepository.findLatestCheapReports();
+    public List<RecommendedStoreSource> findLatestCheapReports(final String regionId) {
+        final List<UserReport> reports = userReportJpaRepository.findLatestCheapReports(regionId);
         final Map<Long, Store> stores = findStores(reports);
         final Map<Long, Item> items = findItems(reports);
         return reports.stream()
