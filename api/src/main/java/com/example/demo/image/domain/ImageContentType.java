@@ -34,11 +34,23 @@ public enum ImageContentType {
     }
 
     /**
-     * MIME 문자열을 형식으로 바꾼다. 허용 목록에 없으면 거부한다.
+     * 신고된 MIME 과 실제 바이트가 함께 맞을 때만 형식을 돌려준다.
      *
-     * <p>{@code null}이나 빈 값은 형식을 판별할 근거가 없어 거부한다.
+     * <p>둘을 한 팩터리로 묶은 이유가 있다. 신고된 {@code Content-Type}만 믿으면 인증 사용자가
+     * 우리 버킷을 임의 파일 호스트로 쓸 수 있고, 버킷이 공개 읽기라 그 파일이 우리 도메인에서
+     * 서비스된다. 호출부가 바이트 대조를 잊을 수 있는 형태로 두지 않는다.
+     *
+     * <p>{@code null}이나 빈 MIME 은 형식을 판별할 근거가 없어 거부한다.
      */
-    public static ImageContentType from(final String mimeType) {
+    public static ImageContentType from(final String mimeType, final byte[] content) {
+        final ImageContentType resolved = resolve(mimeType);
+        if (!resolved.matchesSignature(content)) {
+            throw invalidFormat();
+        }
+        return resolved;
+    }
+
+    private static ImageContentType resolve(final String mimeType) {
         if (mimeType == null || mimeType.isBlank()) {
             throw invalidFormat();
         }
@@ -55,13 +67,7 @@ public enum ImageContentType {
         throw invalidFormat();
     }
 
-    /**
-     * 선언된 형식과 실제 바이트가 맞는지 본다.
-     *
-     * <p>신고된 {@code Content-Type}만 믿으면 인증 사용자가 우리 도메인을 임의 파일 호스트로 쓸 수
-     * 있다. 서버를 거치는 경로는 바이트를 손에 들고 있으므로 선두 시그니처를 대조한다.
-     */
-    public boolean matchesSignature(final byte[] content) {
+    private boolean matchesSignature(final byte[] content) {
         final byte[] signature = signature();
         if (content == null || content.length < signature.length) {
             return false;

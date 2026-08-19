@@ -9,7 +9,12 @@ import java.io.IOException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-/** HTTP 입력을 Application 커맨드로 바꾼다. {@code MultipartFile}은 여기까지만 등장한다. */
+/**
+ * HTTP 입력을 Application 커맨드로 바꾼다. {@code MultipartFile}은 여기까지만 등장한다.
+ *
+ * <p>형식·크기 규칙은 도메인 타입이 소유한다. 여기서는 HTTP 관심사(빈 part, 본문 읽기 실패)만
+ * 판단하고 값 변환에 그친다({@code docs/ARCHITECTURE.md} §8).
+ */
 @Component
 public class ImageCommandConverter {
 
@@ -17,15 +22,12 @@ public class ImageCommandConverter {
         if (file == null || file.isEmpty()) {
             throw new ImageValidationException(ErrorType.INVALID_IMAGE_FORMAT);
         }
-        final ImageContentType contentType = ImageContentType.from(file.getContentType());
         final byte[] content = readBytes(file);
-        // 신고된 Content-Type 만 믿으면 인증 사용자가 우리 버킷을 임의 파일 호스트로 쓸 수 있다.
-        if (!contentType.matchesSignature(content)) {
-            throw new ImageValidationException(ErrorType.INVALID_IMAGE_FORMAT);
-        }
-        return new UploadImageCommand(contentType, new ImageSize(file.getSize()), content);
+        return new UploadImageCommand(
+                ImageContentType.from(file.getContentType(), content),
+                new ImageSize(file.getSize()),
+                content);
     }
-
 
     private byte[] readBytes(final MultipartFile file) {
         try {
@@ -35,5 +37,4 @@ public class ImageCommandConverter {
             throw new ImageValidationException(ErrorType.INVALID_IMAGE_FORMAT);
         }
     }
-
 }
