@@ -4,6 +4,7 @@ import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.item.application.port.ItemExistencePort;
 import com.example.demo.item.domain.Item;
+import com.example.demo.report.application.port.StoreNameQueryPort;
 import com.example.demo.report.application.port.UserReportQueryPort;
 import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.application.result.RegionItemReportResult;
@@ -25,6 +26,7 @@ public class GetRegionItemReportQueryUseCase {
 
     private final ItemExistencePort itemExistencePort;
     private final UserReportQueryPort userReportQueryPort;
+    private final StoreNameQueryPort storeNameQueryPort;
 
     @Transactional(readOnly = true)
     public RegionItemReportResult execute(final RegionItemReportQuery query) {
@@ -55,7 +57,7 @@ public class GetRegionItemReportQueryUseCase {
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
-        return userReportQueryPort.findStoreNames(storeIds);
+        return storeNameQueryPort.findNames(storeIds);
     }
 
     private List<UserReportSummaryResult> toSummaries(

@@ -54,7 +54,7 @@ public class UserReportResultConverter {
                 result.price(),
                 result.amount(),
                 result.unit(),
-                result.reportedAt(),
+                result.reportedDate(),
                 result.priceGap(),
                 result.priceDiffRate(),
                 result.classification());

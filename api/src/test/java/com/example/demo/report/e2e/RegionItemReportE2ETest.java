@@ -11,13 +11,16 @@ import com.example.demo.item.infrastructure.ItemJpaRepository;
 import com.example.demo.report.domain.ReportType;
 import com.example.demo.report.domain.Store;
 import com.example.demo.report.domain.UserReport;
-import com.example.demo.report.infrastructure.ReportStoreJpaRepository;
+import com.example.demo.store.infrastructure.persistence.StoreJpaRepository;
 import com.example.demo.report.infrastructure.UserReportJpaRepository;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,8 +34,9 @@ class RegionItemReportE2ETest {
 
     private final MockMvc mockMvc;
     private final ItemJpaRepository itemJpaRepository;
-    private final ReportStoreJpaRepository storeJpaRepository;
+    private final StoreJpaRepository storeJpaRepository;
     private final UserReportJpaRepository userReportJpaRepository;
+    private final JdbcTemplate jdbcTemplate;
     private Long potatoId;
     private Long onionId;
     private Long storeId;
@@ -41,12 +45,14 @@ class RegionItemReportE2ETest {
     RegionItemReportE2ETest(
             final MockMvc mockMvc,
             final ItemJpaRepository itemJpaRepository,
-            final ReportStoreJpaRepository storeJpaRepository,
-            final UserReportJpaRepository userReportJpaRepository) {
+            final StoreJpaRepository storeJpaRepository,
+            final UserReportJpaRepository userReportJpaRepository,
+            final JdbcTemplate jdbcTemplate) {
         this.mockMvc = mockMvc;
         this.itemJpaRepository = itemJpaRepository;
         this.storeJpaRepository = storeJpaRepository;
         this.userReportJpaRepository = userReportJpaRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @BeforeEach
@@ -81,6 +87,12 @@ class RegionItemReportE2ETest {
         userReportJpaRepository.save(new UserReport(
                 REGION_ID, ReportType.PURCHASE, storeId, itemId, 1L, price, unit,
                 new BigDecimal("1.000"), publicPriceDiff, priceDiffRate, null));
+    }
+
+    /** 제보 기준일은 도메인이 정하므로, 날짜별 정렬을 검증하려면 저장 후 옮긴다. */
+    private void moveReportDate(final int price, final LocalDate reportDate) {
+        jdbcTemplate.update(
+                "UPDATE user_reports SET report_date = ? WHERE price = ?", reportDate, price);
     }
 
     private void saveInRegion(final Long itemId, final String regionId, final int price, final String unit) {
@@ -145,11 +157,29 @@ class RegionItemReportE2ETest {
     }
 
     @Test
-    @DisplayName("sort를 생략하면 최신 제보부터 반환하고 같은 날짜는 reportId 역순으로 안정 정렬한다")
+    @DisplayName("sort를 생략하면 제보 기준일 최신순으로 반환한다")
     void defaultsToLatestSort() throws Exception {
+        final LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        moveReportDate(3000, today.minusDays(3));
+        moveReportDate(4000, today.minusDays(1));
+        moveReportDate(3500, today.minusDays(2));
+
         mockMvc.perform(get(path(REGION_ID, potatoId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.reports[*].price").value(contains(2500, 3500, 4000, 3000)));
+                .andExpect(jsonPath("$.data.reports[*].price").value(contains(2500, 4000, 3500, 3000)))
+                .andExpect(jsonPath("$.data.reports[0].reportedDate").value(today.toString()))
+                .andExpect(jsonPath("$.data.reports[3].reportedDate")
+                        .value(today.minusDays(3).toString()));
+    }
+
+    @Test
+    @DisplayName("제보 목록 API가 OpenAPI 문서에 노출된다")
+    void exposesApiDocs() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(
+                                "$.paths['/api/v1/regions/{regionId}/items/{itemId}/reports'].get")
+                        .exists());
     }
 
     @Test

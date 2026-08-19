@@ -11,7 +11,7 @@ public record UserReportSummaryResult(
         Integer price,
         BigDecimal amount,
         String unit,
-        LocalDate reportedAt,
+        LocalDate reportedDate,
         Integer priceGap,
         BigDecimal priceDiffRate,
         PriceClassification classification) {}
