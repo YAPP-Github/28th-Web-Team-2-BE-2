@@ -9,4 +9,5 @@ public record MyReportSummaryResult(
         String unit,
         LocalDate reportedDate,
         String regionId,
+        String regionName,
         Integer priceGap) {}

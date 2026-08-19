@@ -75,6 +75,10 @@ class MyReportE2ETest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("DELETE FROM regions");
+        jdbcTemplate.update(
+                "INSERT INTO regions (region_id, region_name) VALUES (?, ?)",
+                REGION_ID, "서울특별시 광진구 중곡동");
         userReportJpaRepository.deleteAll();
         itemJpaRepository.deleteAll();
         userJpaRepository.deleteAll();
@@ -101,6 +105,8 @@ class MyReportE2ETest {
                 .andExpect(jsonPath("$.data.reports[1].priceGap").value(-500))
                 .andExpect(jsonPath("$.data.reports[1].unit").value("1kg"))
                 .andExpect(jsonPath("$.data.reports[1].regionId").value(REGION_ID))
+                .andExpect(jsonPath("$.data.reports[1].regionName")
+                        .value("서울특별시 광진구 중곡동"))
                 .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
@@ -154,7 +160,9 @@ class MyReportE2ETest {
 
         request(accessToken(me))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.reports[0].regionId").value(REGION_ID));
+                .andExpect(jsonPath("$.data.reports[0].regionId").value(REGION_ID))
+                .andExpect(jsonPath("$.data.reports[0].regionName")
+                        .value("서울특별시 광진구 중곡동"));
     }
 
     @Test

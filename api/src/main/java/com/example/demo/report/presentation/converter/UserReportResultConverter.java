@@ -57,6 +57,7 @@ public class UserReportResultConverter {
                 result.unit(),
                 result.reportedDate(),
                 result.regionId(),
+                result.regionName(),
                 result.priceGap());
     }
 
