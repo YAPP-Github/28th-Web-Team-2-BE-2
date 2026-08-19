@@ -39,7 +39,7 @@ class FlywayMigrationIntegrationTest {
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(regionName("1121510100")).isEqualTo("서울특별시 광진구 중곡동");
         assertThat(countRows("public_prices")).isEqualTo(3);
@@ -70,7 +70,8 @@ class FlywayMigrationIntegrationTest {
                 .containsExactly(
                         "store_id", "kakao_place_id", "place_name", "place_url", "category_name",
                         "address_name", "road_address_name", "phone", "category_group_code",
-                        "category_group_name", "longitude", "latitude", "distance", "created_at", "updated_at");
+                        "category_group_name", "longitude", "latitude", "distance", "created_at", "updated_at",
+                        "image_url", "business_hours", "open_status");
         assertThat(constraintNames("stores"))
                 .contains("stores_pkey", "uk_stores_kakao_place_id");
         assertThat(columnNames("user_reports"))
@@ -115,7 +116,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -141,7 +142,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertCategoryMapping();
         assertThat(countRows("stores")).isZero();
         assertThat(countRows("user_reports")).isZero();
@@ -158,7 +159,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertThat(columnNames("store_favorites"))
                 .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
         assertThat(constraintNames("store_favorites"))
@@ -188,7 +189,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertThat(columnNullable("user_reports", "store_id")).isTrue();
         assertThat(columnNullable("user_reports", "user_id")).isTrue();
         assertThat(columnNullable("user_reports", "region_id")).isTrue();

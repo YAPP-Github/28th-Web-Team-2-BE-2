@@ -3,6 +3,8 @@ package com.example.demo.store.presentation.spec;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
 import com.example.demo.store.presentation.dto.NearbyStoresResponse;
+import com.example.demo.store.presentation.dto.RecommendedStoreRequest;
+import com.example.demo.store.presentation.dto.RecommendedStoresResponse;
 import com.example.demo.store.presentation.dto.StoreDetailRequest;
 import com.example.demo.store.presentation.dto.StoreDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +34,12 @@ public interface StoreControllerSpec {
             @Parameter(hidden = true) Authentication authentication,
             @Parameter(hidden = true) HttpServletRequest servletRequest);
 
+    @Operation(summary = "추천 가게를 조회한다")
+    @ApiResponse(responseCode = "200", description = "추천 가게 조회 성공")
+    ResponseEntity<RecommendedStoresResponse> getRecommendedStores(
+            @Valid @ParameterObject RecommendedStoreRequest request,
+            @Parameter(hidden = true) HttpServletRequest servletRequest);
+
     @Operation(summary = "가게 상세를 조회한다")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "가게 상세 조회 성공"),
@@ -45,4 +53,14 @@ public interface StoreControllerSpec {
             @Parameter(hidden = true) AuthPrincipal principal,
             @Parameter(hidden = true) Authentication authentication,
             @Parameter(hidden = true) HttpServletRequest servletRequest);
+
+    @Operation(summary = "가게를 단골로 등록한다")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "단골 등록 성공 또는 이미 등록된 관계"),
+        @ApiResponse(responseCode = "401", description = "로그인이 필요하다"),
+        @ApiResponse(responseCode = "404", description = "가게를 찾을 수 없다")
+    })
+    ResponseEntity<Void> addFavorite(
+            @Parameter(description = "가게 ID") @Positive Long storeId,
+            @Parameter(hidden = true) AuthPrincipal principal);
 }

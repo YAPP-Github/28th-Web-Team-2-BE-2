@@ -3,8 +3,10 @@ package com.example.demo.store.presentation.converter;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.application.query.NearbyStoreQuery;
 import com.example.demo.store.application.query.StoreDetailQuery;
+import com.example.demo.store.application.query.RecommendedStoreQuery;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
 import com.example.demo.store.presentation.dto.StoreDetailRequest;
+import com.example.demo.store.presentation.dto.RecommendedStoreRequest;
 import java.util.Objects;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -40,6 +42,10 @@ public class StoreQueryConverter {
                 request.latitude(),
                 request.longitude(),
                 userId(principal, authentication));
+    }
+
+    public RecommendedStoreQuery toRecommendedStoreQuery(final RecommendedStoreRequest request) {
+        return new RecommendedStoreQuery(request.latitude(), request.longitude(), request.radius());
     }
 
     private Long userId(final AuthPrincipal principal, final Authentication authentication) {
