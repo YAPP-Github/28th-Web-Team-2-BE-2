@@ -71,7 +71,8 @@ qwen:
   vision:
     url: ${QWEN_VISION_URL:https://dashscope-intl.aliyuncs.com/compatible-mode/v1}
     model: ${QWEN_VISION_MODEL:qwen-vl-plus}
-  api-key: ${QWEN_API_KEY:}
+  # 기본값을 두지 않는다. 누락되면 placeholder 오류에 env 이름이 찍혀 진단이 쉽다(kakao 와 같은 방식).
+  api-key: ${QWEN_API_KEY}
   retry:
     # 사용자가 화면에서 기다리는 동기 호출이라 총 2회로 제한한다.
     max-attempts: ${QWEN_RETRY_MAX_ATTEMPTS:2}

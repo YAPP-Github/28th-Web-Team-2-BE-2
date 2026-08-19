@@ -22,7 +22,7 @@ class QwenVisionClientFeignContractTest {
         assertThat(annotation).isNotNull();
         assertThat(annotation.name()).isEqualTo("qwenVisionClient");
         assertThat(annotation.url()).isEqualTo("${qwen.vision.url}");
-        assertThat(annotation.configuration()).containsExactly(QwenClientConfiguration.class);
+        assertThat(annotation.configuration()).containsExactly(QwenVisionClientConfiguration.class);
         assertThat(returnTypes).containsEntry("complete", QwenChatResponse.class);
     }
 }

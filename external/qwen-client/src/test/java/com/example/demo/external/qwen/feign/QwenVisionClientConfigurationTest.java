@@ -15,9 +15,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-class QwenClientConfigurationTest {
+class QwenVisionClientConfigurationTest {
 
-    private final QwenClientConfiguration configuration = new QwenClientConfiguration();
+    private final QwenVisionClientConfiguration configuration = new QwenVisionClientConfiguration();
 
     @ParameterizedTest
     @NullAndEmptySource
