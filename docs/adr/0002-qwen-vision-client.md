@@ -1,7 +1,7 @@
 # 0002. 제보 사진 인식에 Qwen vision 을 쓴다
 
-- 상태: 제안
-- 날짜: 2026-08-19
+- 상태: 승인 (실호출 검증 완료, 1건 잔여)
+- 날짜: 2026-08-19 (검증 2026-08-20)
 
 ## 배경
 
@@ -25,17 +25,48 @@ DashScope 의 OpenAI 호환 endpoint(`/compatible-mode/v1/chat/completions`)로 
   물면 그 이점이 사라진다.
 - **자체 OCR**: 가격표는 배치·서체가 제각각이고 품목명까지 읽어야 해서 규칙 기반으로는 어렵다.
 
-## 미검증 — 실제 키로 확인해야 하는 것
+## 실호출 검증 결과 (2026-08-20)
 
-이 클라이언트는 **실호출 검증을 한 번도 하지 못한 상태로 들어왔다.** 아래는 문서로 확정하지 못했고,
-전부 설정으로 열어 두었다.
+`QwenVisionLiveSmokeTest` 를 실제 키로 돌려 확인했다. 아래 5건이 해소됐고 1건이 남았다.
+검증에 쓴 endpoint 는 `{workspaceId}.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1`,
+모델은 `qwen-vl-plus` 다.
+
+| 항목 | 결과 |
+| --- | --- |
+| 와이어 키가 snake_case 로 나가는지 | ✅ `image_url` 이 먹었다. 모델이 사진 내용을 정확히 읽었다 |
+| `response_format: json_object` VL 지원 | ✅ 200, 순수 JSON 반환. 빼면 자유 문장이 오므로 효과가 있다 |
+| `temperature: 0` 허용 | ✅ 거부되지 않았다 |
+| endpoint host | ✅ workspace 형태로 200 |
+| 모델 id `qwen-vl-plus` | ✅ 응답 `model` 필드에 그대로 |
+| 응답 `message.content` 가 문자열인지 | ✅ 문자열 |
+| 출력 잘림 | ✅ `finish_reason: stop`, 23 토큰 |
+
+**남은 1건**: DashScope 가 우리 S3 URL 을 가져올 수 있는지. 버킷이 아직 없어서 확인하지 못했다.
+`terraform apply` 후 `-Dqwen.live.imageUrl=<우리 URL>` 로 같은 테스트를 다시 돌린다. DashScope 는
+`ap-southeast-1`, 버킷은 `ap-northeast-2` 라 리전 간 접근이다 — 공개 읽기이므로 될 것으로 보지만
+확인 전까지 단정하지 않는다.
+
+### 실측에서 새로 드러난 것
+
+**토큰이 이미지 쪽에 몰린다.** `image_tokens: 1249` vs `text_tokens: 60`. 비용이 사실상 이미지
+해상도에 비례한다. 지금은 5MB 원본을 그대로 올리므로, 업로드 전 리사이즈를 넣으면 비용이 크게
+줄어들 여지가 있다. 실사용량을 보고 판단한다.
+
+**계정에서 쓸 수 있는 모델이 `qwen-vl-plus` 보다 최신이다.** `/models` 응답에 `qwen3.8-27b`,
+`qwen3.8-2.4t-a95b`, `qwen-image-3.0-pro`, `deepseek-v4-pro-0813`, `ZHIPU/GLM-5.3` 등이 있다.
+`qwen-vl-plus` 로 동작은 하지만 가격표 OCR 정확도를 위해 최신 VL 모델을 비교해 볼 만하다
+(`-Dqwen.live.model=` 로 같은 테스트를 돌리면 된다). 모델 id 는 설정값이므로 코드 변경이 없다.
+
+## 확인 방법 — 남은 1건과 회귀
+
+아래는 문서로 확정하지 못했던 항목의 원래 목록이다(위 표가 결과다).
 
 1. `response_format: {"type":"json_object"}` 의 VL 모델 지원 여부. 텍스트 모델 위주로 문서화돼 있다.
    미지원이면 무시되거나 400 이다. 프롬프트에도 JSON 지시를 넣어 이중으로 방어했고 서버가 스키마를
    검증하지만, 어느 쪽이 동작하는지 확인이 필요하다.
 2. `temperature: 0.0` 허용 여부. native API 는 `(0, 2)` 개구간을 요구한다. compatible-mode 가 `0` 을
    받는지 확인이 필요하다.
-3. ~~endpoint host~~ — **해소.** 이 계정은 workspace 전용 형태를 쓴다:
+3. ~~endpoint host~~ — **해소(실측).** 이 계정은 workspace 전용 형태를 쓴다:
    `https://{workspaceId}.{region}.maas.aliyuncs.com/compatible-mode/v1` (리전 `ap-southeast-1`).
    `dashscope-intl.aliyuncs.com` 형태가 아니다. 값은 콘솔이 키와 함께 내려주는 `openAiCompatible`
    필드에 있다. `application.yaml` 의 기본값을 없애 `QWEN_VISION_URL` 을 필수로 두었다 —
