@@ -9,6 +9,7 @@ import com.example.demo.external.kakao.KakaoAddressSearchResult.Address;
 import com.example.demo.external.kakao.KakaoAddressSearchResult.KakaoAddress;
 import com.example.demo.external.kakao.feign.KakaoMapClient;
 import com.example.demo.region.application.query.RegionSearchQuery;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -29,10 +30,18 @@ class KakaoRegionSearchAdapterTest {
         final var result = adapter.search(new RegionSearchQuery("성성"));
 
         assertThat(result.regions())
-                .extracting("regionId", "regionName")
+                .extracting("regionId", "regionName", "latitude", "longitude")
                 .containsExactly(
-                        org.assertj.core.groups.Tuple.tuple("0111010100", "서울특별시 종로구 청운동"),
-                        org.assertj.core.groups.Tuple.tuple("4413310500", "충청남도 천안시 서북구 성성동"));
+                        org.assertj.core.groups.Tuple.tuple(
+                                "0111010100",
+                                "서울특별시 종로구 청운동",
+                                new BigDecimal("37.5874"),
+                                new BigDecimal("126.9707")),
+                        org.assertj.core.groups.Tuple.tuple(
+                                "4413310500",
+                                "충청남도 천안시 서북구 성성동",
+                                new BigDecimal("37.5874"),
+                                new BigDecimal("126.9707")));
     }
 
     @Test
@@ -51,6 +60,8 @@ class KakaoRegionSearchAdapterTest {
         return new KakaoAddress(
                 firstDepth + " " + secondDepth + " " + thirdDepth,
                 "REGION",
+                new BigDecimal("126.9707"),
+                new BigDecimal("37.5874"),
                 new Address(
                         firstDepth + " " + secondDepth + " " + thirdDepth,
                         firstDepth,

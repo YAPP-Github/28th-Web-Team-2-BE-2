@@ -18,7 +18,8 @@ public class RegionResultConverter {
 
     public RegionSearchResponse toRegionSearchResponse(final RegionSearchResult result) {
         return new RegionSearchResponse(result.regions().stream()
-                .map(region -> new RegionSearchResponse.SearchResult(region.regionId(), region.regionName()))
+                .map(region -> new RegionSearchResponse.SearchResult(
+                        region.regionId(), region.regionName(), region.latitude(), region.longitude()))
                 .toList());
     }
 }

@@ -60,7 +60,8 @@ class NewsQueryE2ETest {
         jdbcTemplate.update("delete from news_articles");
 
         mockMvc.perform(get("/api/v1/news"))
-                .andExpect(status().isServiceUnavailable());
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("조회할 뉴스 데이터가 없습니다."));
     }
 
     private void insertArticle(
