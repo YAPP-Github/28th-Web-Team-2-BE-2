@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
@@ -99,6 +100,10 @@ class UserReportE2ETest {
         jdbcTemplate.update("DELETE FROM user_reports");
         jdbcTemplate.update("DELETE FROM stores");
         item = itemJpaRepository.findAll().getFirst();
+        // V6 시드는 DB 의 CURRENT_DATE(컨테이너는 UTC)로 들어가는데 제보 생성은 Asia/Seoul 기준 오늘로
+        // 공공가격을 찾는다. UTC 환경의 KST 00:00~09:00 구간에서 하루 어긋나 매칭되지 않으므로 맞춰준다.
+        jdbcTemplate.update(
+                "UPDATE public_prices SET price_date = ? WHERE price_date <> ?", today(), today());
     }
 
     @Test
@@ -296,7 +301,7 @@ class UserReportE2ETest {
         jdbcTemplate.update("""
                 INSERT INTO public_prices (item_id, region_id, price, price_date)
                 VALUES (?, '9999999999', 1, ?)
-                """, item.id(), LocalDate.now());
+                """, item.id(), today());
         final User user = saveUser("Integer 최대 가격 사용자");
 
         reportWithPriceAndRegion(
@@ -333,28 +338,28 @@ class UserReportE2ETest {
                     public_price_diff, price_diff_rate, report_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
                 """, storeId, item.id(), user.id(), 900, item.defaultUnit(), 1,
-                LocalDate.now(), -100, new BigDecimal("-10.00"));
+                today(), -100, new BigDecimal("-10.00"));
         jdbcTemplate.update("""
                 INSERT INTO user_reports (
                     store_id, item_id, user_id, price, unit, amount, report_date,
                     public_price_diff, price_diff_rate, report_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
                 """, storeId, item.id(), secondUser.id(), 1100, item.defaultUnit(), 1,
-                LocalDate.now(), 100, new BigDecimal("10.00"));
+                today(), 100, new BigDecimal("10.00"));
         jdbcTemplate.update("""
                 INSERT INTO user_reports (
                     store_id, item_id, user_id, price, unit, amount, report_date,
                     public_price_diff, price_diff_rate, report_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
                 """, storeId, item.id(), thirdUser.id(), 1000, item.defaultUnit(), 1,
-                LocalDate.now(), 0, BigDecimal.ZERO);
+                today(), 0, BigDecimal.ZERO);
         jdbcTemplate.update("""
                 INSERT INTO user_reports (
                     store_id, item_id, user_id, price, unit, amount, report_date,
                     public_price_diff, price_diff_rate, report_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
                 """, storeId, item.id(), fourthUser.id(), 1000, "2kg", 1,
-                LocalDate.now(), -1, new BigDecimal("-0.10"));
+                today(), -1, new BigDecimal("-0.10"));
 
         mockMvc.perform(get("/api/v1/stores/{storeId}/reports", storeId)
                         .queryParam("filter", "CHEAP"))
@@ -556,5 +561,16 @@ class UserReportE2ETest {
                 VALUES (?, '제보 매장', '서울특별시 마포구')
                 RETURNING store_id
                 """, Long.class, kakaoPlaceId);
+    }
+
+    /**
+     * 서비스 기준 시간대의 오늘이다.
+     *
+     * <p>제보 생성은 {@code Asia/Seoul} 기준 오늘로 공공가격을 찾는다
+     * ({@code CreateUserReportUseCase.findTodayPublicPrice}). 테스트가 JVM 기본 시간대로 시드하면 UTC 환경의
+     * KST 00:00~09:00 구간에서 하루 어긋나 공공가격이 매칭되지 않는다.
+     */
+    private static LocalDate today() {
+        return LocalDate.now(ZoneId.of("Asia/Seoul"));
     }
 }
