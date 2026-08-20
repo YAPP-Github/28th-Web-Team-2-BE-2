@@ -7,10 +7,12 @@ import com.example.demo.news.domain.NewsArticle;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
@@ -41,8 +43,12 @@ class NaverNewsCrawler implements NewsSource {
     private static final Pattern DATE_PATTERN = Pattern.compile("\\d{4}\\.\\d{2}\\.\\d{2}\\.");
     private static final Pattern DATE_TIME_PATTERN =
             Pattern.compile("\\d{4}\\.\\d{2}\\.\\d{2}\\.\\s*[오전후]{2}\\s*\\d{1,2}:\\d{2}");
+    private static final Pattern RELATIVE_DATE_PATTERN =
+            Pattern.compile("(?<amount>\\d+)\\s*(?<unit>분|시간|일|주|개월|년)\\s*전");
     private static final String TITLE_SELECTOR =
             "a[data-heatmap-target=\".title\"], a[data-heatmap-target=\".tit\"], .news_tit";
+    private static final String SUMMARY_SELECTOR =
+            ".body, a[data-heatmap-target=\".body\"], .dsc_wrap .api_txt_lines, .api_txt_lines";
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy.MM.dd.", Locale.KOREAN);
     private static final DateTimeFormatter DATE_TIME_FORMATTER = new DateTimeFormatterBuilder()
@@ -82,7 +88,7 @@ class NaverNewsCrawler implements NewsSource {
 
     private Optional<NewsArticle> toNewsArticle(final Element title) {
         final Element article = enclosingArticle(title);
-        final Element summary = first(article, ".body, .dsc_wrap .api_txt_lines, .api_txt_lines");
+        final Element summary = first(article, SUMMARY_SELECTOR);
         final Optional<Instant> publishedAt = publishedAt(article);
         if (title == null || summary == null || publishedAt.isEmpty()) {
             return Optional.empty();
@@ -125,7 +131,7 @@ class NaverNewsCrawler implements NewsSource {
         if (candidate.select(TITLE_SELECTOR).size() != 1) {
             return false;
         }
-        if (first(candidate, ".body, .dsc_wrap .api_txt_lines, .api_txt_lines") == null) {
+        if (first(candidate, SUMMARY_SELECTOR) == null) {
             return false;
         }
         return publishedAt(candidate).isPresent();
@@ -153,6 +159,13 @@ class NaverNewsCrawler implements NewsSource {
         if (dateMatcher.find()) {
             return Optional.of(dateMatcher.group());
         }
+        if (text.contains("방금 전")) {
+            return Optional.of("방금 전");
+        }
+        final Matcher relativeDateMatcher = RELATIVE_DATE_PATTERN.matcher(text);
+        if (relativeDateMatcher.find()) {
+            return Optional.of(relativeDateMatcher.group());
+        }
         return Optional.empty();
     }
 
@@ -164,16 +177,44 @@ class NaverNewsCrawler implements NewsSource {
                         .atZone(KOREA_ZONE)
                         .toInstant());
             }
-            return Optional.of(LocalDate.parse(normalized, DATE_FORMATTER)
-                    .atStartOfDay(KOREA_ZONE)
-                    .toInstant());
+            if (DATE_PATTERN.matcher(normalized).find()) {
+                return Optional.of(LocalDate.parse(normalized, DATE_FORMATTER)
+                        .atStartOfDay(KOREA_ZONE)
+                        .toInstant());
+            }
+            return parseRelativeDate(normalized);
         } catch (final DateTimeParseException exception) {
             return Optional.empty();
         }
     }
 
+    private Optional<Instant> parseRelativeDate(final String text) {
+        if ("방금 전".equals(text)) {
+            return Optional.of(Instant.now());
+        }
+        final Matcher matcher = RELATIVE_DATE_PATTERN.matcher(text);
+        if (!matcher.matches()) {
+            return Optional.empty();
+        }
+        try {
+            final long amount = Long.parseLong(matcher.group("amount"));
+            final ZonedDateTime now = ZonedDateTime.now(KOREA_ZONE);
+            return switch (matcher.group("unit")) {
+                case "분" -> Optional.of(now.minusMinutes(amount).toInstant());
+                case "시간" -> Optional.of(now.minusHours(amount).toInstant());
+                case "일" -> Optional.of(now.minusDays(amount).toInstant());
+                case "주" -> Optional.of(now.minusWeeks(amount).toInstant());
+                case "개월" -> Optional.of(now.minusMonths(amount).toInstant());
+                case "년" -> Optional.of(now.minusYears(amount).toInstant());
+                default -> Optional.empty();
+            };
+        } catch (final NumberFormatException | DateTimeException | ArithmeticException exception) {
+            return Optional.empty();
+        }
+    }
+
     private String thumbnailUrl(final Element article) {
-        final Element image = first(article, ".img img, .dsc_thumb img");
+        final Element image = first(article, ".img img, .dsc_thumb img, a[data-heatmap-target=\".thumb\"] img");
         if (image == null) {
             return null;
         }

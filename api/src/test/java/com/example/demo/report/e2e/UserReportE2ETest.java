@@ -151,7 +151,7 @@ class UserReportE2ETest {
                 .containsEntry("category_group_code", "PM9")
                 .containsEntry("category_group_name", "약국")
                 .containsEntry("distance", 10);
-        assertThat(snapshot.get("amount").toString()).isEqualTo("1.250");
+        assertThat(snapshot.get("amount").toString()).isEqualTo("1.000");
         assertThat(snapshot.get("price_diff_rate").toString()).isEqualTo("14.29");
         assertThat(snapshot.get("longitude").toString()).isEqualTo("127.0589707834");
         assertThat(snapshot.get("latitude").toString()).isEqualTo("37.5060518881");
@@ -238,15 +238,71 @@ class UserReportE2ETest {
     void 품목_기준_단위와_다른_제보는_저장하지_않고_400을_응답한다() throws Exception {
         final User user = saveUser("단위 오류 사용자");
 
+        // 기준 단위가 "1kg"인 품목에 "개" — 한 개가 몇 kg인지는 품목마다 달라 환산할 수 없다.
         mockMvc.perform(post(reportPath(item.id()))
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(reportBodyWithUnit("kg")))
+                        .content(reportBodyWithUnit("개")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_ERROR"));
 
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM stores", Integer.class)).isZero();
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM user_reports", Integer.class)).isZero();
+    }
+
+    @Test
+    void 기준_단위_여러_개분_제보는_한_개분_가격으로_옮겨_저장한다() throws Exception {
+        final User user = saveUser("수량 환산 사용자");
+
+        // "2kg에 8000원" → 기준 단위가 "1kg"이므로 "1kg에 4000원"으로 저장한다.
+        mockMvc.perform(post(reportPath(item.id()))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reportBody("amount-convert-place")
+                                .replace("\"price\": 3500", "\"price\": 8000")
+                                .replace("\"amount\": 1", "\"amount\": 2")))
+                .andExpect(status().isCreated());
+
+        final var saved = jdbcTemplate.queryForMap(
+                "SELECT price, unit, amount FROM user_reports ORDER BY report_id DESC LIMIT 1");
+        assertThat(saved).containsEntry("price", 4000).containsEntry("unit", "1kg");
+        assertThat((BigDecimal) saved.get("amount")).isEqualByComparingTo("1");
+    }
+
+    @Test
+    void 무게_단위가_다르면_기준_단위_한_개분_가격으로_환산한다() throws Exception {
+        final User user = saveUser("무게 환산 사용자");
+
+        // "500g에 3000원" → 1kg 기준이면 6000원이다.
+        mockMvc.perform(post(reportPath(item.id()))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reportBody("gram-convert-place")
+                                .replace("\"price\": 3500", "\"price\": 3000")
+                                .replace("\"unit\": \"1kg\"", "\"unit\": \"g\"")
+                                .replace("\"amount\": 1", "\"amount\": 500")))
+                .andExpect(status().isCreated());
+
+        final var saved = jdbcTemplate.queryForMap(
+                "SELECT price, unit, amount FROM user_reports ORDER BY report_id DESC LIMIT 1");
+        assertThat(saved).containsEntry("price", 6000).containsEntry("unit", "1kg");
+        assertThat((BigDecimal) saved.get("amount")).isEqualByComparingTo("1");
+    }
+
+    @Test
+    void 수량_접두사가_없는_단위는_기준_단위로_바꿔_저장한다() throws Exception {
+        final User user = saveUser("단위 표기 사용자");
+
+        // 클라이언트는 화면 표기를 그대로 보낸다("1kg" → "kg"). 같은 단위이므로 받아들이고,
+        // 저장은 기준 단위 원본으로 통일한다 — 표기가 섞이면 기존 제보와 비교할 수 없다.
+        mockMvc.perform(post(reportPath(item.id()))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reportBodyWithUnit("kg")))
+                .andExpect(status().isCreated());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT unit FROM user_reports", String.class))
+                .isEqualTo(item.defaultUnit());
     }
 
     @Test
@@ -504,7 +560,7 @@ class UserReportE2ETest {
                   "reportType": "PURCHASE",
                   "price": 3500,
                   "unit": "1kg",
-                  "amount": 1.25,
+                  "amount": 1,
                   "store": {
                     "id": "%s",
                     "placeName": "장생당약국",
