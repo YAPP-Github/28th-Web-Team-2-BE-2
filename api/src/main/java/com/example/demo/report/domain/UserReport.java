@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,8 @@ import lombok.experimental.Accessors;
 @Getter
 @Accessors(fluent = true)
 public class UserReport {
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -89,7 +92,7 @@ public class UserReport {
         this.publicPriceDiff = publicPriceDiff;
         this.priceDiffRate = priceDiffRate;
         this.photoUrl = photoUrl;
-        this.reportDate = LocalDate.now();
+        this.reportDate = LocalDate.now(SEOUL);
         this.createdAt = Instant.now();
     }
 }

@@ -13,6 +13,8 @@ import com.example.demo.report.application.result.CreateUserReportResult;
 import com.example.demo.report.domain.UserReport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class CreateUserReportUseCase {
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     private final StoreCommandPort storeCommandPort;
     private final UserReportCommandPort userReportCommandPort;
@@ -33,9 +37,7 @@ public class CreateUserReportUseCase {
         final Item item = itemExistencePort.findById(command.itemId())
                 .orElseThrow(this::itemNotFound);
         validateUnit(command.unit(), item.defaultUnit());
-        final PublicPrice publicPrice = publicPriceQueryPort
-                .findLatestByItemIdAndRegionId(command.itemId(), command.regionId())
-                .orElse(null);
+        final PublicPrice publicPrice = findTodayPublicPrice(command);
         final Integer publicPriceDiff = publicPrice == null
                 ? null
                 : command.price() - publicPrice.price();
@@ -71,6 +73,14 @@ public class CreateUserReportUseCase {
             return command.storeId();
         }
         return command.store() == null ? null : storeCommandPort.save(command.store());
+    }
+
+    private PublicPrice findTodayPublicPrice(final CreateUserReportCommand command) {
+        final LocalDate today = LocalDate.now(SEOUL);
+        return publicPriceQueryPort
+                .findLatestByItemIdAndRegionId(command.itemId(), command.regionId())
+                .filter(publicPrice -> publicPrice.priceDate().equals(today))
+                .orElse(null);
     }
 
     private void validateUnit(final String requestedUnit, final String defaultUnit) {

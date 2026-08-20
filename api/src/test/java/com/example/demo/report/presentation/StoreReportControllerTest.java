@@ -12,7 +12,10 @@ import com.example.demo.common.presentation.ResponseWrapper;
 import com.example.demo.report.application.result.StoreReportsResult;
 import com.example.demo.report.application.result.StoreReportResult;
 import com.example.demo.report.application.result.PriceClassification;
+import com.example.demo.report.application.usecase.GetRegionLowestPriceReportsUseCase;
 import com.example.demo.report.application.usecase.GetStoreReportsUseCase;
+import com.example.demo.report.presentation.converter.RegionLowestPriceQueryConverter;
+import com.example.demo.report.presentation.converter.RegionLowestPriceResultConverter;
 import com.example.demo.report.presentation.converter.UserReportQueryConverter;
 import com.example.demo.report.presentation.converter.UserReportResultConverter;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +26,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class StoreReportControllerTest {
 
     private final GetStoreReportsUseCase getStoreReportsUseCase = mock(GetStoreReportsUseCase.class);
+    private final GetRegionLowestPriceReportsUseCase getRegionLowestPriceReportsUseCase =
+            mock(GetRegionLowestPriceReportsUseCase.class);
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -30,9 +35,12 @@ class StoreReportControllerTest {
         final UserReportController controller = new UserReportController(
                 mock(com.example.demo.report.application.usecase.CreateUserReportUseCase.class),
                 getStoreReportsUseCase,
+                getRegionLowestPriceReportsUseCase,
                 new com.example.demo.report.presentation.converter.UserReportCommandConverter(),
                 new UserReportQueryConverter(),
-                new UserReportResultConverter());
+                new UserReportResultConverter(),
+                new RegionLowestPriceQueryConverter(),
+                new RegionLowestPriceResultConverter());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler(), new ResponseWrapper())
                 .build();
