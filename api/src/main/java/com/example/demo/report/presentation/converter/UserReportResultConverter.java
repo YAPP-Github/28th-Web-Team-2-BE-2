@@ -1,22 +1,29 @@
 package com.example.demo.report.presentation.converter;
 
 import com.example.demo.report.application.contract.ItemCandidate;
+import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.application.result.CreateUserReportResult;
 import com.example.demo.report.application.result.ImageAnalysisResult;
+import com.example.demo.report.application.result.RegionItemReportResult;
 import com.example.demo.report.application.result.StoreReportResult;
 import com.example.demo.report.application.result.StoreReportsResult;
+import com.example.demo.report.application.result.UserReportSummaryResult;
 import com.example.demo.report.domain.AnalysisConfidence;
 import com.example.demo.report.presentation.dto.CreateUserReportResponse;
 import com.example.demo.report.presentation.dto.ImageAnalysisResponse;
+import com.example.demo.report.presentation.dto.RegionItemReportRequest;
+import com.example.demo.report.presentation.dto.RegionItemReportResponse;
 import com.example.demo.report.presentation.dto.StoreReportResponse;
 import com.example.demo.report.presentation.dto.StoreReportsResponse;
 import com.example.demo.report.presentation.dto.StoreReportsSummaryResponse;
+import com.example.demo.report.presentation.dto.UserReportSummaryResponse;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
 public class UserReportResultConverter {
+
     public CreateUserReportResponse toResponse(final CreateUserReportResult result) {
         return new CreateUserReportResponse(result.reportId(), result.itemId(), result.storeId(), result.reportedAt());
     }
@@ -28,6 +35,26 @@ public class UserReportResultConverter {
         return new StoreReportsResponse(
                 result.storeId(),
                 new StoreReportsSummaryResponse(result.cheapCount(), result.expensiveCount()),
+                reports,
+                result.page(),
+                result.size(),
+                result.hasNext());
+    }
+
+    public RegionItemReportQuery toQuery(
+            final String regionId, final Long itemId, final RegionItemReportRequest request) {
+        return new RegionItemReportQuery(
+                regionId, itemId, request.sort(), request.page(), request.size());
+    }
+
+    public RegionItemReportResponse toResponse(final RegionItemReportResult result) {
+        final List<UserReportSummaryResponse> reports =
+                result.reports().stream().map(this::toResponse).toList();
+        return new RegionItemReportResponse(
+                result.regionId(),
+                result.regionName(),
+                result.itemId(),
+                result.totalCount(),
                 reports,
                 result.page(),
                 result.size(),
@@ -94,5 +121,19 @@ public class UserReportResultConverter {
             return null;
         }
         return confidence.value();
+    }
+
+    private UserReportSummaryResponse toResponse(final UserReportSummaryResult result) {
+        return new UserReportSummaryResponse(
+                result.reportId(),
+                result.storeId(),
+                result.storeName(),
+                result.price(),
+                result.amount(),
+                result.unit(),
+                result.reportedAt(),
+                result.priceGap(),
+                result.priceDiffRate(),
+                result.classification());
     }
 }
