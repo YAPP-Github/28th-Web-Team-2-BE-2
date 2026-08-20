@@ -18,6 +18,8 @@ public interface UserReportQueryPort {
     /** 현재 사용자의 제보를 최신순으로 조회한다. */
     Page<UserReport> findByUser(MyReportQuery query);
 
+    Optional<UserReport> findByIdAndUserId(Long reportId, Long userId);
+
     /** 기간 내 현재 사용자의 제보를 조회한다. 양끝 날짜를 포함한다. */
     List<UserReport> findByUserInPeriod(Long userId, LocalDate from, LocalDate to);
 }

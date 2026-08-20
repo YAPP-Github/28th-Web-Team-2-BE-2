@@ -44,6 +44,11 @@ public class UserReportQueryAdapter implements UserReportQueryPort {
     }
 
     @Override
+    public Optional<UserReport> findByIdAndUserId(final Long reportId, final Long userId) {
+        return userReportJpaRepository.findByIdAndUserId(reportId, userId);
+    }
+
+    @Override
     public List<UserReport> findByUserInPeriod(
             final Long userId, final LocalDate from, final LocalDate to) {
         return userReportJpaRepository
