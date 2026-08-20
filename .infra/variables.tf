@@ -40,3 +40,17 @@ variable "ecr_repository_name" {
   type        = string
   default     = "demo-backend"
 }
+
+variable "image_bucket_name" {
+  description = "S3 bucket holding user report photos. Bucket names are globally unique."
+  type        = string
+  default     = "marketgo-images"
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$", var.image_bucket_name))
+    # 점을 허용하지 않는다. 점이 든 이름은 virtual-hosted-style HTTPS 에서 와일드카드
+    # 인증서와 매칭되지 않아 image_base_url 로 접근할 때 TLS 오류가 난다.
+    error_message = "image_bucket_name must be a valid S3 bucket name without dots."
+  }
+}
+
