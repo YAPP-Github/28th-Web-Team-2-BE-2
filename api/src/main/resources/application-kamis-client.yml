@@ -2,3 +2,9 @@ kamis:
   url: ${KAMIS_URL:https://www.kamis.or.kr/service/price}
   cert-key: ${KAMIS_CERT_KEY}
   cert-id: ${KAMIS_CERT_ID:9220}
+  public-price:
+    collection:
+      enabled: ${KAMIS_PUBLIC_PRICE_COLLECTION_ENABLED:false}
+      region-id: ${KAMIS_PUBLIC_PRICE_REGION_ID:}
+      country-code: ${KAMIS_PUBLIC_PRICE_COUNTRY_CODE:1101}
+      cron: ${KAMIS_PUBLIC_PRICE_COLLECTION_CRON:0 30 1 * * *}

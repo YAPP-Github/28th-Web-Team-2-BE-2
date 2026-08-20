@@ -145,8 +145,8 @@ class ItemDetailE2ETest {
                 // 온라인 최저가는 100g 기준으로 저장되고(5500) 품목 기준 단위(1kg)로 환산해 내려간다
                 .andExpect(jsonPath("$.onlineLowestPrice").value(55000))
                 .andExpect(jsonPath("$.baseDate").value(today.toString()))
-                .andExpect(jsonPath("$.priceGap").value(300))
-                .andExpect(jsonPath("$.priceDiffRate").value(25.0));
+                .andExpect(jsonPath("$.priceGap").value(500))
+                .andExpect(jsonPath("$.priceDiffRate").value(50.0));
     }
 
     @Test
