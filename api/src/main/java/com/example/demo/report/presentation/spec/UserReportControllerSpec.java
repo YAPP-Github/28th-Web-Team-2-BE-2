@@ -3,6 +3,8 @@ package com.example.demo.report.presentation.spec;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.report.presentation.dto.CreateUserReportRequest;
 import com.example.demo.report.presentation.dto.CreateUserReportResponse;
+import com.example.demo.report.presentation.dto.RegionLowestPriceReportsRequest;
+import com.example.demo.report.presentation.dto.RegionLowestPriceReportsResponse;
 import com.example.demo.report.presentation.dto.StoreReportsRequest;
 import com.example.demo.report.presentation.dto.StoreReportsResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
 import org.springdoc.core.annotations.ParameterObject;
@@ -46,4 +49,14 @@ public interface UserReportControllerSpec {
     ResponseEntity<StoreReportsResponse> getStoreReports(
             @Parameter(description = "가게 ID") @Positive Long storeId,
             @Valid @ParameterObject StoreReportsRequest request);
+
+    @Operation(summary = "동네 최근 7일 최저가 품목을 조회한다")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "동네 최저가 품목 조회 성공"),
+        @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다"),
+        @ApiResponse(responseCode = "404", description = "지역을 찾을 수 없다")
+    })
+    ResponseEntity<RegionLowestPriceReportsResponse> getRegionLowestPriceReports(
+            @Parameter(description = "법정동 코드") @Pattern(regexp = "\\d{10}") String regionId,
+            @Valid @ParameterObject RegionLowestPriceReportsRequest request);
 }

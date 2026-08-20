@@ -2,17 +2,24 @@ package com.example.demo.report.presentation;
 
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.report.application.result.CreateUserReportResult;
+import com.example.demo.report.application.result.RegionLowestPriceReportsResult;
 import com.example.demo.report.application.usecase.CreateUserReportUseCase;
+import com.example.demo.report.application.usecase.GetRegionLowestPriceReportsUseCase;
 import com.example.demo.report.application.usecase.GetStoreReportsUseCase;
 import com.example.demo.report.presentation.converter.UserReportCommandConverter;
-import com.example.demo.report.presentation.converter.UserReportResultConverter;
 import com.example.demo.report.presentation.converter.UserReportQueryConverter;
+import com.example.demo.report.presentation.converter.UserReportResultConverter;
+import com.example.demo.report.presentation.converter.RegionLowestPriceQueryConverter;
+import com.example.demo.report.presentation.converter.RegionLowestPriceResultConverter;
 import com.example.demo.report.presentation.dto.CreateUserReportRequest;
 import com.example.demo.report.presentation.dto.CreateUserReportResponse;
+import com.example.demo.report.presentation.dto.RegionLowestPriceReportsRequest;
+import com.example.demo.report.presentation.dto.RegionLowestPriceReportsResponse;
 import com.example.demo.report.presentation.dto.StoreReportsRequest;
 import com.example.demo.report.presentation.dto.StoreReportsResponse;
 import com.example.demo.report.presentation.spec.UserReportControllerSpec;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -33,9 +40,12 @@ public class UserReportController implements UserReportControllerSpec {
 
     private final CreateUserReportUseCase createUserReportUseCase;
     private final GetStoreReportsUseCase getStoreReportsUseCase;
+    private final GetRegionLowestPriceReportsUseCase getRegionLowestPriceReportsUseCase;
     private final UserReportCommandConverter commandConverter;
     private final UserReportQueryConverter queryConverter;
     private final UserReportResultConverter resultConverter;
+    private final RegionLowestPriceQueryConverter regionLowestPriceQueryConverter;
+    private final RegionLowestPriceResultConverter regionLowestPriceResultConverter;
 
     @PostMapping("/items/{itemId}/reports")
     @Override
@@ -58,5 +68,15 @@ public class UserReportController implements UserReportControllerSpec {
         final StoreReportsResponse response = resultConverter.toStoreReportsResponse(
                 getStoreReportsUseCase.execute(queryConverter.toStoreReportsQuery(storeId, request)));
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/regions/{regionId}/reports/lowest-prices")
+    @Override
+    public ResponseEntity<RegionLowestPriceReportsResponse> getRegionLowestPriceReports(
+            @Pattern(regexp = "\\d{10}") @PathVariable final String regionId,
+            @Valid @ModelAttribute final RegionLowestPriceReportsRequest request) {
+        final RegionLowestPriceReportsResult result = getRegionLowestPriceReportsUseCase.execute(
+                regionLowestPriceQueryConverter.toQuery(regionId, request));
+        return ResponseEntity.ok(regionLowestPriceResultConverter.toResponse(result));
     }
 }

@@ -13,6 +13,7 @@ import com.example.demo.item.application.port.ItemExistencePort;
 import com.example.demo.item.application.port.PublicPriceQueryPort;
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.ItemCategory;
+import com.example.demo.item.domain.PublicPrice;
 import com.example.demo.report.application.command.CreateUserReportCommand;
 import com.example.demo.report.application.command.StoreSnapshot;
 import com.example.demo.report.application.port.StoreCommandPort;
@@ -21,6 +22,8 @@ import com.example.demo.report.application.result.CreateUserReportResult;
 import com.example.demo.report.domain.ReportType;
 import com.example.demo.report.domain.UserReport;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -100,6 +103,28 @@ class CreateUserReportUseCaseTest {
 
         assertThat(useCase.execute(command).reportId()).isEqualTo(REPORT_ID);
         verifyNoInteractions(storeCommandPort);
+        verify(userReportCommandPort).save(command, null, null, null);
+    }
+
+    @Test
+    void 오늘이_아닌_공공가격은_가격_차이_스냅샷에_사용하지_않는다() {
+        final StoreCommandPort storeCommandPort = mock(StoreCommandPort.class);
+        final UserReportCommandPort userReportCommandPort = mock(UserReportCommandPort.class);
+        final ItemExistencePort itemExistencePort = mock(ItemExistencePort.class);
+        final PublicPriceQueryPort publicPriceQueryPort = mock(PublicPriceQueryPort.class);
+        when(itemExistencePort.findById(ITEM_ID)).thenReturn(Optional.of(item()));
+        when(publicPriceQueryPort.findLatestByItemIdAndRegionId(ITEM_ID, "1121510100"))
+                .thenReturn(Optional.of(new PublicPrice(
+                        ITEM_ID, "1121510100", 5000,
+                        LocalDate.now(ZoneId.of("Asia/Seoul")).minusDays(1))));
+        final CreateUserReportCommand command = new CreateUserReportCommand(
+                ITEM_ID, USER_ID, "1121510100", PRICE, UNIT, AMOUNT, ReportType.OBSERVED, null, PHOTO_URL);
+        when(userReportCommandPort.save(command, null, null, null)).thenReturn(savedReport(null));
+        final CreateUserReportUseCase useCase = new CreateUserReportUseCase(
+                storeCommandPort, userReportCommandPort, itemExistencePort, publicPriceQueryPort);
+
+        useCase.execute(command);
+
         verify(userReportCommandPort).save(command, null, null, null);
     }
 
