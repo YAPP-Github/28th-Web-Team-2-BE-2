@@ -11,4 +11,8 @@ public interface UserReportCommandPort {
             Long storeId,
             Integer publicPriceDiff,
             BigDecimal priceDiffRate);
+
+    void save(UserReport report);
+
+    void delete(UserReport report);
 }

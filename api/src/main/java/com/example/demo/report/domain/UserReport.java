@@ -95,4 +95,13 @@ public class UserReport {
         this.reportDate = LocalDate.now(SEOUL);
         this.createdAt = Instant.now();
     }
+
+    public void updateValues(final Integer price, final String unit, final BigDecimal amount,
+            final Integer publicPriceDiff, final BigDecimal priceDiffRate) {
+        this.price = price;
+        this.unit = unit;
+        this.amount = amount;
+        this.publicPriceDiff = publicPriceDiff;
+        this.priceDiffRate = priceDiffRate;
+    }
 }
