@@ -19,6 +19,15 @@ public interface StoreFavoriteJpaRepository extends JpaRepository<StoreFavorite,
                     """,
             nativeQuery = true)
     void add(@Param("userId") Long userId, @Param("storeId") Long storeId);
+
+    @Modifying
+    @Query("""
+            delete from StoreFavorite favorite
+            where favorite.userId = :userId
+              and favorite.storeId = :storeId
+            """)
+    void remove(@Param("userId") Long userId, @Param("storeId") Long storeId);
+
     @Query("""
             select favorite.storeId
             from StoreFavorite favorite

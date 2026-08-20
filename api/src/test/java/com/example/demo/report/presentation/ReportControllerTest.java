@@ -22,9 +22,12 @@ import com.example.demo.common.security.SecurityErrorResponseWriter;
 import com.example.demo.report.application.command.CreateUserReportCommand;
 import com.example.demo.report.application.result.CreateUserReportResult;
 import com.example.demo.report.application.usecase.CreateUserReportUseCase;
+import com.example.demo.report.application.usecase.GetRegionLowestPriceReportsUseCase;
 import com.example.demo.report.application.usecase.GetStoreReportsUseCase;
 import com.example.demo.report.domain.ReportType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.demo.report.presentation.converter.RegionLowestPriceQueryConverter;
+import com.example.demo.report.presentation.converter.RegionLowestPriceResultConverter;
 import com.example.demo.report.presentation.converter.UserReportCommandConverter;
 import com.example.demo.report.presentation.converter.UserReportQueryConverter;
 import com.example.demo.report.presentation.converter.UserReportResultConverter;
@@ -52,6 +55,8 @@ import org.springframework.test.web.servlet.MockMvc;
     UserReportCommandConverter.class,
     UserReportResultConverter.class,
     UserReportQueryConverter.class,
+    RegionLowestPriceQueryConverter.class,
+    RegionLowestPriceResultConverter.class,
     ReportControllerTest.MockBeans.class
 })
 class ReportControllerTest {
@@ -316,6 +321,11 @@ class ReportControllerTest {
         @Bean
         GetStoreReportsUseCase getStoreReportsUseCase() {
             return mock(GetStoreReportsUseCase.class);
+        }
+
+        @Bean
+        GetRegionLowestPriceReportsUseCase getRegionLowestPriceReportsUseCase() {
+            return mock(GetRegionLowestPriceReportsUseCase.class);
         }
     }
 }
