@@ -23,6 +23,7 @@ import com.example.demo.store.infrastructure.persistence.StoreFavoriteJpaReposit
 import com.example.demo.store.infrastructure.persistence.StoreJpaRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 class StoreDetailE2ETest {
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     private final MockMvc mockMvc;
     private final StoreJpaRepository storeJpaRepository;
@@ -88,7 +91,7 @@ class StoreDetailE2ETest {
         final UserReport oldReport = saveReport(store.id(), -300, reportUser.id());
         jdbcTemplate.update(
                 "UPDATE user_reports SET report_date = ? WHERE report_id = ?",
-                LocalDate.now().minusDays(30),
+                LocalDate.now(SEOUL).minusDays(30),
                 oldReport.id());
 
         mockMvc.perform(get("/api/v1/stores/{storeId}", store.id())
@@ -106,7 +109,7 @@ class StoreDetailE2ETest {
                 .andExpect(jsonPath("$.data.cheapItemCount").value(1))
                 .andExpect(jsonPath("$.data.expensiveItemCount").value(1))
                 .andExpect(jsonPath("$.data.totalReportedItemCount").value(2))
-                .andExpect(jsonPath("$.data.latestReportedDate").value(LocalDate.now().toString()))
+                .andExpect(jsonPath("$.data.latestReportedDate").value(LocalDate.now(SEOUL).toString()))
                 .andExpect(jsonPath("$.data.latestReportedAt").isNotEmpty())
                 .andExpect(jsonPath("$.data.distance")
                         .value(allOf(greaterThanOrEqualTo(870), lessThanOrEqualTo(890))))

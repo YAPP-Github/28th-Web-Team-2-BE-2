@@ -9,6 +9,7 @@ import com.example.demo.store.application.result.StoreDetailSnapshot;
 import com.example.demo.store.application.result.StoreReportSummary;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class GetStoreDetailUseCase {
 
     private static final int RECENT_REPORT_DAYS = 30;
     private static final double EARTH_RADIUS_METERS = 6_371_000;
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     private final StoreDetailQueryPort storeDetailQueryPort;
 
@@ -28,7 +30,7 @@ public class GetStoreDetailUseCase {
         final StoreDetailSnapshot store = storeDetailQueryPort.findStore(query.storeId())
                 .orElseThrow(this::storeNotFound);
         final StoreReportSummary reports = storeDetailQueryPort.findReportSummary(
-                query.storeId(), LocalDate.now().minusDays(RECENT_REPORT_DAYS - 1L));
+                query.storeId(), LocalDate.now(SEOUL).minusDays(RECENT_REPORT_DAYS - 1L));
         final boolean isLiked = query.userId() != null
                 && storeDetailQueryPort.isLiked(query.userId(), query.storeId());
 
