@@ -1,11 +1,11 @@
 package com.example.demo.item.e2e;
 
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.ItemCategory;
 import com.example.demo.item.domain.PublicPrice;
@@ -13,6 +13,8 @@ import com.example.demo.item.infrastructure.ItemJpaRepository;
 import com.example.demo.item.infrastructure.PublicPriceJpaRepository;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +23,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -70,6 +73,7 @@ class ItemPublicPriceE2ETest {
         savePrice(3500, today.minusDays(1));
         savePrice(3800, today);
         savePrice(2200, today.minusDays(10));
+        savePrice(2100, today.minusMonths(1));
         savePrice(2000, today.minusMonths(2));
         savePrice(1000, today.minusYears(2));
         publicPriceJpaRepository.save(new PublicPrice(potatoId, OTHER_REGION_ID, 9999, today));
@@ -82,40 +86,55 @@ class ItemPublicPriceE2ETest {
     @Test
     @DisplayName("WEEK 기간은 구간 시작일을 제외하고 날짜 오름차순으로 반환한다")
     void returnsWeeklyTrendInDateOrder() throws Exception {
-        mockMvc.perform(get(path(potatoId))
+        final MvcResult result = mockMvc.perform(get(path(potatoId))
                         .param("regionId", REGION_ID)
                         .param("period", "WEEK"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.itemId").value(potatoId))
                 .andExpect(jsonPath("$.defaultUnit").value("1kg"))
                 .andExpect(jsonPath("$.period").value("WEEK"))
-                .andExpect(jsonPath("$.points[*].price").value(contains(2700, 3000, 3500, 3800)))
                 .andExpect(jsonPath("$.points[0].date").value(today.minusDays(6).toString()))
-                .andExpect(jsonPath("$.points[3].date").value(today.toString()));
+                .andExpect(jsonPath("$.points[3].date").value(today.toString()))
+                .andReturn();
+
+        Assertions.assertThat(JsonPath.<List<Integer>>read(
+                        result.getResponse().getContentAsString(), "$.points[*].price"))
+                .containsExactly(2700, 3000, 3500, 3800);
     }
 
     @Test
     @DisplayName("기간마다 선택되는 구간이 다르다")
     void selectsRangeByPeriod() throws Exception {
-        mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "MONTH"))
+        final MvcResult monthResult = mockMvc.perform(
+                        get(path(potatoId)).param("regionId", REGION_ID).param("period", "MONTH"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.points[*].price")
-                        .value(contains(2200, 2500, 2700, 3000, 3500, 3800)));
+                .andReturn();
 
-        mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "YEAR"))
+        Assertions.assertThat(JsonPath.<List<Integer>>read(
+                        monthResult.getResponse().getContentAsString(), "$.points[*].price"))
+                .containsExactly(2200, 2500, 2700, 3000, 3500, 3800);
+
+        final MvcResult yearResult = mockMvc.perform(
+                        get(path(potatoId)).param("regionId", REGION_ID).param("period", "YEAR"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.points[*].price")
-                        .value(contains(2000, 2200, 2500, 2700, 3000, 3500, 3800)));
+                .andReturn();
+
+        Assertions.assertThat(JsonPath.<List<Integer>>read(
+                        yearResult.getResponse().getContentAsString(), "$.points[*].price"))
+                .containsExactly(2000, 2100, 2200, 2500, 2700, 3000, 3500, 3800);
     }
 
     @Test
     @DisplayName("period를 생략하면 MONTH로 조회한다")
     void defaultsToMonth() throws Exception {
-        mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID))
+        final MvcResult result = mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.period").value("MONTH"))
-                .andExpect(jsonPath("$.points[*].price")
-                        .value(contains(2200, 2500, 2700, 3000, 3500, 3800)));
+                .andReturn();
+
+        Assertions.assertThat(JsonPath.<List<Integer>>read(
+                        result.getResponse().getContentAsString(), "$.points[*].price"))
+                .containsExactly(2200, 2500, 2700, 3000, 3500, 3800);
     }
 
     @Test
@@ -125,9 +144,14 @@ class ItemPublicPriceE2ETest {
         savePrice(1500, today.minusDays(40));
         savePrice(1600, today.minusDays(38));
 
-        mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "WEEK"))
+        final MvcResult result = mockMvc.perform(
+                        get(path(potatoId)).param("regionId", REGION_ID).param("period", "WEEK"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.points[*].price").value(contains(1500, 1600)));
+                .andReturn();
+
+        Assertions.assertThat(JsonPath.<List<Integer>>read(
+                        result.getResponse().getContentAsString(), "$.points[*].price"))
+                .containsExactly(1500, 1600);
     }
 
     @Test
@@ -135,9 +159,14 @@ class ItemPublicPriceE2ETest {
     void keepsLatestPricePerDate() throws Exception {
         savePrice(4200, today);
 
-        mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "WEEK"))
+        final MvcResult result = mockMvc.perform(
+                        get(path(potatoId)).param("regionId", REGION_ID).param("period", "WEEK"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.points[*].price").value(contains(2700, 3000, 3500, 4200)));
+                .andReturn();
+
+        Assertions.assertThat(JsonPath.<List<Integer>>read(
+                        result.getResponse().getContentAsString(), "$.points[*].price"))
+                .containsExactly(2700, 3000, 3500, 4200);
     }
 
     @Test
