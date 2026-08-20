@@ -22,6 +22,7 @@ import com.example.demo.report.infrastructure.UserReportJpaRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -106,7 +107,7 @@ class MyReportCommandE2ETest {
         assertThat(updated.publicPriceDiff()).isEqualTo(600);
         assertThat(updated.priceDiffRate()).isEqualByComparingTo("20.00");
         assertThat(updated.reportDate()).isEqualTo(reportDate);
-        assertThat(updated.createdAt()).isEqualTo(createdAt);
+        assertThat(updated.createdAt()).isEqualTo(createdAt.truncatedTo(ChronoUnit.MICROS));
     }
 
     @Test
