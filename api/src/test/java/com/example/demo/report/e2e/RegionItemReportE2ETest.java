@@ -1,6 +1,7 @@
 package com.example.demo.report.e2e;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,6 +32,14 @@ class RegionItemReportE2ETest {
 
     private static final String REGION_ID = "1121510100";
     private static final String OTHER_REGION_ID = "1168010100";
+    /** 제보 당시 공공가격보다 싼 제보 (가게 있음) */
+    private static final int CHEAP_PRICE = 3000;
+    /** 공공가격보다 비싼 제보 (가게 없음) */
+    private static final int EXPENSIVE_STORELESS_PRICE = 4000;
+    /** 공공가격과 같은 제보 */
+    private static final int EQUAL_PRICE = 3500;
+    /** 비교할 공공가격이 없던 제보 */
+    private static final int NO_COMPARISON_PRICE = 2500;
 
     private final MockMvc mockMvc;
     private final ItemJpaRepository itemJpaRepository;
@@ -73,10 +82,11 @@ class RegionItemReportE2ETest {
         storeId = storeJpaRepository.save(new Store(
                         "kakao-1", "행복마트", null, null, "서울 은평구", null, null, null, null, null, null, null))
                 .id();
-        save(potato.id(), storeId, 3000, "1kg", -500, new BigDecimal("-14.29"));
-        save(potato.id(), null, 4000, "1kg", 500, new BigDecimal("14.29"));
-        save(potato.id(), storeId, 3500, "1kg", 0, BigDecimal.ZERO);
-        save(potato.id(), storeId, 2500, "1kg", null, null);
+        // 가격이 픽스처의 식별자다. 단언은 인덱스 대신 가격으로 지목해 실패 시 어느 픽스처인지 드러난다.
+        save(potato.id(), storeId, CHEAP_PRICE, "1kg", -500, new BigDecimal("-14.29"));
+        save(potato.id(), null, EXPENSIVE_STORELESS_PRICE, "1kg", 500, new BigDecimal("14.29"));
+        save(potato.id(), storeId, EQUAL_PRICE, "1kg", 0, BigDecimal.ZERO);
+        save(potato.id(), storeId, NO_COMPARISON_PRICE, "1kg", null, null);
         save(potato.id(), storeId, 9900, "100g", -100, new BigDecimal("-3.00"));
         saveInRegion(potato.id(), OTHER_REGION_ID, 1111, "1kg");
     }
@@ -115,11 +125,11 @@ class RegionItemReportE2ETest {
                 .andExpect(jsonPath("$.data.itemId").value(potatoId))
                 .andExpect(jsonPath("$.data.totalCount").value(4))
                 .andExpect(jsonPath("$.data.reports[*].price").value(contains(2500, 3000, 3500, 4000)))
-                .andExpect(jsonPath("$.data.reports[1].priceGap").value(-500))
-                .andExpect(jsonPath("$.data.reports[1].priceDiffRate").value(-14.29))
-                .andExpect(jsonPath("$.data.reports[1].amount").value(1.0))
-                .andExpect(jsonPath("$.data.reports[1].unit").value("1kg"))
-                .andExpect(jsonPath("$.data.reports[1].storeName").value("행복마트"))
+                .andExpect(jsonPath(byPrice(CHEAP_PRICE, "priceGap")).value(contains(-500)))
+                .andExpect(jsonPath(byPrice(CHEAP_PRICE, "priceDiffRate")).value(contains(-14.29)))
+                .andExpect(jsonPath(byPrice(CHEAP_PRICE, "amount")).value(contains(1.0)))
+                .andExpect(jsonPath(byPrice(CHEAP_PRICE, "unit")).value(contains("1kg")))
+                .andExpect(jsonPath(byPrice(CHEAP_PRICE, "storeName")).value(contains("행복마트")))
                 .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
@@ -128,10 +138,12 @@ class RegionItemReportE2ETest {
     void classifiesByPriceGapSign() throws Exception {
         mockMvc.perform(get(path(REGION_ID, potatoId)).param("sort", "PRICE_ASC"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.reports[0].classification").doesNotExist())
-                .andExpect(jsonPath("$.data.reports[1].classification").value("CHEAP"))
-                .andExpect(jsonPath("$.data.reports[2].classification").value("EQUAL"))
-                .andExpect(jsonPath("$.data.reports[3].classification").value("EXPENSIVE"));
+                .andExpect(jsonPath(byPrice(NO_COMPARISON_PRICE, "classification"))
+                        .value(contains(nullValue())))
+                .andExpect(jsonPath(byPrice(CHEAP_PRICE, "classification")).value(contains("CHEAP")))
+                .andExpect(jsonPath(byPrice(EQUAL_PRICE, "classification")).value(contains("EQUAL")))
+                .andExpect(jsonPath(byPrice(EXPENSIVE_STORELESS_PRICE, "classification"))
+                        .value(contains("EXPENSIVE")));
     }
 
     @Test
@@ -139,9 +151,10 @@ class RegionItemReportE2ETest {
     void keepsStorelessReport() throws Exception {
         mockMvc.perform(get(path(REGION_ID, potatoId)).param("sort", "PRICE_ASC"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.reports[3].price").value(4000))
-                .andExpect(jsonPath("$.data.reports[3].storeId").doesNotExist())
-                .andExpect(jsonPath("$.data.reports[3].storeName").doesNotExist());
+                .andExpect(jsonPath(byPrice(EXPENSIVE_STORELESS_PRICE, "storeId"))
+                        .value(contains(nullValue())))
+                .andExpect(jsonPath(byPrice(EXPENSIVE_STORELESS_PRICE, "storeName"))
+                        .value(contains(nullValue())));
     }
 
     @Test
@@ -245,6 +258,11 @@ class RegionItemReportE2ETest {
         mockMvc.perform(get(path(REGION_ID, 0L))).andExpect(status().isBadRequest());
         mockMvc.perform(get(path("x", potatoId))).andExpect(status().isBadRequest());
         mockMvc.perform(get(path("112151010", potatoId))).andExpect(status().isBadRequest());
+    }
+
+    /** 가격으로 픽스처를 지목한다. 인덱스 단언과 달리 실패 메시지에서 어느 제보인지 읽힌다. */
+    private String byPrice(final int price, final String field) {
+        return "$.data.reports[?(@.price == %d)].%s".formatted(price, field);
     }
 
     private String path(final String regionId, final Long itemId) {
