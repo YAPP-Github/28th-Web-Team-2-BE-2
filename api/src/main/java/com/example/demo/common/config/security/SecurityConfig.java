@@ -56,6 +56,7 @@ public class SecurityConfig {
                                 "/api/v1/stores/nearby",
                                 "/api/v1/stores/recommendation",
                                 "/api/v1/stores/*/reports",
+                                "/api/v1/regions/*/reports/lowest-prices",
                                 "/api/auth/test/kakao/redirect",
                                 "/api/auth/test/token",
                                 "/swagger-ui/**",
