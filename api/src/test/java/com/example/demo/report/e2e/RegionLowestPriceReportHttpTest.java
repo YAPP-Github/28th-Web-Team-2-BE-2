@@ -43,6 +43,9 @@ class RegionLowestPriceReportHttpTest {
     private final JdbcTemplate jdbcTemplate;
     private Item firstItem;
     private Item secondItem;
+    private Store firstStore;
+    private Store secondStore;
+    private boolean regionCreated;
 
     @Autowired
     RegionLowestPriceReportHttpTest(
@@ -62,9 +65,12 @@ class RegionLowestPriceReportHttpTest {
 
     @BeforeEach
     void setUp() {
+        firstStore = null;
+        secondStore = null;
+        regionCreated = false;
         jdbcTemplate.update("DELETE FROM user_reports WHERE region_id = ?", REGION_ID);
         jdbcTemplate.update("DELETE FROM public_prices WHERE region_id = ?", REGION_ID);
-        ensureRegion();
+        regionCreated = ensureRegion();
         firstItem = saveItem("테스트 감자");
         secondItem = saveItem("테스트 양파");
     }
@@ -72,7 +78,16 @@ class RegionLowestPriceReportHttpTest {
     @AfterEach
     void tearDown() {
         jdbcTemplate.update("DELETE FROM user_reports WHERE region_id = ?", REGION_ID);
+        if (firstStore != null) {
+            storeJpaRepository.deleteById(firstStore.id());
+        }
+        if (secondStore != null) {
+            storeJpaRepository.deleteById(secondStore.id());
+        }
         jdbcTemplate.update("DELETE FROM public_prices WHERE region_id = ?", REGION_ID);
+        if (regionCreated) {
+            jdbcTemplate.update("DELETE FROM regions WHERE region_id = ?", REGION_ID);
+        }
         if (firstItem != null) {
             itemJpaRepository.deleteById(firstItem.id());
         }
@@ -84,8 +99,8 @@ class RegionLowestPriceReportHttpTest {
     @Test
     void 최근_7일_품목별_최저가만_할인율_순으로_반환하고_storeless를_허용한다() throws Exception {
         final LocalDate today = LocalDate.now(SEOUL);
-        final Store firstStore = saveStore("첫 번째 가게");
-        final Store secondStore = saveStore("두 번째 가게");
+        firstStore = saveStore("첫 번째 가게");
+        secondStore = saveStore("두 번째 가게");
 
         savePublicPrice(firstItem, today.minusDays(1), 1000);
         savePublicPrice(firstItem, today.minusDays(2), 2000);
@@ -153,6 +168,13 @@ class RegionLowestPriceReportHttpTest {
     }
 
     @Test
+    void 존재하지_않는_법정동_코드는_404를_반환한다() throws Exception {
+        mockMvc.perform(get("/api/v1/regions/9999999998/reports/lowest-prices"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NO_RESOURCE_ERROR"));
+    }
+
+    @Test
     void 동네_최저가_조회_계약을_OpenAPI에_노출한다() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
@@ -164,13 +186,15 @@ class RegionLowestPriceReportHttpTest {
                         .exists());
     }
 
-    private void ensureRegion() {
+    private boolean ensureRegion() {
         final Integer count = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM regions WHERE region_id = ?", Integer.class, REGION_ID);
-        if (count == null || count == 0) {
-            jdbcTemplate.update(
-                    "INSERT INTO regions (region_id, region_name) VALUES (?, ?)", REGION_ID, REGION_NAME);
+        if (count != null && count > 0) {
+            return false;
         }
+        jdbcTemplate.update(
+                "INSERT INTO regions (region_id, region_name) VALUES (?, ?)", REGION_ID, REGION_NAME);
+        return true;
     }
 
     private Item saveItem(final String name) {

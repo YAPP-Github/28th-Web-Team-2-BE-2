@@ -45,18 +45,36 @@ public class GetRegionLowestPriceReportsUseCase {
 
     private List<RegionLowestPriceReportResult> toResults(
             final List<RegionLowestPriceReportSource> sources, final int limit) {
-        final Map<Long, RegionLowestPriceReportSource> lowestByItem = new LinkedHashMap<>();
-        sources.forEach(source -> lowestByItem.putIfAbsent(source.itemId(), source));
-        final List<RegionLowestPriceReportSource> selected = lowestByItem.values().stream()
-                .sorted(Comparator.comparing(RegionLowestPriceReportSource::priceDiffRate)
+        final Comparator<RegionLowestPriceReportSource> ranking =
+                Comparator.comparing(RegionLowestPriceReportSource::priceDiffRate)
                         .thenComparing(RegionLowestPriceReportSource::price)
                         .thenComparing(RegionLowestPriceReportSource::reportedAt, Comparator.reverseOrder())
-                        .thenComparing(RegionLowestPriceReportSource::reportId, Comparator.reverseOrder()))
+                        .thenComparing(RegionLowestPriceReportSource::reportId, Comparator.reverseOrder());
+        final Comparator<RegionLowestPriceReportSource> lowestPrice =
+                Comparator.comparing(RegionLowestPriceReportSource::price)
+                        .thenComparing(RegionLowestPriceReportSource::reportedAt, Comparator.reverseOrder())
+                        .thenComparing(RegionLowestPriceReportSource::reportId, Comparator.reverseOrder());
+        final Map<Long, RegionLowestPriceReportSource> lowestByItem = new LinkedHashMap<>();
+        sources.stream()
+                .filter(source -> source.priceDiffRate() != null)
+                .forEach(source -> putLowestPrice(lowestByItem, source, lowestPrice));
+        final List<RegionLowestPriceReportSource> selected = lowestByItem.values().stream()
+                .sorted(ranking)
                 .limit(limit)
                 .toList();
         return IntStream.range(0, selected.size())
                 .mapToObj(index -> toResult(selected.get(index), index + 1))
                 .toList();
+    }
+
+    private void putLowestPrice(
+            final Map<Long, RegionLowestPriceReportSource> lowestByItem,
+            final RegionLowestPriceReportSource candidate,
+            final Comparator<RegionLowestPriceReportSource> lowestPrice) {
+        final RegionLowestPriceReportSource existing = lowestByItem.get(candidate.itemId());
+        if (existing == null || lowestPrice.compare(candidate, existing) < 0) {
+            lowestByItem.put(candidate.itemId(), candidate);
+        }
     }
 
     private RegionLowestPriceReportResult toResult(
