@@ -85,6 +85,10 @@ public class SecurityConfig {
                                 "/api/v1/users/me/reports",
                                 "/api/v1/users/me/reports/weekly")
                         .hasRole("USER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/users/me/reports/*")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me/reports/*")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me/favorite-stores")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/stores/*/favorite")

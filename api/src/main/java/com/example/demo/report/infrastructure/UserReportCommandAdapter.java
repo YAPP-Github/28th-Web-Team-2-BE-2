@@ -25,4 +25,14 @@ public class UserReportCommandAdapter implements UserReportCommandPort {
                 command.price(), command.unit(), command.amount(), publicPriceDiff, priceDiffRate,
                 command.photoUrl())));
     }
+
+    @Override
+    public void save(final UserReport report) {
+        userReportJpaRepository.saveAndFlush(report);
+    }
+
+    @Override
+    public void delete(final UserReport report) {
+        userReportJpaRepository.delete(report);
+    }
 }
