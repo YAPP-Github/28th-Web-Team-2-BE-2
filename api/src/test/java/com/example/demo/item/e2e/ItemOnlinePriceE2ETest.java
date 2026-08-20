@@ -58,10 +58,10 @@ class ItemOnlinePriceE2ETest {
         itemJpaRepository.deleteAll();
         today = LocalDate.now();
         // 테스트 스키마는 Flyway 를 쓰지 않아 online_channels 시드가 없다. 운영과 같은 순서로 만든다.
-        oasis = onlineChannelJpaRepository.save(new OnlineChannel("오아시스")).id();
-        kurly = onlineChannelJpaRepository.save(new OnlineChannel("컬리")).id();
-        elevenSt = onlineChannelJpaRepository.save(new OnlineChannel("11번가")).id();
-        onlineChannelJpaRepository.save(new OnlineChannel("GS SHOP"));
+        oasis = onlineChannelJpaRepository.save(new OnlineChannel("오아시스", "새벽배송")).id();
+        kurly = onlineChannelJpaRepository.save(new OnlineChannel("컬리", "새벽배송")).id();
+        elevenSt = onlineChannelJpaRepository.save(new OnlineChannel("11번가", "오픈마켓")).id();
+        onlineChannelJpaRepository.save(new OnlineChannel("GS SHOP", "오픈마켓"));
         potatoId = itemJpaRepository.save(
                 new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES)).id();
         onionId = itemJpaRepository.save(
@@ -93,7 +93,7 @@ class ItemOnlinePriceE2ETest {
                 .andExpect(jsonPath("$.onlinePrices[*].channelId").value(contains(oasis, kurly, elevenSt)))
                 .andExpect(jsonPath("$.onlinePrices[*].channelName")
                         .value(contains("오아시스", "컬리", "11번가")))
-                .andExpect(jsonPath("$.onlinePrices[*].price").value(contains(320, 450, 280)))
+                .andExpect(jsonPath("$.onlinePrices[*].price").value(contains(3200, 4500, 2800)))
                 .andExpect(jsonPath("$.onlinePrices[*].deliveryNote")
                         .value(contains("무료배송", "무료배송", "무료배송")))
                 .andExpect(jsonPath("$.onlinePrices[*].productUrl")
@@ -102,9 +102,8 @@ class ItemOnlinePriceE2ETest {
                                 "https://example.com/" + kurly + "/450",
                                 "https://example.com/" + elevenSt + "/280")))
                 .andExpect(jsonPath("$.onlinePrices[0].productName").value("감자 320원"))
-                .andExpect(jsonPath("$.onlinePrices[0].quantity").value(1))
-                .andExpect(jsonPath("$.onlinePrices[0].unit").value("g"))
-                .andExpect(jsonPath("$.onlinePrices[0].normalizedPrice").value(320))
+                .andExpect(jsonPath("$.onlinePrices[0].unit").value("1kg"))
+                .andExpect(jsonPath("$.onlinePrices[0].channelKind").value("새벽배송"))
                 .andExpect(jsonPath("$.onlinePrices[0].deliveryNote").value("무료배송"))
                 .andExpect(jsonPath("$.onlinePrices[0].productUrl")
                         .value("https://example.com/" + oasis + "/320"))
@@ -119,7 +118,7 @@ class ItemOnlinePriceE2ETest {
 
         mockMvc.perform(get(path(potatoId)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.onlinePrices[*].price").value(contains(450)))
+                .andExpect(jsonPath("$.onlinePrices[*].price").value(contains(4500)))
                 .andExpect(jsonPath("$.onlinePrices[*].collectedAt").value(contains(today.toString())));
     }
 
@@ -145,6 +144,21 @@ class ItemOnlinePriceE2ETest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.onlinePrices[*].channelId").value(contains(oasis)))
                 .andExpect(jsonPath("$.onlinePrices[*].channelName").value(contains("오아시스")));
+    }
+
+    @Test
+    @DisplayName("무게로 환산할 수 없는 단위는 수집 기준인 100g을 그대로 쓴다")
+    void keepsHundredGramsForNonWeightUnit() throws Exception {
+        final Long watermelonId = itemJpaRepository.save(
+                new Item("수박", "1개", null, ItemCategory.FRUITS)).id();
+        onlinePriceJpaRepository.save(new OnlinePrice(
+                watermelonId, kurly, "수박", "수박 한 통", 450, PER_100_GRAMS,
+                "https://example.com/w", "새벽배송", today));
+
+        mockMvc.perform(get(path(watermelonId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.onlinePrices[0].price").value(450))
+                .andExpect(jsonPath("$.onlinePrices[0].unit").value("100g"));
     }
 
     @Test

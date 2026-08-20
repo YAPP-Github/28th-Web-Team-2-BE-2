@@ -44,11 +44,10 @@ public class ItemResultConverter {
         return new OnlineChannelPriceResponse(
                 result.channelId(),
                 result.channelName(),
+                result.channelKind(),
                 result.productName(),
                 result.price(),
-                result.quantity(),
                 result.unit(),
-                result.normalizedPrice(),
                 result.deliveryNote(),
                 result.productUrl(),
                 result.collectedAt());
