@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
@@ -47,6 +48,8 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest
 @AutoConfigureMockMvc
 class UserReportE2ETest {
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     private static final String POSTGRES_IMAGE =
             "postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193";
@@ -98,6 +101,7 @@ class UserReportE2ETest {
     void setUp() {
         jdbcTemplate.update("DELETE FROM user_reports");
         jdbcTemplate.update("DELETE FROM stores");
+        jdbcTemplate.update("UPDATE public_prices SET price_date = ?", LocalDate.now(SEOUL));
         item = itemJpaRepository.findAll().getFirst();
     }
 
@@ -296,7 +300,7 @@ class UserReportE2ETest {
         jdbcTemplate.update("""
                 INSERT INTO public_prices (item_id, region_id, price, price_date)
                 VALUES (?, '9999999999', 1, ?)
-                """, item.id(), LocalDate.now());
+                """, item.id(), LocalDate.now(SEOUL));
         final User user = saveUser("Integer 최대 가격 사용자");
 
         reportWithPriceAndRegion(
@@ -333,28 +337,28 @@ class UserReportE2ETest {
                     public_price_diff, price_diff_rate, report_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
                 """, storeId, item.id(), user.id(), 900, item.defaultUnit(), 1,
-                LocalDate.now(), -100, new BigDecimal("-10.00"));
+                LocalDate.now(SEOUL), -100, new BigDecimal("-10.00"));
         jdbcTemplate.update("""
                 INSERT INTO user_reports (
                     store_id, item_id, user_id, price, unit, amount, report_date,
                     public_price_diff, price_diff_rate, report_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
                 """, storeId, item.id(), secondUser.id(), 1100, item.defaultUnit(), 1,
-                LocalDate.now(), 100, new BigDecimal("10.00"));
+                LocalDate.now(SEOUL), 100, new BigDecimal("10.00"));
         jdbcTemplate.update("""
                 INSERT INTO user_reports (
                     store_id, item_id, user_id, price, unit, amount, report_date,
                     public_price_diff, price_diff_rate, report_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
                 """, storeId, item.id(), thirdUser.id(), 1000, item.defaultUnit(), 1,
-                LocalDate.now(), 0, BigDecimal.ZERO);
+                LocalDate.now(SEOUL), 0, BigDecimal.ZERO);
         jdbcTemplate.update("""
                 INSERT INTO user_reports (
                     store_id, item_id, user_id, price, unit, amount, report_date,
                     public_price_diff, price_diff_rate, report_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'OBSERVED')
                 """, storeId, item.id(), fourthUser.id(), 1000, "2kg", 1,
-                LocalDate.now(), -1, new BigDecimal("-0.10"));
+                LocalDate.now(SEOUL), -1, new BigDecimal("-0.10"));
 
         mockMvc.perform(get("/api/v1/stores/{storeId}/reports", storeId)
                         .queryParam("filter", "CHEAP"))

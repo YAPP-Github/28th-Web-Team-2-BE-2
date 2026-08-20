@@ -10,6 +10,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface StoreFavoriteJpaRepository extends JpaRepository<StoreFavorite, Long> {
 
+    long countByStoreId(Long storeId);
+
+    boolean existsByUserIdAndStoreId(Long userId, Long storeId);
+
     @Modifying
     @Query(
             value = """

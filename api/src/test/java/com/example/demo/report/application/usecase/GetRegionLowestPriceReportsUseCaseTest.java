@@ -11,17 +11,20 @@ import com.example.demo.report.application.result.RegionLowestPriceReportsQueryR
 import com.example.demo.report.application.result.RegionLowestPriceReportsResult;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class GetRegionLowestPriceReportsUseCaseTest {
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     private final RegionLowestPriceReportQueryPort queryPort = mock(RegionLowestPriceReportQueryPort.class);
     private final GetRegionLowestPriceReportsUseCase useCase = new GetRegionLowestPriceReportsUseCase(queryPort);
 
     @Test
     void 입력_순서와_무관하게_품목별_최저가를_선택하고_할인율이_없는_제보는_제외한다() {
-        when(queryPort.find("9999999999", LocalDate.now().minusDays(6), LocalDate.now()))
+        when(queryPort.find("9999999999", LocalDate.now(SEOUL).minusDays(6), LocalDate.now(SEOUL)))
                 .thenReturn(new RegionLowestPriceReportsQueryResult(
                         true,
                         "테스트 지역",
