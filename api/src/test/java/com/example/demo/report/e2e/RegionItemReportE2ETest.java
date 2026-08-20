@@ -241,6 +241,15 @@ class RegionItemReportE2ETest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @DisplayName("경로 변수 형식이 어긋나면 400이다")
+    void rejectsMalformedPathVariables() throws Exception {
+        mockMvc.perform(get(path(REGION_ID, -1L))).andExpect(status().isBadRequest());
+        mockMvc.perform(get(path(REGION_ID, 0L))).andExpect(status().isBadRequest());
+        mockMvc.perform(get(path("x", potatoId))).andExpect(status().isBadRequest());
+        mockMvc.perform(get(path("112151010", potatoId))).andExpect(status().isBadRequest());
+    }
+
     private String path(final String regionId, final Long itemId) {
         return "/api/v1/regions/" + regionId + "/items/" + itemId + "/reports";
     }

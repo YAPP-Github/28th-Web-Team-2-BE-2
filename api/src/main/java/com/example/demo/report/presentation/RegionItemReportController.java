@@ -7,7 +7,7 @@ import com.example.demo.report.presentation.dto.RegionItemReportRequest;
 import com.example.demo.report.presentation.dto.RegionItemReportResponse;
 import com.example.demo.report.presentation.spec.RegionItemReportControllerSpec;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +28,7 @@ public class RegionItemReportController implements RegionItemReportControllerSpe
     @GetMapping
     @Override
     public ResponseEntity<RegionItemReportResponse> getRegionItemReports(
-            @NotBlank @PathVariable final String regionId,
+            @Pattern(regexp = "\\d{10}") @PathVariable final String regionId,
             @Positive @PathVariable final Long itemId,
             @Valid @ModelAttribute final RegionItemReportRequest request) {
         final RegionItemReportResult result = getRegionItemReportQueryUseCase.execute(

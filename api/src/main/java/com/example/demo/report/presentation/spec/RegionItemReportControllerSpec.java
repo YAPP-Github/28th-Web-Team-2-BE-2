@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +24,11 @@ public interface RegionItemReportControllerSpec {
                 content = @Content(
                         mediaType = "application/json",
                         schema = @Schema(implementation = RegionItemReportResponse.class))),
-        @ApiResponse(responseCode = "400", description = "조회 조건이 올바르지 않다"),
+        @ApiResponse(responseCode = "400", description = "법정동 코드 형식이나 조회 조건이 올바르지 않다"),
         @ApiResponse(responseCode = "404", description = "품목을 찾을 수 없다")
     })
     ResponseEntity<RegionItemReportResponse> getRegionItemReports(
-            @NotBlank @Parameter(description = "법정동 코드") String regionId,
+            @Pattern(regexp = "\\d{10}") @Parameter(description = "법정동 코드(10자리)") String regionId,
             @Positive @Parameter(description = "품목 ID") Long itemId,
             @Valid @ParameterObject RegionItemReportRequest request);
 }
