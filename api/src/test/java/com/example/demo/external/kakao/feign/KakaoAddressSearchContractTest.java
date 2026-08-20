@@ -14,6 +14,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -96,6 +98,26 @@ class KakaoAddressSearchContractTest {
                         "{\"meta\":{\"total_count\":1},\"documents\":[{"
                                 + "\"address_name\":\"서울특별시 종로구 청운동\","
                                 + "\"address_type\":\"REGION\","
+                                + "\"address\":{\"address_name\":\"서울특별시 종로구 청운동\","
+                                + "\"region_1depth_name\":\"서울특별시\","
+                                + "\"region_2depth_name\":\"종로구\","
+                                + "\"region_3depth_name\":\"청운동\","
+                                + "\"b_code\":\"0111010100\"}}]}"))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(exception.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                });
+    }
+
+    @ParameterizedTest
+    @CsvSource({"181, 37.5874", "126.9707, 91"})
+    void 범위를_벗어난_Kakao_주소_좌표는_EXTERNAL_API_ERROR로_변환한다(
+            final String longitude, final String latitude) {
+        assertThatThrownBy(() -> decode(
+                        "{\"meta\":{\"total_count\":1},\"documents\":[{"
+                                + "\"address_name\":\"서울특별시 종로구 청운동\","
+                                + "\"address_type\":\"REGION\","
+                                + "\"x\":\"" + longitude + "\",\"y\":\"" + latitude + "\","
                                 + "\"address\":{\"address_name\":\"서울특별시 종로구 청운동\","
                                 + "\"region_1depth_name\":\"서울특별시\","
                                 + "\"region_2depth_name\":\"종로구\","

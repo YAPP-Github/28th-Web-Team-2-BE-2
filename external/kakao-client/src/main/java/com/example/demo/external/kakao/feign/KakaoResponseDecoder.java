@@ -13,6 +13,7 @@ import feign.codec.Decoder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import org.springframework.http.HttpStatus;
 
 public final class KakaoResponseDecoder implements Decoder {
@@ -23,6 +24,10 @@ public final class KakaoResponseDecoder implements Decoder {
     private static final long MAX_PAGEABLE_COUNT = 45;
     private static final String DOCUMENTS = "documents";
     private static final String TOTAL_COUNT_CAMEL_CASE = "totalCount";
+    private static final BigDecimal MIN_LONGITUDE = BigDecimal.valueOf(-180);
+    private static final BigDecimal MAX_LONGITUDE = BigDecimal.valueOf(180);
+    private static final BigDecimal MIN_LATITUDE = BigDecimal.valueOf(-90);
+    private static final BigDecimal MAX_LATITUDE = BigDecimal.valueOf(90);
     private final ObjectMapper objectMapper;
 
     public KakaoResponseDecoder(final ObjectMapper objectMapper) {
@@ -127,8 +132,7 @@ public final class KakaoResponseDecoder implements Decoder {
     private void validateAddress(final JsonNode address) {
         requireNonBlankText(address, "address_name");
         requireNonBlankText(address, "address_type");
-        requireDecimal(address, "x");
-        requireDecimal(address, "y");
+        validateCoordinates(address);
         final JsonNode detail = address.get("address");
         if (detail == null || !detail.isObject()) {
             throw externalApiException();
@@ -138,6 +142,17 @@ public final class KakaoResponseDecoder implements Decoder {
         requireNonBlankText(detail, "region_2depth_name");
         requireNonBlankText(detail, "region_3depth_name");
         requireText(detail, "b_code");
+    }
+
+    private void validateCoordinates(final JsonNode address) {
+        final BigDecimal longitude = requireDecimal(address, "x");
+        if (longitude.compareTo(MIN_LONGITUDE) < 0 || longitude.compareTo(MAX_LONGITUDE) > 0) {
+            throw externalApiException();
+        }
+        final BigDecimal latitude = requireDecimal(address, "y");
+        if (latitude.compareTo(MIN_LATITUDE) < 0 || latitude.compareTo(MAX_LATITUDE) > 0) {
+            throw externalApiException();
+        }
     }
 
     private void validatePlace(final JsonNode place) {
@@ -173,11 +188,12 @@ public final class KakaoResponseDecoder implements Decoder {
         }
     }
 
-    private void requireDecimal(final JsonNode document, final String field) {
+    private BigDecimal requireDecimal(final JsonNode document, final String field) {
         final JsonNode value = document.get(field);
-        if (!isTextualNumber(value, java.math.BigDecimal::new)) {
+        if (!isTextualNumber(value, BigDecimal::new)) {
             throw externalApiException();
         }
+        return new BigDecimal(value.textValue());
     }
 
     private void requireInteger(final JsonNode document, final String field) {
