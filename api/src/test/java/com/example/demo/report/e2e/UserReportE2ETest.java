@@ -238,15 +238,32 @@ class UserReportE2ETest {
     void 품목_기준_단위와_다른_제보는_저장하지_않고_400을_응답한다() throws Exception {
         final User user = saveUser("단위 오류 사용자");
 
+        // 기준 단위가 "1kg"인 품목에 "g" — 수량 환산 없이는 가격을 비교할 수 없어 거부한다.
         mockMvc.perform(post(reportPath(item.id()))
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(reportBodyWithUnit("kg")))
+                        .content(reportBodyWithUnit("g")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_ERROR"));
 
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM stores", Integer.class)).isZero();
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM user_reports", Integer.class)).isZero();
+    }
+
+    @Test
+    void 수량_접두사가_없는_단위는_기준_단위로_바꿔_저장한다() throws Exception {
+        final User user = saveUser("단위 표기 사용자");
+
+        // 클라이언트는 화면 표기를 그대로 보낸다("1kg" → "kg"). 같은 단위이므로 받아들이고,
+        // 저장은 기준 단위 원본으로 통일한다 — 표기가 섞이면 기존 제보와 비교할 수 없다.
+        mockMvc.perform(post(reportPath(item.id()))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reportBodyWithUnit("kg")))
+                .andExpect(status().isCreated());
+
+        assertThat(jdbcTemplate.queryForObject("SELECT unit FROM user_reports", String.class))
+                .isEqualTo(item.defaultUnit());
     }
 
     @Test
