@@ -15,7 +15,10 @@ public enum ErrorType {
     UNAUTHORIZED("로그인이 필요한 서비스입니다."),
     FORBIDDEN("해당 권한이 없습니다."),
     NEWS_UNAVAILABLE("뉴스를 조회할 수 없습니다."),
-    STORE_SYNC_ERROR("가게 정보를 동기화할 수 없습니다.");
+    STORE_SYNC_ERROR("가게 정보를 동기화할 수 없습니다."),
+    INVALID_IMAGE_FORMAT("PNG 또는 JPEG 이미지만 등록할 수 있습니다."),
+    IMAGE_TOO_LARGE("이미지 크기는 5MB를 넘을 수 없습니다."),
+    IMAGE_STORAGE_UNAVAILABLE("이미지를 저장할 수 없습니다.");
 
     private final String description;
 

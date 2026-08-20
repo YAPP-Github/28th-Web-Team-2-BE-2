@@ -82,6 +82,11 @@ public class SecurityConfig {
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/v1/items/*/reports")
                         .hasRole("USER")
+                        // 계약 문서는 업로드를 공개 경로로 적었지만 인증을 요구한다.
+                        // 무인증 업로드는 우리 버킷에 임의 파일을 쌓는 경로가 되고,
+                        // 제보 작성 자체가 이미 ROLE_USER라 공개로 둘 이유가 없다.
+                        .requestMatchers(HttpMethod.POST, "/api/v1/images")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.HEAD, "/api/v1/users/me/regions")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me/regions")
