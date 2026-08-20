@@ -5,6 +5,7 @@ import com.example.demo.common.exception.ErrorType;
 import lombok.extern.slf4j.Slf4j;
 import com.example.demo.image.application.command.UploadImageCommand;
 import com.example.demo.image.application.port.ImageStoragePort;
+import com.example.demo.image.application.port.ImageUrlPort;
 import com.example.demo.image.domain.ImageKey;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -21,7 +22,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
  */
 @Slf4j
 @Component
-public class S3ImageStorageAdapter implements ImageStoragePort {
+public class S3ImageStorageAdapter implements ImageStoragePort, ImageUrlPort {
 
     private final S3Client s3Client;
     private final S3ImageStorageProperties properties;
@@ -49,6 +50,24 @@ public class S3ImageStorageAdapter implements ImageStoragePort {
         } catch (final SdkException exception) {
             throw storageUnavailable(exception);
         }
+        return imageUrl;
+    }
+
+    /**
+     * 우리 저장소 URL 인지만 본다.
+     *
+     * <p>영구 URL 은 {@code baseUrl + key} 규칙으로만 만들어지므로 접두사를 떼면 key 가 된다.
+     * {@link ImageKey} 생성자가 {@code images/{name}.{png|jpg}} 형식을 강제하므로 상위 경로 이탈과
+     * 쿼리스트링 부착도 함께 걸러진다.
+     */
+    @Override
+    public String requireOwnedUrl(final String imageUrl) {
+        final String baseUrl = properties.requireBaseUrl();
+        if (imageUrl == null || !imageUrl.startsWith(baseUrl)) {
+            throw ApiException.invalidParameter();
+        }
+        // 생성자가 형식을 강제한다. 어긋나면 400 이다.
+        new ImageKey(imageUrl.substring(baseUrl.length()));
         return imageUrl;
     }
 

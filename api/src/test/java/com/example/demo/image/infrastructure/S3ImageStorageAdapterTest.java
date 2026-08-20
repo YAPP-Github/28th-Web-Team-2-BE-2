@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.common.exception.ImageValidationException;
 import com.example.demo.image.application.command.UploadImageCommand;
 import com.example.demo.image.domain.ImageContentType;
 import com.example.demo.image.domain.ImageKey;
@@ -75,6 +76,38 @@ class S3ImageStorageAdapterTest {
                 .isInstanceOf(ApiException.class)
                 .hasMessage(ErrorType.IMAGE_STORAGE_UNAVAILABLE.description())
                 .hasMessageNotContaining("marketgo-images");
+    }
+
+    @Test
+    void 우리_저장소의_URL은_그대로_돌려준다() {
+        assertThat(adapter.requireOwnedUrl("https://cdn.example.com/images/abc.jpg"))
+                .isEqualTo("https://cdn.example.com/images/abc.jpg");
+    }
+
+    // 임의 URL 을 통과시키면 사용자가 우리 비용으로 아무 호스트나 가져오게 만들 수 있다.
+    @Test
+    void 우리_저장소의_URL이_아니면_거부한다() {
+        assertThatThrownBy(() -> adapter.requireOwnedUrl("https://evil.example.com/images/abc.jpg"))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
+    }
+
+    // 이전에는 IllegalArgumentException 이 그대로 올라가 클라이언트가 500 을 받았다.
+    @Test
+    void 접두사_규칙을_벗어난_key는_거부한다() {
+        assertThatThrownBy(() -> adapter.requireOwnedUrl("https://cdn.example.com/uploads/abc.jpg"))
+                .isInstanceOf(ImageValidationException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
+    }
+
+    @Test
+    void base_URL만_주어져_key가_비면_거부한다() {
+        assertThatThrownBy(() -> adapter.requireOwnedUrl("https://cdn.example.com/"))
+                .isInstanceOf(ImageValidationException.class)
+                .extracting("errorType")
+                .isEqualTo(ErrorType.INVALID_PARAMETER_ERROR);
     }
 
     private UploadImageCommand uploadCommand() {
