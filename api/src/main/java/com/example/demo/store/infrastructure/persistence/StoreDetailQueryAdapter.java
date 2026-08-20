@@ -77,7 +77,8 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
                 regionId(region),
                 regionName(region),
                 store.latitude(),
-                store.longitude());
+                store.longitude(),
+                store.placeUrl());
     }
 
     private StoreRegion findStoreRegion(final Long storeId) {

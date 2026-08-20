@@ -86,7 +86,8 @@ class StoreDetailControllerTest {
                 .andExpect(jsonPath("$.data.longitude").value(127.0632))
                 .andExpect(jsonPath("$.data.distance").value(Matchers.nullValue()))
                 .andExpect(jsonPath("$.data.walkTimeMinutes").value(Matchers.nullValue()))
-                .andExpect(jsonPath("$.data.businessHours").value(Matchers.nullValue()))
+                .andExpect(jsonPath("$.data.businessHours").isArray())
+                .andExpect(jsonPath("$.data.businessHours").isEmpty())
                 .andExpect(jsonPath("$.data.openStatus").value("UNKNOWN"));
     }
 
@@ -185,7 +186,7 @@ class StoreDetailControllerTest {
                 new BigDecimal("127.0632"),
                 distance,
                 null,
-                null,
+                List.of(),
                 "UNKNOWN");
     }
 

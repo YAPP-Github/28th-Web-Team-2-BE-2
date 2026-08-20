@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.store.application.port.StoreDetailQueryPort;
+import com.example.demo.store.application.port.StorePageSource;
 import com.example.demo.store.application.query.StoreDetailQuery;
 import com.example.demo.store.application.result.StoreDetailSnapshot;
 import com.example.demo.store.application.result.StoreReportSummary;
@@ -23,7 +24,8 @@ import org.mockito.Mockito;
 class GetStoreDetailUseCaseTest {
 
     private final StoreDetailQueryPort queryPort = Mockito.mock(StoreDetailQueryPort.class);
-    private final GetStoreDetailUseCase useCase = new GetStoreDetailUseCase(queryPort);
+    private final StorePageSource storePageSource = Mockito.mock(StorePageSource.class);
+    private final GetStoreDetailUseCase useCase = new GetStoreDetailUseCase(queryPort, storePageSource);
 
     @Test
     void 좌표와_출처없는_필드는_null이고_영업상태는_UNKNOWN이다() {
@@ -38,7 +40,7 @@ class GetStoreDetailUseCaseTest {
         assertThat(result.regionName()).isNull();
         assertThat(result.distance()).isNull();
         assertThat(result.walkTimeMinutes()).isNull();
-        assertThat(result.businessHours()).isNull();
+        assertThat(result.businessHours()).isEmpty();
         assertThat(result.openStatus()).isEqualTo("UNKNOWN");
         assertThat(result.latestReportedDate()).isNull();
         assertThat(result.latestReportedAt()).isNull();
@@ -58,6 +60,54 @@ class GetStoreDetailUseCaseTest {
 
         assertThat(result.distance()).isBetween(870, 890);
         assertThat(result.walkTimeMinutes()).isNull();
+    }
+
+    @Test
+    void Kakao_장소_페이지의_OG_이미지를_상세_응답에_반영한다() {
+        final String placeUrl = "https://place.map.kakao.com/123";
+        when(queryPort.findStore(1L)).thenReturn(java.util.Optional.of(new StoreDetailSnapshot(
+                1L,
+                "장보고 마트",
+                "서울 강남구 삼성동 123",
+                null,
+                null,
+                new BigDecimal("37.5088"),
+                new BigDecimal("127.0632"),
+                placeUrl)));
+        when(queryPort.findReportSummary(any(), any())).thenReturn(emptyReports());
+        when(queryPort.countFavorites(1L)).thenReturn(0L);
+        when(storePageSource.findOgImage(placeUrl)).thenReturn("https://img.example.com/store.jpg");
+
+        final var result = useCase.execute(new StoreDetailQuery(1L, null, null, null));
+
+        assertThat(result.storeImageUrl()).isEqualTo("https://img.example.com/store.jpg");
+        assertThat(result.businessHours()).isEmpty();
+        assertThat(result.openStatus()).isEqualTo("UNKNOWN");
+        verify(storePageSource).findOgImage(placeUrl);
+    }
+
+    @Test
+    void Kakao_페이지_수집이_실패해도_기본_상세_응답을_반환한다() {
+        final String placeUrl = "https://place.map.kakao.com/123";
+        when(queryPort.findStore(1L)).thenReturn(java.util.Optional.of(new StoreDetailSnapshot(
+                1L,
+                "장보고 마트",
+                "서울 강남구 삼성동 123",
+                null,
+                null,
+                new BigDecimal("37.5088"),
+                new BigDecimal("127.0632"),
+                placeUrl)));
+        when(queryPort.findReportSummary(any(), any())).thenReturn(emptyReports());
+        when(queryPort.countFavorites(1L)).thenReturn(0L);
+        when(storePageSource.findOgImage(placeUrl)).thenThrow(new IllegalStateException("fetch failed"));
+
+        final var result = useCase.execute(new StoreDetailQuery(1L, null, null, null));
+
+        assertThat(result.storeImageUrl()).isNull();
+        assertThat(result.storeName()).isEqualTo("장보고 마트");
+        assertThat(result.businessHours()).isEmpty();
+        assertThat(result.openStatus()).isEqualTo("UNKNOWN");
     }
 
     @Test
