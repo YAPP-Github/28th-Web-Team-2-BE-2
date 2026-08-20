@@ -129,6 +129,14 @@ class RegionControllerTest {
     }
 
     @Test
+    void 숫자가_포함된_지역명으로_법정동을_검색한다() throws Exception {
+        mockMvc.perform(get("/api/v1/regions/search").queryParam("keyword", "영등포구 당산동6가"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.searchResults").isArray());
+    }
+
+    @Test
     void 키워드의_일부만_입력해도_일치하는_법정동_검색_결과를_응답한다() throws Exception {
         mockMvc.perform(get("/api/v1/regions/search").queryParam("keyword", "성성"))
                 .andExpect(status().isOk())
