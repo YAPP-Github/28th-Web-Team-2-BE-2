@@ -17,6 +17,7 @@ import com.example.demo.store.application.result.NearbyStoreCandidate;
 import com.example.demo.store.application.result.NearbyStoreResult;
 import com.example.demo.store.application.result.NearbyStoreSearchResult;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
+import com.example.demo.store.application.usecase.GetStoreDetailUseCase;
 import com.example.demo.store.application.usecase.GetRecommendedStoresUseCase;
 import com.example.demo.store.application.usecase.StoreFavoriteUseCase;
 import com.example.demo.store.presentation.converter.StoreQueryConverter;
@@ -46,6 +47,7 @@ class StoreControllerUserTest {
     void setUp() {
                 mockMvc = MockMvcBuilders.standaloneSetup(new StoreController(
                         new GetNearbyStoresUseCase(nearbyStoreSearchPort, storePersistencePort),
+                        mock(GetStoreDetailUseCase.class),
                         new GetRecommendedStoresUseCase(recommendedStoreQueryPort),
                         mock(StoreFavoriteUseCase.class),
                         new StoreCommandConverter(),

@@ -3,8 +3,10 @@ package com.example.demo.store.presentation.converter;
 import com.example.demo.common.security.AuthPrincipal;
 import com.example.demo.store.application.query.NearbyStoreQuery;
 import com.example.demo.store.application.query.RecommendedStoreQuery;
+import com.example.demo.store.application.query.StoreDetailQuery;
 import com.example.demo.store.presentation.dto.NearbyStoreRequest;
 import com.example.demo.store.presentation.dto.RecommendedStoreRequest;
+import com.example.demo.store.presentation.dto.StoreDetailRequest;
 import java.util.Objects;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -34,5 +36,24 @@ public class StoreQueryConverter {
             final RecommendedStoreRequest request) {
         return new RecommendedStoreQuery(
                 request.regionId(), request.latitude(), request.longitude(), request.radius());
+    }
+
+    public StoreDetailQuery toStoreDetailQuery(
+            final Long storeId,
+            final StoreDetailRequest request,
+            final AuthPrincipal principal,
+            final Authentication authentication) {
+        return new StoreDetailQuery(
+                storeId,
+                request.latitude(),
+                request.longitude(),
+                userId(principal, authentication));
+    }
+
+    private Long userId(final AuthPrincipal principal, final Authentication authentication) {
+        final boolean roleUser = authentication != null
+                && authentication.getAuthorities().stream()
+                        .anyMatch(authority -> Objects.equals("ROLE_USER", authority.getAuthority()));
+        return roleUser && principal != null ? principal.userId() : null;
     }
 }
