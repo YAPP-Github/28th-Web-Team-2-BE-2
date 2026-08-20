@@ -32,13 +32,14 @@ public class GetRegionItemReportQueryUseCase {
 
     @Transactional(readOnly = true)
     public RegionItemReportResult execute(final RegionItemReportQuery query) {
+        final String regionName = findRegionName(query.regionId());
         final Item item = findItem(query.itemId());
         final Page<UserReport> reports =
                 userReportQueryPort.findByRegionAndItem(query, item.defaultUnit());
         final Map<Long, String> storeNames = findStoreNames(reports.getContent());
         return new RegionItemReportResult(
                 query.regionId(),
-                regionName(query.regionId()),
+                regionName,
                 item.id(),
                 reports.getTotalElements(),
                 toSummaries(reports.getContent(), storeNames),
@@ -47,9 +48,22 @@ public class GetRegionItemReportQueryUseCase {
                 reports.hasNext());
     }
 
-    /** 법정동 코드에 해당하는 지역명이다. 참조 데이터에 없는 코드면 null 이다. */
-    private String regionName(final String regionId) {
-        return regionReferenceRepository.findNamesByIds(List.of(regionId)).get(regionId);
+    /**
+     * 법정동 코드의 지역명이다.
+     *
+     * <p>참조 데이터에 없는 코드는 404다. 없는 품목과 같은 취급이며, 오타난 코드와 "제보가 없는 동네"를 구분할 수 있게 한다. 빈 목록은
+     * 지역이 존재하고 제보만 없을 때의 응답이다.
+     */
+    private String findRegionName(final String regionId) {
+        final String regionName =
+                regionReferenceRepository.findNamesByIds(List.of(regionId)).get(regionId);
+        if (regionName == null) {
+            throw new ApiException(
+                    ErrorType.NO_RESOURCE_ERROR.description(),
+                    ErrorType.NO_RESOURCE_ERROR,
+                    HttpStatus.NOT_FOUND);
+        }
+        return regionName;
     }
 
     private Item findItem(final Long itemId) {

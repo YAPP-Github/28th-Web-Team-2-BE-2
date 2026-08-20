@@ -25,7 +25,7 @@ public interface RegionItemReportControllerSpec {
                         mediaType = "application/json",
                         schema = @Schema(implementation = RegionItemReportResponse.class))),
         @ApiResponse(responseCode = "400", description = "법정동 코드 형식이나 조회 조건이 올바르지 않다"),
-        @ApiResponse(responseCode = "404", description = "품목을 찾을 수 없다")
+        @ApiResponse(responseCode = "404", description = "품목이나 지역을 찾을 수 없다")
     })
     ResponseEntity<RegionItemReportResponse> getRegionItemReports(
             @Pattern(regexp = "\\d{10}") @Parameter(description = "법정동 코드(10자리)") String regionId,

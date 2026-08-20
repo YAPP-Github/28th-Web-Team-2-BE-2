@@ -1,7 +1,6 @@
 package com.example.demo.report.e2e;
 
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -211,12 +210,10 @@ class RegionItemReportE2ETest {
     }
 
     @Test
-    @DisplayName("참조 데이터에 없는 지역 코드면 regionName이 null이다")
-    void returnsNullRegionNameForUnknownRegion() throws Exception {
+    @DisplayName("참조 데이터에 없는 지역 코드는 404다")
+    void returnsNotFoundForUnknownRegion() throws Exception {
         mockMvc.perform(get(path(OTHER_REGION_ID, potatoId)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.regionId").value(OTHER_REGION_ID))
-                .andExpect(jsonPath("$.data.regionName").value(nullValue()));
+                .andExpect(status().isNotFound());
     }
 
     @Test
