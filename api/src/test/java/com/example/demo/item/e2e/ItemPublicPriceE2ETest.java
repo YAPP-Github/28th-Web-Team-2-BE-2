@@ -5,12 +5,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.jayway.jsonpath.JsonPath;
 import com.example.demo.item.domain.Item;
 import com.example.demo.item.domain.ItemCategory;
 import com.example.demo.item.domain.PublicPrice;
 import com.example.demo.item.infrastructure.ItemJpaRepository;
 import com.example.demo.item.infrastructure.PublicPriceJpaRepository;
+import com.jayway.jsonpath.JsonPath;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -100,6 +100,13 @@ class ItemPublicPriceE2ETest {
         Assertions.assertThat(JsonPath.<List<Integer>>read(
                         result.getResponse().getContentAsString(), "$.points[*].price"))
                 .containsExactly(2700, 3000, 3500, 3800);
+        Assertions.assertThat(JsonPath.<List<String>>read(
+                        result.getResponse().getContentAsString(), "$.points[*].date"))
+                .containsExactly(
+                        today.minusDays(6).toString(),
+                        today.minusDays(3).toString(),
+                        today.minusDays(1).toString(),
+                        today.toString());
     }
 
     @Test
@@ -113,6 +120,15 @@ class ItemPublicPriceE2ETest {
         Assertions.assertThat(JsonPath.<List<Integer>>read(
                         monthResult.getResponse().getContentAsString(), "$.points[*].price"))
                 .containsExactly(2200, 2500, 2700, 3000, 3500, 3800);
+        Assertions.assertThat(JsonPath.<List<String>>read(
+                        monthResult.getResponse().getContentAsString(), "$.points[*].date"))
+                .containsExactly(
+                        today.minusDays(10).toString(),
+                        today.minusDays(7).toString(),
+                        today.minusDays(6).toString(),
+                        today.minusDays(3).toString(),
+                        today.minusDays(1).toString(),
+                        today.toString());
 
         final MvcResult yearResult = mockMvc.perform(
                         get(path(potatoId)).param("regionId", REGION_ID).param("period", "YEAR"))
@@ -122,6 +138,17 @@ class ItemPublicPriceE2ETest {
         Assertions.assertThat(JsonPath.<List<Integer>>read(
                         yearResult.getResponse().getContentAsString(), "$.points[*].price"))
                 .containsExactly(2000, 2100, 2200, 2500, 2700, 3000, 3500, 3800);
+        Assertions.assertThat(JsonPath.<List<String>>read(
+                        yearResult.getResponse().getContentAsString(), "$.points[*].date"))
+                .containsExactly(
+                        today.minusMonths(2).toString(),
+                        today.minusMonths(1).toString(),
+                        today.minusDays(10).toString(),
+                        today.minusDays(7).toString(),
+                        today.minusDays(6).toString(),
+                        today.minusDays(3).toString(),
+                        today.minusDays(1).toString(),
+                        today.toString());
     }
 
     @Test
@@ -135,6 +162,15 @@ class ItemPublicPriceE2ETest {
         Assertions.assertThat(JsonPath.<List<Integer>>read(
                         result.getResponse().getContentAsString(), "$.points[*].price"))
                 .containsExactly(2200, 2500, 2700, 3000, 3500, 3800);
+        Assertions.assertThat(JsonPath.<List<String>>read(
+                        result.getResponse().getContentAsString(), "$.points[*].date"))
+                .containsExactly(
+                        today.minusDays(10).toString(),
+                        today.minusDays(7).toString(),
+                        today.minusDays(6).toString(),
+                        today.minusDays(3).toString(),
+                        today.minusDays(1).toString(),
+                        today.toString());
     }
 
     @Test
@@ -152,6 +188,9 @@ class ItemPublicPriceE2ETest {
         Assertions.assertThat(JsonPath.<List<Integer>>read(
                         result.getResponse().getContentAsString(), "$.points[*].price"))
                 .containsExactly(1500, 1600);
+        Assertions.assertThat(JsonPath.<List<String>>read(
+                        result.getResponse().getContentAsString(), "$.points[*].date"))
+                .containsExactly(today.minusDays(40).toString(), today.minusDays(38).toString());
     }
 
     @Test
@@ -167,11 +206,20 @@ class ItemPublicPriceE2ETest {
         Assertions.assertThat(JsonPath.<List<Integer>>read(
                         result.getResponse().getContentAsString(), "$.points[*].price"))
                 .containsExactly(2700, 3000, 3500, 4200);
+        Assertions.assertThat(JsonPath.<List<String>>read(
+                        result.getResponse().getContentAsString(), "$.points[*].date"))
+                .containsExactly(
+                        today.minusDays(6).toString(),
+                        today.minusDays(3).toString(),
+                        today.minusDays(1).toString(),
+                        today.toString());
     }
 
     @Test
     @DisplayName("기간 내 가격이 없으면 200과 빈 points를 반환한다")
     void returnsEmptyPointsWhenNoPriceInPeriod() throws Exception {
+        publicPriceJpaRepository.save(new PublicPrice(onionId, REGION_ID, 1200, today.minusDays(8)));
+
         mockMvc.perform(get(path(onionId)).param("regionId", REGION_ID).param("period", "WEEK"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.itemId").value(onionId))
