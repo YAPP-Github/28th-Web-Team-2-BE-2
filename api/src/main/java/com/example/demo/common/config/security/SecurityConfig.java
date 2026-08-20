@@ -53,6 +53,8 @@ public class SecurityConfig {
                                 "/api/kamis/**",
                                 "/api/v1/items",
                                 "/api/v1/items/*",
+                                "/api/v1/items/*/online-prices",
+                                "/api/v1/items/*/public-prices",
                                 "/api/v1/news",
                                 "/api/v1/regions/*/items/*/reports",
                                 "/api/v1/regions/nearby",
