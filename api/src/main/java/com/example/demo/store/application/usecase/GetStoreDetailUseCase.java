@@ -3,6 +3,7 @@ package com.example.demo.store.application.usecase;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.store.application.port.StoreDetailQueryPort;
+import com.example.demo.store.application.port.StorePageSource;
 import com.example.demo.store.application.query.StoreDetailQuery;
 import com.example.demo.store.application.result.StoreDetailResult;
 import com.example.demo.store.application.result.StoreDetailSnapshot;
@@ -10,10 +11,10 @@ import com.example.demo.store.application.result.StoreReportSummary;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,8 +25,8 @@ public class GetStoreDetailUseCase {
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     private final StoreDetailQueryPort storeDetailQueryPort;
+    private final StorePageSource storePageSource;
 
-    @Transactional(readOnly = true)
     public StoreDetailResult execute(final StoreDetailQuery query) {
         final StoreDetailSnapshot store = storeDetailQueryPort.findStore(query.storeId())
                 .orElseThrow(this::storeNotFound);
@@ -37,7 +38,7 @@ public class GetStoreDetailUseCase {
         return new StoreDetailResult(
                 store.storeId(),
                 store.storeName(),
-                null,
+                storeImageUrl(store),
                 isLiked,
                 storeDetailQueryPort.countFavorites(store.storeId()),
                 reports.cheapItemCount(),
@@ -52,8 +53,20 @@ public class GetStoreDetailUseCase {
                 store.longitude(),
                 distanceMeters(store, query.latitude(), query.longitude()),
                 null,
-                null,
+                // ponytail: Kakao has no supported business-hours API; populate this only from an approved provider.
+                List.of(),
                 "UNKNOWN");
+    }
+
+    private String storeImageUrl(final StoreDetailSnapshot store) {
+        if (store.placeUrl() == null) {
+            return null;
+        }
+        try {
+            return storePageSource.findOgImage(store.placeUrl());
+        } catch (final RuntimeException exception) {
+            return null;
+        }
     }
 
     private ApiException storeNotFound() {
