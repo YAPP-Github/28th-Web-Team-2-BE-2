@@ -84,7 +84,7 @@ class GetStoreDetailUseCaseTest {
         givenStore();
         final LocalDate reportedDate = LocalDate.now();
         final Instant reportedAt = Instant.parse("2026-08-19T01:00:00Z");
-        when(queryPort.findReportSummary(1L, LocalDate.now().minusDays(29)))
+        when(queryPort.findReportSummary(any(), any()))
                 .thenReturn(new StoreReportSummary(3L, 1L, 5L, reportedDate, reportedAt));
         when(queryPort.countFavorites(1L)).thenReturn(4L);
 

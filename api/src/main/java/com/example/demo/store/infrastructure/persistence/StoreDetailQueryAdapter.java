@@ -31,6 +31,16 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
                AND report_date >= :since
             """;
 
+    private static final String STORE_REGION = """
+            SELECT report.region_id, region.region_name
+              FROM user_reports report
+              LEFT JOIN regions region ON region.region_id = report.region_id
+             WHERE report.store_id = :storeId
+               AND report.region_id IS NOT NULL
+             ORDER BY report.created_at DESC, report.report_id DESC
+             LIMIT 1
+            """;
+
     private final StoreJpaRepository storeJpaRepository;
     private final StoreFavoriteJpaRepository storeFavoriteJpaRepository;
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -70,10 +80,13 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
     }
 
     private StoreDetailSnapshot toSnapshot(final Store store) {
+        final StoreRegion region = findStoreRegion(store.id());
         return new StoreDetailSnapshot(
                 store.id(),
                 store.placeName(),
                 store.addressName(),
+                region == null ? null : region.regionId(),
+                region == null ? null : region.regionName(),
                 store.latitude(),
                 store.longitude(),
                 store.placeUrl(),
@@ -81,6 +94,15 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
                 splitHours(store.businessHours()),
                 store.openStatus() == null ? "UNKNOWN" : store.openStatus(),
                 store.kakaoDetailsCollectedAt());
+    }
+
+    private StoreRegion findStoreRegion(final Long storeId) {
+        return jdbcTemplate.query(STORE_REGION, Map.of("storeId", storeId), resultSet -> {
+            if (!resultSet.next()) {
+                return null;
+            }
+            return new StoreRegion(resultSet.getString("region_id"), resultSet.getString("region_name"));
+        });
     }
 
     private java.util.List<String> splitHours(final String businessHours) {
@@ -109,4 +131,6 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
         final java.sql.Timestamp timestamp = resultSet.getTimestamp("latest_reported_at");
         return timestamp == null ? null : timestamp.toInstant();
     }
+
+    private record StoreRegion(String regionId, String regionName) {}
 }

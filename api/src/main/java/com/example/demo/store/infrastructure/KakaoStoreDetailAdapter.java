@@ -26,9 +26,9 @@ public class KakaoStoreDetailAdapter implements StoreDetailEnrichmentPort {
         if (snapshot.placeUrl() == null || snapshot.placeUrl().isBlank()) {
             return snapshot;
         }
-        validateKakaoUrl(snapshot.placeUrl());
+        final String detailUrl = normalizeKakaoUrl(snapshot.placeUrl());
         try {
-            final Connection.Response response = Jsoup.connect(snapshot.placeUrl())
+            final Connection.Response response = Jsoup.connect(detailUrl)
                     .userAgent("Mozilla/5.0")
                     .timeout(5000)
                     .maxBodySize(2 * 1024 * 1024)
@@ -39,9 +39,9 @@ public class KakaoStoreDetailAdapter implements StoreDetailEnrichmentPort {
             final KakaoStoreDetailParserResult parsed = KakaoStoreDetailParser.parse(document);
             final String imageUrl = uploadOrgImage(parsed.imageUrl());
             return new StoreDetailSnapshot(
-                    snapshot.storeId(), snapshot.storeName(), snapshot.address(), snapshot.latitude(),
-                    snapshot.longitude(), snapshot.placeUrl(), imageUrl,
-                    parsed.businessHours(), parsed.openStatus());
+                    snapshot.storeId(), snapshot.storeName(), snapshot.address(), snapshot.regionId(),
+                    snapshot.regionName(), snapshot.latitude(), snapshot.longitude(), detailUrl, imageUrl,
+                    parsed.businessHours(), parsed.openStatus(), snapshot.kakaoDetailsCollectedAt());
         } catch (final Exception exception) {
             return snapshot;
         }
@@ -54,14 +54,11 @@ public class KakaoStoreDetailAdapter implements StoreDetailEnrichmentPort {
         if (imageUrl.isBlank()) {
             return null;
         }
-        final URI uri = URI.create(imageUrl);
-        if (!"https".equalsIgnoreCase(uri.getScheme()) || !ALLOWED_HOSTS.contains(uri.getHost())) {
-            return null;
-        }
-        final Connection.Response imageResponse = Jsoup.connect(imageUrl)
+        final String normalizedImageUrl = normalizeKakaoUrl(imageUrl);
+        final Connection.Response imageResponse = Jsoup.connect(normalizedImageUrl)
                 .ignoreContentType(true)
                 .timeout(5000)
-                .maxBodySize(MAX_IMAGE_BYTES)
+                .maxBodySize(MAX_IMAGE_BYTES + 1)
                 .followRedirects(false)
                 .execute();
         ensureSuccessful(imageResponse);
@@ -84,11 +81,15 @@ public class KakaoStoreDetailAdapter implements StoreDetailEnrichmentPort {
     }
 
 
-    private void validateKakaoUrl(final String url) {
+    private String normalizeKakaoUrl(final String url) {
         final URI uri = URI.create(url);
-        if (!"https".equalsIgnoreCase(uri.getScheme()) || !ALLOWED_HOSTS.contains(uri.getHost())) {
+        if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
+                || !ALLOWED_HOSTS.contains(uri.getHost())) {
             throw new IllegalArgumentException("Unsupported Kakao URL");
         }
+        return "https".equalsIgnoreCase(uri.getScheme())
+                ? url
+                : URI.create("https" + url.substring(uri.getScheme().length())).toString();
     }
 
     private String extension(final String contentType) {

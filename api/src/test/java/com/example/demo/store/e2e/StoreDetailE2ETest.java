@@ -23,6 +23,7 @@ import com.example.demo.store.infrastructure.persistence.StoreFavoriteJpaReposit
 import com.example.demo.store.infrastructure.persistence.StoreJpaRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 class StoreDetailE2ETest {
+
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
     private final MockMvc mockMvc;
     private final StoreJpaRepository storeJpaRepository;
@@ -69,20 +72,32 @@ class StoreDetailE2ETest {
         storeFavoriteJpaRepository.deleteAll();
         storeJpaRepository.deleteAll();
         userJpaRepository.deleteAll();
+        jdbcTemplate.update(
+                "UPDATE regions SET region_name = ? WHERE region_id = ?",
+                "서울특별시 광진구 중곡동", "1121510100");
+        if (jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM regions WHERE region_id = ?", Integer.class, "1121510100")
+                == 0) {
+            jdbcTemplate.update(
+                    "INSERT INTO regions (region_id, region_name) VALUES (?, ?)",
+                    "1121510100", "서울특별시 광진구 중곡동");
+        }
     }
 
     @Test
     void 가게_상세는_찜과_최근_30일_제보를_집계한다() throws Exception {
         final Store store = saveStore();
-        storeFavoriteJpaRepository.save(new StoreFavorite(7L, store.id()));
-        storeFavoriteJpaRepository.save(new StoreFavorite(8L, store.id()));
+        final User reporter = saveUser("제보자");
+        final User otherReporter = saveUser("다른 제보자");
+        storeFavoriteJpaRepository.save(new StoreFavorite(reporter.id(), store.id()));
+        storeFavoriteJpaRepository.save(new StoreFavorite(otherReporter.id(), store.id()));
 
-        saveReport(store.id(), -100);
-        saveReport(store.id(), 200);
-        final UserReport oldReport = saveReport(store.id(), -300);
+        saveReport(store.id(), reporter.id(), -100);
+        saveReport(store.id(), otherReporter.id(), 200);
+        final UserReport oldReport = saveReport(store.id(), reporter.id(), -300);
         jdbcTemplate.update(
                 "UPDATE user_reports SET report_date = ? WHERE report_id = ?",
-                LocalDate.now().minusDays(30),
+                LocalDate.now(SEOUL).minusDays(30),
                 oldReport.id());
 
         mockMvc.perform(get("/api/v1/stores/{storeId}", store.id())
@@ -94,11 +109,13 @@ class StoreDetailE2ETest {
                 .andExpect(jsonPath("$.data.storeId").value(store.id()))
                 .andExpect(jsonPath("$.data.storeName").value("장보고 마트"))
                 .andExpect(jsonPath("$.data.address").value("서울 강남구 삼성동 123"))
+                .andExpect(jsonPath("$.data.regionId").value("1121510100"))
+                .andExpect(jsonPath("$.data.regionName").value("서울특별시 광진구 중곡동"))
                 .andExpect(jsonPath("$.data.favoriteCount").value(2))
                 .andExpect(jsonPath("$.data.cheapItemCount").value(1))
                 .andExpect(jsonPath("$.data.expensiveItemCount").value(1))
                 .andExpect(jsonPath("$.data.totalReportedItemCount").value(2))
-                .andExpect(jsonPath("$.data.latestReportedDate").value(LocalDate.now().toString()))
+                .andExpect(jsonPath("$.data.latestReportedDate").value(LocalDate.now(SEOUL).toString()))
                 .andExpect(jsonPath("$.data.latestReportedAt").isNotEmpty())
                 .andExpect(jsonPath("$.data.distance")
                         .value(allOf(greaterThanOrEqualTo(870), lessThanOrEqualTo(890))))
@@ -202,13 +219,13 @@ class StoreDetailE2ETest {
                 null));
     }
 
-    private UserReport saveReport(final Long storeId, final int publicPriceDiff) {
+    private UserReport saveReport(final Long storeId, final Long reporterId, final int publicPriceDiff) {
         return userReportJpaRepository.save(new UserReport(
                 "1121510100",
                 ReportType.OBSERVED,
                 storeId,
                 1L,
-                7L,
+                reporterId,
                 1000,
                 "1kg",
                 BigDecimal.ONE,

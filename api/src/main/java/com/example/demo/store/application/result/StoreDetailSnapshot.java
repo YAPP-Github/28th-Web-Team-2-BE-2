@@ -8,6 +8,8 @@ public record StoreDetailSnapshot(
         Long storeId,
         String storeName,
         String address,
+        String regionId,
+        String regionName,
         BigDecimal latitude,
         BigDecimal longitude,
         String placeUrl,
@@ -26,7 +28,7 @@ public record StoreDetailSnapshot(
             final String storeImageUrl,
             final List<String> businessHours,
             final String openStatus) {
-        this(storeId, storeName, address, latitude, longitude, placeUrl, storeImageUrl,
+        this(storeId, storeName, address, null, null, latitude, longitude, placeUrl, storeImageUrl,
                 businessHours, openStatus, null);
     }
 
@@ -43,5 +45,20 @@ public record StoreDetailSnapshot(
             final BigDecimal latitude,
             final BigDecimal longitude) {
         this(storeId, storeName, address, latitude, longitude, null, null, null, "UNKNOWN", null);
+    }
+
+    public StoreDetailSnapshot(
+            final Long storeId,
+            final String storeName,
+            final String address,
+            final BigDecimal latitude,
+            final BigDecimal longitude,
+            final String placeUrl,
+            final String storeImageUrl,
+            final List<String> businessHours,
+            final String openStatus,
+            final Instant kakaoDetailsCollectedAt) {
+        this(storeId, storeName, address, null, null, latitude, longitude, placeUrl, storeImageUrl,
+                businessHours, openStatus, kakaoDetailsCollectedAt);
     }
 }
