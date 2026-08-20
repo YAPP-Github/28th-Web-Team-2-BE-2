@@ -80,6 +80,11 @@ public class SecurityConfig {
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me")
                         .hasRole("USER")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/users/me/reports",
+                                "/api/v1/users/me/reports/weekly")
+                        .hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me/favorite-stores")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/stores/*/favorite")
