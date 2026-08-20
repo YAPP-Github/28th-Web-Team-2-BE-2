@@ -5,6 +5,8 @@ import com.example.demo.store.presentation.dto.NearbyStoreRequest;
 import com.example.demo.store.presentation.dto.NearbyStoresResponse;
 import com.example.demo.store.presentation.dto.RecommendedStoreRequest;
 import com.example.demo.store.presentation.dto.RecommendedStoresResponse;
+import com.example.demo.store.presentation.dto.StoreDetailRequest;
+import com.example.demo.store.presentation.dto.StoreDetailResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -41,6 +43,21 @@ public interface StoreControllerSpec {
     ResponseEntity<RecommendedStoresResponse> getRecommendedStores(
             @Valid @ParameterObject RecommendedStoreRequest request,
             @Parameter(hidden = true) HttpServletRequest servletRequest);
+
+    @Operation(summary = "가게 상세를 조회한다")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "가게 상세 조회 성공"),
+        @ApiResponse(responseCode = "400", description = "가게 ID 또는 좌표가 올바르지 않다"),
+        @ApiResponse(responseCode = "401", description = "인증 토큰이 올바르지 않다"),
+        @ApiResponse(responseCode = "404", description = "가게를 찾을 수 없다")
+    })
+    ResponseEntity<StoreDetailResponse> getStoreDetail(
+            @Parameter(description = "가게 ID") @Positive Long storeId,
+            @Valid @ParameterObject StoreDetailRequest request,
+            @Parameter(hidden = true) AuthPrincipal principal,
+            @Parameter(hidden = true) Authentication authentication,
+            @Parameter(hidden = true) HttpServletRequest servletRequest);
+
     @Operation(summary = "가게를 단골로 등록한다")
     @ApiResponses({
         @ApiResponse(responseCode = "204", description = "단골 등록 성공 또는 이미 등록된 관계"),

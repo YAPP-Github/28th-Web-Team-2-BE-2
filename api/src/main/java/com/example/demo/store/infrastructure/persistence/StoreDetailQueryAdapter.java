@@ -1,0 +1,131 @@
+package com.example.demo.store.infrastructure.persistence;
+
+import com.example.demo.report.domain.Store;
+import com.example.demo.store.application.port.StoreDetailQueryPort;
+import com.example.demo.store.application.result.StoreDetailSnapshot;
+import com.example.demo.store.application.result.StoreReportSummary;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Map;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
+
+    private static final String REPORT_SUMMARY = """
+            SELECT COUNT(*) AS total_reported_item_count,
+                   COALESCE(SUM(CASE WHEN public_price_diff < 0 THEN 1 ELSE 0 END), 0)
+                       AS cheap_item_count,
+                   COALESCE(SUM(CASE WHEN public_price_diff > 0 THEN 1 ELSE 0 END), 0)
+                       AS expensive_item_count,
+                   MAX(report_date) AS latest_reported_date,
+                   MAX(created_at) AS latest_reported_at
+              FROM user_reports
+             WHERE store_id = :storeId
+               AND report_date >= :since
+            """;
+
+    private static final String STORE_REGION = """
+            SELECT report.region_id, region.region_name
+              FROM user_reports report
+              LEFT JOIN regions region ON region.region_id = report.region_id
+             WHERE report.store_id = :storeId
+               AND report.region_id IS NOT NULL
+             ORDER BY report.created_at DESC, report.report_id DESC
+             LIMIT 1
+            """;
+
+    private final StoreJpaRepository storeJpaRepository;
+    private final StoreFavoriteJpaRepository storeFavoriteJpaRepository;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    @Override
+    public Optional<StoreDetailSnapshot> findStore(final Long storeId) {
+        return storeJpaRepository.findById(storeId).map(this::toSnapshot);
+    }
+
+    @Override
+    public boolean isLiked(final Long userId, final Long storeId) {
+        return storeFavoriteJpaRepository.existsByUserIdAndStoreId(userId, storeId);
+    }
+
+    @Override
+    public long countFavorites(final Long storeId) {
+        return storeFavoriteJpaRepository.countByStoreId(storeId);
+    }
+
+    @Override
+    public StoreReportSummary findReportSummary(final Long storeId, final LocalDate since) {
+        return jdbcTemplate.queryForObject(
+                REPORT_SUMMARY,
+                Map.of("storeId", storeId, "since", since),
+                this::toReportSummary);
+    }
+
+    private StoreDetailSnapshot toSnapshot(final Store store) {
+        final StoreRegion region = findStoreRegion(store.id());
+        return new StoreDetailSnapshot(
+                store.id(),
+                store.placeName(),
+                store.addressName(),
+                regionId(region),
+                regionName(region),
+                store.latitude(),
+                store.longitude());
+    }
+
+    private StoreRegion findStoreRegion(final Long storeId) {
+        return jdbcTemplate.query(
+                STORE_REGION,
+                Map.of("storeId", storeId),
+                resultSet -> {
+                    if (!resultSet.next()) {
+                        return null;
+                    }
+                    return new StoreRegion(
+                            resultSet.getString("region_id"), resultSet.getString("region_name"));
+                });
+    }
+
+    private String regionId(final StoreRegion region) {
+        if (region == null) {
+            return null;
+        }
+        return region.regionId();
+    }
+
+    private String regionName(final StoreRegion region) {
+        if (region == null) {
+            return null;
+        }
+        return region.regionName();
+    }
+
+    private StoreReportSummary toReportSummary(final ResultSet resultSet, final int rowNumber)
+            throws SQLException {
+        return new StoreReportSummary(
+                resultSet.getLong("cheap_item_count"),
+                resultSet.getLong("expensive_item_count"),
+                resultSet.getLong("total_reported_item_count"),
+                toLocalDate(resultSet),
+                toInstant(resultSet));
+    }
+
+    private LocalDate toLocalDate(final ResultSet resultSet) throws SQLException {
+        final java.sql.Date date = resultSet.getDate("latest_reported_date");
+        return date == null ? null : date.toLocalDate();
+    }
+
+    private Instant toInstant(final ResultSet resultSet) throws SQLException {
+        final java.sql.Timestamp timestamp = resultSet.getTimestamp("latest_reported_at");
+        return timestamp == null ? null : timestamp.toInstant();
+    }
+
+    private record StoreRegion(String regionId, String regionName) {}
+}

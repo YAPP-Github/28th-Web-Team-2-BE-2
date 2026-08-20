@@ -2,14 +2,18 @@ package com.example.demo.report.infrastructure;
 
 import com.example.demo.report.application.command.StoreSnapshot;
 import com.example.demo.report.application.port.StoreCommandPort;
+import com.example.demo.report.application.port.StoreNameQueryPort;
 import com.example.demo.report.domain.Store;
 import jakarta.persistence.EntityManager;
+import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class StoreCommandAdapter implements StoreCommandPort {
+public class StoreCommandAdapter implements StoreCommandPort, StoreNameQueryPort {
 
     private static final String UPSERT_STORE = """
             INSERT INTO stores (
@@ -60,5 +64,17 @@ public class StoreCommandAdapter implements StoreCommandPort {
                 .setParameter("latitude", snapshot.latitude())
                 .setParameter("distance", snapshot.distance());
         return ((Number) query.getSingleResult()).longValue();
+    }
+
+    @Override
+    public Map<Long, String> findNames(final Collection<Long> storeIds) {
+        if (storeIds.isEmpty()) {
+            return Map.of();
+        }
+        return entityManager
+                .createQuery("select s.id, s.placeName from Store s where s.id in :ids", Object[].class)
+                .setParameter("ids", storeIds)
+                .getResultStream()
+                .collect(Collectors.toMap(row -> (Long) row[0], row -> (String) row[1]));
     }
 }

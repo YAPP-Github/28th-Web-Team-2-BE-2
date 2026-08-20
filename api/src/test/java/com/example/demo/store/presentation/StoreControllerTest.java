@@ -25,6 +25,7 @@ import com.example.demo.store.application.result.NearbyStoresResult;
 import com.example.demo.store.application.result.RecommendedStoreResult;
 import com.example.demo.store.application.result.RecommendedStoresResult;
 import com.example.demo.store.application.usecase.GetNearbyStoresUseCase;
+import com.example.demo.store.application.usecase.GetStoreDetailUseCase;
 import com.example.demo.store.application.usecase.GetRecommendedStoresUseCase;
 import com.example.demo.store.application.usecase.StoreFavoriteUseCase;
 import com.example.demo.store.presentation.converter.StoreCommandConverter;
@@ -250,6 +251,11 @@ class StoreControllerTest {
                 final NearbyStoreSearchPort searchPort,
                 final StorePersistencePort persistencePort) {
             return new GetNearbyStoresUseCase(searchPort, persistencePort);
+        }
+
+        @Bean
+        GetStoreDetailUseCase getStoreDetailUseCase() {
+            return mock(GetStoreDetailUseCase.class);
         }
 
         @Bean
