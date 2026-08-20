@@ -3,8 +3,10 @@ package com.example.demo.item.infrastructure;
 import com.example.demo.item.application.port.PublicPriceQueryPort;
 import com.example.demo.item.domain.PublicPrice;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -24,8 +26,15 @@ public class PublicPriceQueryAdapter implements PublicPriceQueryPort {
     @Override
     public List<PublicPrice> findByItemIdAndRegionId(
             final Long itemId, final String regionId) {
-        return publicPriceJpaRepository.findTop2ByItemIdAndRegionIdOrderByPriceDateDescIdDesc(
-                itemId, regionId);
+        return publicPriceJpaRepository.findAllByItemIdAndRegionIdOrderByPriceDateDescIdDesc(itemId, regionId).stream()
+                .collect(Collectors.toMap(
+                        PublicPrice::priceDate,
+                        price -> price,
+                        (latest, ignored) -> latest,
+                        LinkedHashMap::new))
+                .values().stream()
+                .limit(2)
+                .toList();
     }
 
     @Override
