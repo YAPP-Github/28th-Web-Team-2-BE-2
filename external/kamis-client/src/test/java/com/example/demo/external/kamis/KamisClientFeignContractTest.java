@@ -19,9 +19,19 @@ class KamisClientFeignContractTest {
     @Test
     void KAMIS_클라이언트는_DailyPriceResponse를_반환한다() {
         assertThat(KamisClient.class.getDeclaredMethods())
+                .filteredOn(method -> method.getName().equals("getDailyPrices"))
                 .singleElement()
                 .extracting(method -> method.getReturnType())
                 .isEqualTo(DailyPriceResponse.class);
+    }
+
+    @Test
+    void KAMIS_클라이언트는_도매_기간가격_응답을_반환한다() {
+        assertThat(KamisClient.class.getDeclaredMethods())
+                .filteredOn(method -> method.getName().equals("getWholesalePeriodPrices"))
+                .singleElement()
+                .extracting(method -> method.getReturnType())
+                .isEqualTo(WholesalePeriodPriceResponse.class);
     }
 
     @Test

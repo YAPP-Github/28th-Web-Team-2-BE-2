@@ -9,6 +9,7 @@ import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kamis.DailyPriceResponse;
 import com.example.demo.external.kamis.Item;
+import com.example.demo.external.kamis.WholesalePeriodPriceResponse;
 import com.example.demo.external.kamis.feign.KamisClient;
 import com.example.demo.external.kamis.feign.KamisResponseDecoder;
 import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
@@ -132,24 +133,54 @@ class KamisPriceQueryAdapterTest {
     }
 
     @Test
+    void KAMIS_조회결과없음은_빈_일별가격_결과로_변환한다() {
+        final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter(
+                ignoredClient(response("001", List.of())));
+
+        final KamisDailyPriceResult result = adapter.findDailyPrices(query());
+
+        assertThat(result.errorCode()).isEqualTo("001");
+        assertThat(result.items()).isEmpty();
+    }
+
+    @Test
     void 애플리케이션_조회와_외부_클라이언트_계약을_변환한다() {
         final AtomicReference<List<String>> capturedArguments = new AtomicReference<>();
-        final KamisClient client = (action,
-                                    productClsCode,
-                                    itemCategoryCode,
-                                    countryCode,
-                                    regDay,
-                                    convertKgYn,
-                                    returnType) -> {
-            capturedArguments.set(List.of(
-                    action,
-                    productClsCode,
-                    itemCategoryCode,
-                    countryCode,
-                    regDay,
-                    convertKgYn,
-                    returnType));
-            return response("000", List.of(item()));
+        final KamisClient client = new KamisClient() {
+            @Override
+            public DailyPriceResponse getDailyPrices(
+                    final String action,
+                    final String productClsCode,
+                    final String itemCategoryCode,
+                    final String countryCode,
+                    final String regDay,
+                    final String convertKgYn,
+                    final String returnType) {
+                capturedArguments.set(List.of(
+                        action,
+                        productClsCode,
+                        itemCategoryCode,
+                        countryCode,
+                        regDay,
+                        convertKgYn,
+                        returnType));
+                return response("000", List.of(item()));
+            }
+
+            @Override
+            public WholesalePeriodPriceResponse getWholesalePeriodPrices(
+                    final String action,
+                    final String startDay,
+                    final String endDay,
+                    final String itemCategoryCode,
+                    final String itemCode,
+                    final String kindCode,
+                    final String productRankCode,
+                    final String countryCode,
+                    final String convertKgYn,
+                    final String returnType) {
+                return null;
+            }
         };
         final KamisPriceQueryAdapter adapter = new KamisPriceQueryAdapter(client);
 
@@ -211,7 +242,34 @@ class KamisPriceQueryAdapterTest {
     }
 
     private KamisClient ignoredClient(final DailyPriceResponse response) {
-        return (action, productClsCode, itemCategoryCode, countryCode, regDay, convertKgYn, returnType) -> response;
+        return new KamisClient() {
+            @Override
+            public DailyPriceResponse getDailyPrices(
+                    final String action,
+                    final String productClsCode,
+                    final String itemCategoryCode,
+                    final String countryCode,
+                    final String regDay,
+                    final String convertKgYn,
+                    final String returnType) {
+                return response;
+            }
+
+            @Override
+            public WholesalePeriodPriceResponse getWholesalePeriodPrices(
+                    final String action,
+                    final String startDay,
+                    final String endDay,
+                    final String itemCategoryCode,
+                    final String itemCode,
+                    final String kindCode,
+                    final String productRankCode,
+                    final String countryCode,
+                    final String convertKgYn,
+                    final String returnType) {
+                return null;
+            }
+        };
     }
 
     private DailyPriceResponse decode(final String json) throws IOException {

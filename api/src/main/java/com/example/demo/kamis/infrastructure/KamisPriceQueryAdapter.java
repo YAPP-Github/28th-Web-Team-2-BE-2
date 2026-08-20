@@ -4,11 +4,17 @@ import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.external.kamis.DailyPriceResponse;
 import com.example.demo.external.kamis.Item;
+import com.example.demo.external.kamis.WholesalePeriodPriceItem;
+import com.example.demo.external.kamis.WholesalePeriodPriceResponse;
 import com.example.demo.external.kamis.feign.KamisClient;
+import com.example.demo.kamis.application.port.KamisPeriodPriceQueryPort;
 import com.example.demo.kamis.application.port.KamisPriceQueryPort;
 import com.example.demo.kamis.application.query.KamisDailyPriceQuery;
+import com.example.demo.kamis.application.query.KamisPeriodPriceQuery;
 import com.example.demo.kamis.application.result.KamisDailyPriceItemResult;
 import com.example.demo.kamis.application.result.KamisDailyPriceResult;
+import com.example.demo.kamis.application.result.KamisPeriodPriceItemResult;
+import com.example.demo.kamis.application.result.KamisPeriodPriceResult;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,11 +24,13 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component("kamisPriceQueryPort")
 @RequiredArgsConstructor
-final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
+final class KamisPriceQueryAdapter implements KamisPriceQueryPort, KamisPeriodPriceQueryPort {
 
     private static final String DAILY_PRICE_BY_CATEGORY_LIST_ACTION = "dailyPriceByCategoryList";
+    private static final String PERIOD_WHOLESALE_PRODUCT_LIST_ACTION = "periodWholesaleProductList";
     private static final String JSON_RETURN_TYPE = "json";
     private static final String SUCCESS_ERROR_CODE = "000";
+    private static final String NO_DATA_ERROR_CODE = "001";
 
     private final KamisClient kamisClient;
 
@@ -37,12 +45,45 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
                             toRegDay(query),
                             query.convertKgYn(),
                             JSON_RETURN_TYPE);
+            if (NO_DATA_ERROR_CODE.equals(response.errorCode())) {
+                return new KamisDailyPriceResult(response.errorCode(), null, List.of());
+            }
             if (!SUCCESS_ERROR_CODE.equals(response.errorCode())) {
                 throw externalApiException();
             }
             return new KamisDailyPriceResult(response.errorCode(), null, toItems(response.items()));
         } catch (final RuntimeException exception) {
             log.error("[KAMIS] response mapping failed errorMessage={}", exception.getMessage(), exception);
+            if (exception instanceof ApiException apiException) {
+                throw apiException;
+            }
+            throw externalApiException();
+        }
+    }
+
+    @Override
+    public KamisPeriodPriceResult findWholesalePeriodPrices(final KamisPeriodPriceQuery query) {
+        try {
+            final WholesalePeriodPriceResponse response = kamisClient.getWholesalePeriodPrices(
+                    PERIOD_WHOLESALE_PRODUCT_LIST_ACTION,
+                    query.startDay().toString(),
+                    query.endDay().toString(),
+                    query.itemCategoryCode(),
+                    query.itemCode(),
+                    query.kindCode(),
+                    query.productRankCode(),
+                    query.countryCode(),
+                    query.convertKgYn(),
+                    JSON_RETURN_TYPE);
+            if (NO_DATA_ERROR_CODE.equals(response.errorCode())) {
+                return new KamisPeriodPriceResult(response.errorCode(), null, List.of());
+            }
+            if (!SUCCESS_ERROR_CODE.equals(response.errorCode())) {
+                throw externalApiException();
+            }
+            return new KamisPeriodPriceResult(response.errorCode(), null, toPeriodItems(response.items()));
+        } catch (final RuntimeException exception) {
+            log.error("[KAMIS] period response mapping failed errorMessage={}", exception.getMessage(), exception);
             if (exception instanceof ApiException apiException) {
                 throw apiException;
             }
@@ -60,6 +101,20 @@ final class KamisPriceQueryAdapter implements KamisPriceQueryPort {
     private List<KamisDailyPriceItemResult> toItems(final List<Item> items) {
         return items.stream()
                 .map(this::toResult)
+                .toList();
+    }
+
+    private List<KamisPeriodPriceItemResult> toPeriodItems(final List<WholesalePeriodPriceItem> items) {
+        return items.stream()
+                .map(item -> new KamisPeriodPriceItemResult(
+                        item.itemName(),
+                        item.kindName(),
+                        item.countyName(),
+                        item.marketName(),
+                        item.yyyy(),
+                        item.regDay(),
+                        item.price(),
+                        item.unit()))
                 .toList();
     }
 
