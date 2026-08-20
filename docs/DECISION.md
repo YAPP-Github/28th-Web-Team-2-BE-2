@@ -11,5 +11,6 @@
 ## 현재 결정
 
 - [ADR-0001: `api` 실행 모듈과 루트 집계 프로젝트의 경계](adr/0001-api-module-boundary.md) — 실행 코드는 `api`에 두고 루트 프로젝트는 집계·공통 BOM 역할만 담당한다.
+- [ADR-0003: 가게 댓글 조회·작성 API를 현재 범위에서 제외](adr/0003-store-comment-api-scope.md) — 현재 프로젝트 범위에서 진행하지 않는다 (Issue #207).
 
 ---
