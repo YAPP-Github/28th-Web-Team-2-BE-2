@@ -39,7 +39,7 @@ class FlywayMigrationIntegrationTest {
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(regionName("1121510100")).isEqualTo("서울특별시 광진구 중곡동");
         assertThat(countRows("public_prices")).isEqualTo(3);
@@ -115,7 +115,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -141,7 +141,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22");
         assertCategoryMapping();
         assertThat(countRows("stores")).isZero();
         assertThat(countRows("user_reports")).isZero();
@@ -158,7 +158,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22");
         assertThat(columnNames("store_favorites"))
                 .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
         assertThat(constraintNames("store_favorites"))
@@ -188,7 +188,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22");
         assertThat(columnNullable("user_reports", "store_id")).isTrue();
         assertThat(columnNullable("user_reports", "user_id")).isTrue();
         assertThat(columnNullable("user_reports", "region_id")).isTrue();
@@ -534,11 +534,11 @@ class FlywayMigrationIntegrationTest {
 
         // 같은 사용자·품목·가게·날짜·유형의 제보 중복 제출을 막는다 (V16)
         assertThat(indexNames("user_reports")).contains("uk_user_reports_submission");
-        // 날짜 기준 제보 조회·정렬 (V21)
+        // 날짜 기준 제보 조회·정렬 (V22)
         assertThat(indexNames("user_reports")).contains("idx_user_reports_user_report_date");
-        // 동네 품목 제보 조회의 필터 조건 (V21)
+        // 동네 품목 제보 조회의 필터 조건 (V22)
         assertThat(indexNames("user_reports")).contains("idx_user_reports_item_region_unit");
-        // 채널 성격은 필수다 (V20)
+        // 채널 성격은 필수다 (V21)
         assertThat(columnNames("online_channels"))
                 .containsExactly("channel_id", "channel_name", "channel_kind");
         assertThat(constraintNames("online_channels")).contains("ck_online_channels_kind");
