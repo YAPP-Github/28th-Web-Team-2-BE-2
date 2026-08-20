@@ -5,9 +5,9 @@ import com.example.demo.report.application.port.UserReportQueryPort;
 import com.example.demo.report.application.result.DailyReportResult;
 import com.example.demo.report.application.result.MyWeeklyReportResult;
 import com.example.demo.report.domain.UserReport;
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Collection;
 import java.util.Comparator;
@@ -23,17 +23,16 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 현재 사용자의 주간 제보 현황을 조회한다.
  *
- * <p>주간은 {@code Asia/Seoul} 기준 오늘이 속한 월요일부터 7일이다. PURCHASE와 OBSERVED를 모두 제보 활동으로 세고, 같은 날짜의 여러
+ * <p>주간은 서비스 기준 시각({@code Asia/Seoul})으로 오늘이 속한 월요일부터 7일이다. PURCHASE와 OBSERVED를 모두 제보 활동으로 세고, 같은 날짜의 여러
  * 제보는 하루로 집계한다.
  */
 @Service
 @RequiredArgsConstructor
 public class GetMyWeeklyReportQueryUseCase {
 
-    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
-
     private final UserReportQueryPort userReportQueryPort;
     private final ItemExistencePort itemExistencePort;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public MyWeeklyReportResult execute(final Long userId) {
@@ -50,8 +49,7 @@ public class GetMyWeeklyReportQueryUseCase {
     }
 
     private LocalDate weekStart() {
-        return LocalDate.now(SERVICE_ZONE)
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        return LocalDate.now(clock).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 
     /** 같은 날짜의 제보 중 가장 먼저 등록된 것을 그날의 대표로 삼는다. */

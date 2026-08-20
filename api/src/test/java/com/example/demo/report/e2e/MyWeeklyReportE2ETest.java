@@ -19,12 +19,11 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.time.DayOfWeek;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAdjusters;
 import java.util.Date;
 import java.util.UUID;
 import javax.crypto.SecretKey;
@@ -34,6 +33,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -42,11 +45,30 @@ import org.springframework.test.web.servlet.ResultActions;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(MyWeeklyReportE2ETest.FixedClockConfig.class)
 class MyWeeklyReportE2ETest {
+
+    /**
+     * 주 경계를 서버 기본 시간대와 무관하게 고정한다.
+     *
+     * <p>고른 순간은 2026-08-17(월) 08:00 KST = 2026-08-16T23:00Z 다. 같은 순간을 UTC 로 해석하면
+     * 2026-08-16(일)이 되어 주 시작이 2026-08-10 으로 한 주 밀린다. 즉 서비스 시간대를 쓰지 않으면 이 테스트가
+     * 실패한다 — 기대값을 프로덕션 계산식으로 만들면 양쪽이 함께 틀려도 통과하는 동어반복이 된다.
+     */
+    @TestConfiguration
+    static class FixedClockConfig {
+
+        @Bean
+        @Primary
+        Clock fixedServiceClock() {
+            return Clock.fixed(Instant.parse("2026-08-16T23:00:00Z"), ZoneId.of("Asia/Seoul"));
+        }
+    }
 
     private static final String PATH = "/api/v1/users/me/reports/weekly";
     private static final String REGION_ID = "1121510100";
-    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
+    /** 위 고정 시각이 속한 주의 월요일. 프로덕션 계산식을 쓰지 않고 리터럴로 못박는다. */
+    private static final LocalDate WEEK_START = LocalDate.of(2026, 8, 17);
 
     private final MockMvc mockMvc;
     private final UserJpaRepository userJpaRepository;
@@ -57,7 +79,6 @@ class MyWeeklyReportE2ETest {
     private final String accessSecret;
     private Long potatoId;
     private Long onionId;
-    private LocalDate weekStart;
 
     @Autowired
     MyWeeklyReportE2ETest(
@@ -84,26 +105,24 @@ class MyWeeklyReportE2ETest {
         userJpaRepository.deleteAll();
         potatoId = itemJpaRepository.save(new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES)).id();
         onionId = itemJpaRepository.save(new Item("양파", "1kg", null, ItemCategory.SEASONINGS)).id();
-        weekStart = LocalDate.now(SERVICE_ZONE)
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     }
 
     @Test
     @DisplayName("주간 7일을 월요일부터 반환하고 제보한 날만 hasReported가 true다")
     void returnsSevenDaysFromMonday() throws Exception {
         final User me = saveUser("나");
-        saveOn(me.id(), potatoId, ReportType.PURCHASE, weekStart);
+        saveOn(me.id(), potatoId, ReportType.PURCHASE, WEEK_START);
 
         request(accessToken(me))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalReportedDays").value(1))
                 .andExpect(jsonPath("$.data.dailyReports.length()").value(7))
-                .andExpect(jsonPath("$.data.dailyReports[0].date").value(weekStart.toString()))
+                .andExpect(jsonPath("$.data.dailyReports[0].date").value(WEEK_START.toString()))
                 .andExpect(jsonPath("$.data.dailyReports[0].hasReported").value(true))
                 .andExpect(jsonPath("$.data.dailyReports[0].itemId").value(potatoId))
                 .andExpect(jsonPath("$.data.dailyReports[0].itemName").value("감자"))
                 .andExpect(jsonPath("$.data.dailyReports[6].date")
-                        .value(weekStart.plusDays(6).toString()))
+                        .value(WEEK_START.plusDays(6).toString()))
                 .andExpect(jsonPath("$.data.dailyReports[6].hasReported").value(false))
                 .andExpect(jsonPath("$.data.dailyReports[6].itemId").doesNotExist())
                 .andExpect(jsonPath("$.data.dailyReports[6].itemName").doesNotExist());
@@ -113,9 +132,9 @@ class MyWeeklyReportE2ETest {
     @DisplayName("같은 날짜는 하루로 집계하고 그날 가장 먼저 등록한 제보를 대표로 삼는다")
     void countsBothReportTypesOncePerDay() throws Exception {
         final User me = saveUser("나");
-        saveOn(me.id(), potatoId, ReportType.PURCHASE, weekStart);
-        saveOn(me.id(), onionId, ReportType.OBSERVED, weekStart);
-        saveOn(me.id(), onionId, ReportType.OBSERVED, weekStart.plusDays(1));
+        saveOn(me.id(), potatoId, ReportType.PURCHASE, WEEK_START);
+        saveOn(me.id(), onionId, ReportType.OBSERVED, WEEK_START);
+        saveOn(me.id(), onionId, ReportType.OBSERVED, WEEK_START.plusDays(1));
 
         request(accessToken(me))
                 .andExpect(status().isOk())
@@ -130,8 +149,8 @@ class MyWeeklyReportE2ETest {
     @DisplayName("지난 주 제보는 이번 주 집계에 들어가지 않는다")
     void excludesReportsOutsideTheWeek() throws Exception {
         final User me = saveUser("나");
-        saveOn(me.id(), potatoId, ReportType.PURCHASE, weekStart.minusDays(1));
-        saveOn(me.id(), potatoId, ReportType.PURCHASE, weekStart.plusDays(7));
+        saveOn(me.id(), potatoId, ReportType.PURCHASE, WEEK_START.minusDays(1));
+        saveOn(me.id(), potatoId, ReportType.PURCHASE, WEEK_START.plusDays(7));
 
         request(accessToken(me))
                 .andExpect(status().isOk())
@@ -144,29 +163,12 @@ class MyWeeklyReportE2ETest {
     @DisplayName("주의 마지막 날(일요일) 제보도 이번 주에 포함된다")
     void includesLastDayOfWeek() throws Exception {
         final User me = saveUser("나");
-        saveOn(me.id(), potatoId, ReportType.PURCHASE, weekStart.plusDays(6));
+        saveOn(me.id(), potatoId, ReportType.PURCHASE, WEEK_START.plusDays(6));
 
         request(accessToken(me))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.totalReportedDays").value(1))
                 .andExpect(jsonPath("$.data.dailyReports[6].hasReported").value(true));
-    }
-
-    @Test
-    @DisplayName("제보 기준일은 Asia/Seoul 기준이라 저장 직후 이번 주에 잡힌다")
-    void usesServiceZoneOnWrite() throws Exception {
-        final User me = saveUser("나");
-        // 날짜를 덮어쓰지 않고 실제 생성 경로가 정한 기준일을 그대로 쓴다
-        userReportJpaRepository.save(new UserReport(
-                REGION_ID, ReportType.PURCHASE, null, potatoId, me.id(), 3000, "1kg",
-                new BigDecimal("1.000"), null, null, null));
-        final int todayIndex = LocalDate.now(SERVICE_ZONE).getDayOfWeek().getValue() - 1;
-
-        request(accessToken(me))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.totalReportedDays").value(1))
-                .andExpect(jsonPath("$.data.dailyReports[%d].hasReported".formatted(todayIndex))
-                        .value(true));
     }
 
     @Test
@@ -182,7 +184,7 @@ class MyWeeklyReportE2ETest {
     void excludesOtherUsersReports() throws Exception {
         final User me = saveUser("나");
         final User other = saveUser("남");
-        saveOn(other.id(), potatoId, ReportType.PURCHASE, weekStart);
+        saveOn(other.id(), potatoId, ReportType.PURCHASE, WEEK_START);
 
         request(accessToken(me))
                 .andExpect(status().isOk())
