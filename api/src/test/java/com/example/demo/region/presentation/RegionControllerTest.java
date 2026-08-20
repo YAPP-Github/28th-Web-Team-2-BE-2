@@ -19,6 +19,7 @@ import com.example.demo.region.application.usecase.GetNearbyRegionUseCase;
 import com.example.demo.region.application.usecase.SearchRegionsUseCase;
 import com.example.demo.region.presentation.converter.RegionQueryConverter;
 import com.example.demo.region.presentation.converter.RegionResultConverter;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,8 +57,16 @@ class RegionControllerTest {
                         List.of(new NearbyRegionResult.Region(4413310500L, "천안시 서북구 성성동"))));
         when(searchRegionsUseCase.execute(any(RegionSearchQuery.class)))
                 .thenReturn(new RegionSearchResult(List.of(
-                        new RegionSearchResult.Region("4413310500", "천안시 서북구 성성동"),
-                        new RegionSearchResult.Region("4413310600", "천안시 동남구 성성동"))));
+                        new RegionSearchResult.Region(
+                                "4413310500",
+                                "천안시 서북구 성성동",
+                                new BigDecimal("36.8358"),
+                                new BigDecimal("127.1324")),
+                        new RegionSearchResult.Region(
+                                "4413310600",
+                                "천안시 동남구 성성동",
+                                new BigDecimal("36.8360"),
+                                new BigDecimal("127.1326")))));
     }
 
     @Test
@@ -114,7 +123,9 @@ class RegionControllerTest {
                 .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
                 .andExpect(jsonPath("$.data.searchResults").isArray())
                 .andExpect(jsonPath("$.data.searchResults[0].regionId").value("4413310500"))
-                .andExpect(jsonPath("$.data.searchResults[0].regionName").value("천안시 서북구 성성동"));
+                .andExpect(jsonPath("$.data.searchResults[0].regionName").value("천안시 서북구 성성동"))
+                .andExpect(jsonPath("$.data.searchResults[0].latitude").value(36.8358))
+                .andExpect(jsonPath("$.data.searchResults[0].longitude").value(127.1324));
     }
 
     @Test

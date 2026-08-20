@@ -1,22 +1,39 @@
 package com.example.demo.report.presentation.converter;
 
 import com.example.demo.report.application.contract.ItemCandidate;
+import com.example.demo.report.application.query.MyReportQuery;
+import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.application.result.CreateUserReportResult;
 import com.example.demo.report.application.result.ImageAnalysisResult;
+import com.example.demo.report.application.result.DailyReportResult;
+import com.example.demo.report.application.result.MyReportPageResult;
+import com.example.demo.report.application.result.MyReportSummaryResult;
+import com.example.demo.report.application.result.MyWeeklyReportResult;
+import com.example.demo.report.application.result.RegionItemReportResult;
 import com.example.demo.report.application.result.StoreReportResult;
 import com.example.demo.report.application.result.StoreReportsResult;
+import com.example.demo.report.application.result.UserReportSummaryResult;
 import com.example.demo.report.domain.AnalysisConfidence;
 import com.example.demo.report.presentation.dto.CreateUserReportResponse;
 import com.example.demo.report.presentation.dto.ImageAnalysisResponse;
+import com.example.demo.report.presentation.dto.DailyReportResponse;
+import com.example.demo.report.presentation.dto.MyReportPageResponse;
+import com.example.demo.report.presentation.dto.MyReportRequest;
+import com.example.demo.report.presentation.dto.MyReportSummaryResponse;
+import com.example.demo.report.presentation.dto.MyWeeklyReportResponse;
+import com.example.demo.report.presentation.dto.RegionItemReportRequest;
+import com.example.demo.report.presentation.dto.RegionItemReportResponse;
 import com.example.demo.report.presentation.dto.StoreReportResponse;
 import com.example.demo.report.presentation.dto.StoreReportsResponse;
 import com.example.demo.report.presentation.dto.StoreReportsSummaryResponse;
+import com.example.demo.report.presentation.dto.UserReportSummaryResponse;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
 @Component
 public class UserReportResultConverter {
+
     public CreateUserReportResponse toResponse(final CreateUserReportResult result) {
         return new CreateUserReportResponse(result.reportId(), result.itemId(), result.storeId(), result.reportedAt());
     }
@@ -28,6 +45,26 @@ public class UserReportResultConverter {
         return new StoreReportsResponse(
                 result.storeId(),
                 new StoreReportsSummaryResponse(result.cheapCount(), result.expensiveCount()),
+                reports,
+                result.page(),
+                result.size(),
+                result.hasNext());
+    }
+
+    public RegionItemReportQuery toQuery(
+            final String regionId, final Long itemId, final RegionItemReportRequest request) {
+        return new RegionItemReportQuery(
+                regionId, itemId, request.sort(), request.page(), request.size());
+    }
+
+    public RegionItemReportResponse toResponse(final RegionItemReportResult result) {
+        final List<UserReportSummaryResponse> reports =
+                result.reports().stream().map(this::toResponse).toList();
+        return new RegionItemReportResponse(
+                result.regionId(),
+                result.regionName(),
+                result.itemId(),
+                result.totalCount(),
                 reports,
                 result.page(),
                 result.size(),
@@ -94,5 +131,58 @@ public class UserReportResultConverter {
             return null;
         }
         return confidence.value();
+    }
+
+    private UserReportSummaryResponse toResponse(final UserReportSummaryResult result) {
+        return new UserReportSummaryResponse(
+                result.reportId(),
+                result.storeId(),
+                result.storeName(),
+                result.price(),
+                result.amount(),
+                result.unit(),
+                result.reportedAt(),
+                result.priceGap(),
+                result.priceDiffRate(),
+                result.classification());
+    }
+
+    public MyReportQuery toMyReportQuery(final Long userId, final MyReportRequest request) {
+        return new MyReportQuery(userId, request.page(), request.size());
+    }
+
+    public MyReportPageResponse toMyReportPageResponse(final MyReportPageResult result) {
+        final List<MyReportSummaryResponse> reports =
+                result.reports().stream().map(this::toMyReportSummaryResponse).toList();
+        return new MyReportPageResponse(
+                reports,
+                result.page(),
+                result.size(),
+                result.totalCount(),
+                result.totalPages(),
+                result.hasNext());
+    }
+
+    private MyReportSummaryResponse toMyReportSummaryResponse(final MyReportSummaryResult result) {
+        return new MyReportSummaryResponse(
+                result.reportId(),
+                result.itemName(),
+                result.price(),
+                result.unit(),
+                result.reportedDate(),
+                result.regionId(),
+                result.regionName(),
+                result.priceGap());
+    }
+
+    public MyWeeklyReportResponse toMyWeeklyReportResponse(final MyWeeklyReportResult result) {
+        final List<DailyReportResponse> dailyReports =
+                result.dailyReports().stream().map(this::toDailyReportResponse).toList();
+        return new MyWeeklyReportResponse(result.totalReportedDays(), dailyReports);
+    }
+
+    private DailyReportResponse toDailyReportResponse(final DailyReportResult result) {
+        return new DailyReportResponse(
+                result.date(), result.hasReported(), result.itemId(), result.itemName());
     }
 }

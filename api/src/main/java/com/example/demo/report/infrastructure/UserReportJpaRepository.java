@@ -1,11 +1,14 @@
 package com.example.demo.report.infrastructure;
 
 import com.example.demo.report.domain.UserReport;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserReportJpaRepository extends JpaRepository<UserReport, Long> {
 
@@ -30,4 +33,14 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
               AND report.regionId = :regionId
             """)
     List<UserReport> findLatestCheapReports(@Param("regionId") String regionId);
+
+    Page<UserReport> findAllByUserId(Long userId, Pageable pageable);
+
+    Optional<UserReport> findByIdAndUserId(Long reportId, Long userId);
+
+    List<UserReport> findAllByUserIdAndReportDateBetweenOrderByReportDateAscIdAsc(
+            Long userId, LocalDate from, LocalDate to);
+
+    Page<UserReport> findAllByItemIdAndRegionIdAndUnit(
+            Long itemId, String regionId, String unit, Pageable pageable);
 }

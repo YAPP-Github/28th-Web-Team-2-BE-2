@@ -16,6 +16,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -44,13 +45,18 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers(new RegexRequestMatcher("^/api/v1/stores/[^/]+$", "GET"))
+                        .permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/actuator/health",
                                 "/api/kamis/**",
                                 "/api/v1/items",
                                 "/api/v1/items/*",
+                                "/api/v1/items/*/online-prices",
+                                "/api/v1/items/*/public-prices",
                                 "/api/v1/news",
+                                "/api/v1/regions/*/items/*/reports",
                                 "/api/v1/regions/nearby",
                                 "/api/v1/regions/search",
                                 "/api/v1/stores/nearby",
@@ -73,6 +79,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/items/*/favorite")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me")
+                        .hasRole("USER")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/users/me/reports",
+                                "/api/v1/users/me/reports/weekly")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/users/me/reports/*")
+                        .hasRole("USER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/users/me/reports/*")
                         .hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me/favorite-stores")
                         .hasRole("USER")
