@@ -3,6 +3,7 @@ package com.example.demo.store.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,7 +81,7 @@ class GetStoreDetailUseCaseTest {
         givenStore();
         final LocalDate reportedDate = LocalDate.now();
         final Instant reportedAt = Instant.parse("2026-08-19T01:00:00Z");
-        when(queryPort.findReportSummary(1L, LocalDate.now().minusDays(29)))
+        when(queryPort.findReportSummary(eq(1L), any(LocalDate.class)))
                 .thenReturn(new StoreReportSummary(3L, 1L, 5L, reportedDate, reportedAt));
         when(queryPort.countFavorites(1L)).thenReturn(4L);
 
@@ -92,6 +93,20 @@ class GetStoreDetailUseCaseTest {
         assertThat(result.totalReportedItemCount()).isEqualTo(5L);
         assertThat(result.latestReportedDate()).isEqualTo(reportedDate);
         assertThat(result.latestReportedAt()).isEqualTo(reportedAt);
+    }
+
+    @Test
+    void 저장된_지역을_응답으로_전달한다() {
+        when(queryPort.findStore(1L)).thenReturn(java.util.Optional.of(new StoreDetailSnapshot(
+                1L, "장보고 마트", "주소", "1121510100", "서울특별시 광진구 중곡동",
+                new BigDecimal("37.5"), new BigDecimal("127"))));
+        when(queryPort.findReportSummary(any(), any())).thenReturn(emptyReports());
+        when(queryPort.countFavorites(1L)).thenReturn(0L);
+
+        final var result = useCase.execute(new StoreDetailQuery(1L, null, null, null));
+
+        assertThat(result.regionId()).isEqualTo("1121510100");
+        assertThat(result.regionName()).isEqualTo("서울특별시 광진구 중곡동");
     }
 
     @Test

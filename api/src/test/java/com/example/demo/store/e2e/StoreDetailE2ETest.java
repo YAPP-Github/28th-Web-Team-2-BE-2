@@ -69,17 +69,23 @@ class StoreDetailE2ETest {
         storeFavoriteJpaRepository.deleteAll();
         storeJpaRepository.deleteAll();
         userJpaRepository.deleteAll();
+        jdbcTemplate.update(
+                "MERGE INTO regions (region_id, region_name) KEY (region_id) VALUES (?, ?)",
+                "1121510100", "서울특별시 광진구 중곡동");
     }
 
     @Test
     void 가게_상세는_찜과_최근_30일_제보를_집계한다() throws Exception {
         final Store store = saveStore();
-        storeFavoriteJpaRepository.save(new StoreFavorite(7L, store.id()));
-        storeFavoriteJpaRepository.save(new StoreFavorite(8L, store.id()));
+        final User firstUser = saveUser("첫 번째 사용자");
+        final User secondUser = saveUser("두 번째 사용자");
+        final User reportUser = saveUser("제보 사용자");
+        storeFavoriteJpaRepository.save(new StoreFavorite(firstUser.id(), store.id()));
+        storeFavoriteJpaRepository.save(new StoreFavorite(secondUser.id(), store.id()));
 
-        saveReport(store.id(), -100);
-        saveReport(store.id(), 200);
-        final UserReport oldReport = saveReport(store.id(), -300);
+        saveReport(store.id(), -100, firstUser.id());
+        saveReport(store.id(), 200, secondUser.id());
+        final UserReport oldReport = saveReport(store.id(), -300, reportUser.id());
         jdbcTemplate.update(
                 "UPDATE user_reports SET report_date = ? WHERE report_id = ?",
                 LocalDate.now().minusDays(30),
@@ -94,6 +100,8 @@ class StoreDetailE2ETest {
                 .andExpect(jsonPath("$.data.storeId").value(store.id()))
                 .andExpect(jsonPath("$.data.storeName").value("장보고 마트"))
                 .andExpect(jsonPath("$.data.address").value("서울 강남구 삼성동 123"))
+                .andExpect(jsonPath("$.data.regionId").value("1121510100"))
+                .andExpect(jsonPath("$.data.regionName").value("서울특별시 광진구 중곡동"))
                 .andExpect(jsonPath("$.data.favoriteCount").value(2))
                 .andExpect(jsonPath("$.data.cheapItemCount").value(1))
                 .andExpect(jsonPath("$.data.expensiveItemCount").value(1))
@@ -202,13 +210,13 @@ class StoreDetailE2ETest {
                 null));
     }
 
-    private UserReport saveReport(final Long storeId, final int publicPriceDiff) {
+    private UserReport saveReport(final Long storeId, final int publicPriceDiff, final Long userId) {
         return userReportJpaRepository.save(new UserReport(
                 "1121510100",
                 ReportType.OBSERVED,
                 storeId,
                 1L,
-                7L,
+                userId,
                 1000,
                 "1kg",
                 BigDecimal.ONE,
