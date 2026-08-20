@@ -50,4 +50,14 @@ public interface StoreControllerSpec {
     ResponseEntity<Void> addFavorite(
             @Parameter(description = "가게 ID") @Positive Long storeId,
         @Parameter(hidden = true) AuthPrincipal principal);
+
+    @Operation(summary = "가게 단골을 해제한다")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "단골 해제 성공 또는 이미 해제된 관계"),
+        @ApiResponse(responseCode = "401", description = "로그인이 필요하다"),
+        @ApiResponse(responseCode = "404", description = "가게를 찾을 수 없다")
+    })
+    ResponseEntity<Void> removeFavorite(
+            @Parameter(description = "가게 ID") @Positive Long storeId,
+            @Parameter(hidden = true) AuthPrincipal principal);
 }

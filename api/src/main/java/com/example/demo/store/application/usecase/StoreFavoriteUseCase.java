@@ -21,6 +21,12 @@ public class StoreFavoriteUseCase {
         storeFavoriteCommandPort.add(command.userId(), command.storeId());
     }
 
+    @Transactional
+    public void remove(final StoreFavoriteCommand command) {
+        validateStoreExists(command.storeId());
+        storeFavoriteCommandPort.remove(command.userId(), command.storeId());
+    }
+
     private void validateStoreExists(final Long storeId) {
         if (storeFavoriteCommandPort.storeExists(storeId)) {
             return;

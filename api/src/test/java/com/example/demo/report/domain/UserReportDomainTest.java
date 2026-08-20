@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import org.junit.jupiter.api.Test;
 
 class UserReportDomainTest {
@@ -38,7 +39,7 @@ class UserReportDomainTest {
         assertThat(report.price()).isEqualTo(3500);
         assertThat(report.unit()).isEqualTo("kg");
         assertThat(report.amount()).isEqualByComparingTo("1.5");
-        assertThat(report.reportDate()).isEqualTo(LocalDate.now());
+        assertThat(report.reportDate()).isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")));
         assertThat(report.publicPriceDiff()).isEqualTo(500);
         assertThat(report.priceDiffRate()).isEqualByComparingTo("14.29");
         assertThat(report.createdAt()).isNotNull();
