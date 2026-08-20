@@ -142,7 +142,8 @@ class ItemDetailE2ETest {
                 .andExpect(jsonPath("$.isLiked").value(false))
                 .andExpect(jsonPath("$.latestLocalReportPrice").value(3500))
                 .andExpect(jsonPath("$.todayPublicPrice").value(1500))
-                .andExpect(jsonPath("$.onlineLowestPrice").value(5500))
+                // 온라인 최저가는 100g 기준으로 저장되고(5500) 품목 기준 단위(1kg)로 환산해 내려간다
+                .andExpect(jsonPath("$.onlineLowestPrice").value(55000))
                 .andExpect(jsonPath("$.baseDate").value(today.toString()))
                 .andExpect(jsonPath("$.priceGap").value(500))
                 .andExpect(jsonPath("$.priceDiffRate").value(50.0));
@@ -202,6 +203,22 @@ class ItemDetailE2ETest {
                 .andExpect(jsonPath("$.baseDate").value(nullValue()))
                 .andExpect(jsonPath("$.priceGap").value(nullValue()))
                 .andExpect(jsonPath("$.priceDiffRate").value(nullValue()));
+    }
+
+    @Test
+    void 무게로_환산할_수_없는_단위의_품목은_온라인_최저가가_null이다() throws Exception {
+        // 이 응답에는 값마다 단위를 담을 자리가 없다. 100g 가격을 그대로 두면 1개 기준 금액과 나란히 놓인다.
+        final LocalDate today = LocalDate.now();
+        final Item watermelon = saveItem("수박", "1개");
+        final OnlineChannel channel = onlineChannelJpaRepository.save(new OnlineChannel("온라인몰"));
+        onlinePriceJpaRepository.save(new OnlinePrice(
+                watermelon.id(), channel.id(), watermelon.name(), "수박 한 통", 450, 100,
+                "https://example.test/watermelon", null, today));
+
+        mockMvc.perform(detailRequest(watermelon.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.defaultUnit").value("1개"))
+                .andExpect(jsonPath("$.onlineLowestPrice").value(nullValue()));
     }
 
     @Test

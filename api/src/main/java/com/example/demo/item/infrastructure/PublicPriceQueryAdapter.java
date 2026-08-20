@@ -1,6 +1,7 @@
 package com.example.demo.item.infrastructure;
 
 import com.example.demo.item.application.port.PublicPriceQueryPort;
+import com.example.demo.item.application.query.PublicPriceRange;
 import com.example.demo.item.domain.PublicPrice;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -42,6 +43,13 @@ public class PublicPriceQueryAdapter implements PublicPriceQueryPort {
             final Long itemId, final String regionId) {
         return publicPriceJpaRepository.findFirstByItemIdAndRegionIdOrderByPriceDateDescIdDesc(
                 itemId, regionId);
+    }
+
+    @Override
+    public List<PublicPrice> findByRange(
+            final Long itemId, final String regionId, final PublicPriceRange range) {
+        return publicPriceJpaRepository.findByRange(
+                itemId, regionId, range.startExclusive(), range.endInclusive());
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.example.demo.item.infrastructure;
 
 import com.example.demo.item.domain.OnlinePrice;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,6 +19,9 @@ public interface OnlinePriceJpaRepository extends JpaRepository<OnlinePrice, Lon
             Long itemId, Integer channelId, LocalDate createdAt, Integer unit);
 
     Optional<OnlinePrice> findFirstByItemIdOrderByCreatedAtDescIdDesc(Long itemId);
+
+    Optional<OnlinePrice> findFirstByItemIdAndChannelIdInAndUnitOrderByCreatedAtDescIdDesc(
+            Long itemId, Collection<Integer> channelIds, Integer unit);
 
     Optional<OnlinePrice> findFirstByItemIdAndCreatedAtAndUnitOrderByPriceAscIdAsc(
             Long itemId, LocalDate createdAt, Integer unit);
