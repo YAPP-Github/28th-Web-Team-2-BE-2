@@ -29,10 +29,10 @@ public record CreateUserReportCommand(
     }
 
     /**
-     * 단위만 바꾼 사본. 요청 표기({@code kg})를 품목 기준 단위({@code 1kg})로 맞춘 뒤
-     * 저장하려고 쓴다 — 저장 표기가 섞이면 기존 제보와 비교할 수 없다.
+     * 수량·단위만 바꾼 사본. 요청 표기({@code 500g})를 품목 기준 단위({@code 0.5 × 1kg})로
+     * 환산한 뒤 저장하려고 쓴다 — 저장 표기가 섞이면 제보끼리 비교할 수 없다.
      */
-    public CreateUserReportCommand withUnit(final String unit) {
+    public CreateUserReportCommand withQuantity(final String unit, final BigDecimal amount) {
         return new CreateUserReportCommand(
                 itemId, userId, regionId, price, unit, amount, reportType, storeId, store, photoUrl);
     }

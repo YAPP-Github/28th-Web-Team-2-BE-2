@@ -238,11 +238,11 @@ class UserReportE2ETest {
     void 품목_기준_단위와_다른_제보는_저장하지_않고_400을_응답한다() throws Exception {
         final User user = saveUser("단위 오류 사용자");
 
-        // 기준 단위가 "1kg"인 품목에 "g" — 수량 환산 없이는 가격을 비교할 수 없어 거부한다.
+        // 기준 단위가 "1kg"인 품목에 "개" — 한 개가 몇 kg인지는 품목마다 달라 환산할 수 없다.
         mockMvc.perform(post(reportPath(item.id()))
                         .header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(reportBodyWithUnit("g")))
+                        .content(reportBodyWithUnit("개")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_ERROR"));
 
