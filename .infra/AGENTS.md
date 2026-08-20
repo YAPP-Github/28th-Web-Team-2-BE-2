@@ -35,3 +35,25 @@ terraform validate
 init 전에 verifier는 required provider와 lock/declaration, `TF_PLUGIN_CACHE_DIR`, Terraform CLI provider-installation mirror, 기존 provider/module cache, effective sandbox/network 정책을 확인한다. 모든 provider/module이 로컬 cache 또는 filesystem mirror로 충족되고 Terraform egress 차단을 증명할 수 있을 때만 같은 임시 `TF_DATA_DIR`로 init과 validate를 수행한다. cache/mirror가 없거나 remote module이 uncached 상태이거나 egress 차단을 증명할 수 없으면 `terraform init -backend=false -input=false`를 실행하지 않고 `unverified`로 보고한다. Terraform CLI가 없거나 provider를 준비할 수 없는 경우에도 설치·네트워크 우회 없이 `unverified`로 보고한다.
 
 주 orchestrator의 `workspace-write`는 CI/CD용 `terraform init`이 프로젝트 밖의 임시 `TF_DATA_DIR`에 작업 데이터를 작성해야 하기 때문에 유지한다. Terraform 소스·state·plan을 수정하거나 AWS 리소스를 변경하지 않으며, 세 specialist agent는 `read-only` sandbox를 사용한다.
+
+## state 밖에 있는 리소스 (2026-08-20)
+
+`s3.tf` 가 선언한 이미지 버킷은 **AWS CLI 로 먼저 만들었다.** state 파일이 이 저장소에 없어서
+`terraform apply` 를 돌릴 수 없었고(이미 존재하는 `marketgo-github-deploy` 부터 다시 만들려 든다),
+사진 인식 기능의 마지막 검증이 버킷에 걸려 있었다.
+
+실물은 `s3.tf` 와 같은 설정이다 — `marketgo-images`(ap-northeast-2), BucketOwnerEnforced, AES256,
+`BlockPublicPolicy=false` 와 나머지 셋 차단, `images/*` 공개 읽기 + `DenyInsecureTransport`,
+그리고 role `marketgo-ec2-runtime` 의 inline policy `marketgo-image-storage`.
+태그도 `local.common_tags` 와 맞췄다.
+
+**다음에 apply 하기 전에 import 해야 한다.** 안 하면 `BucketAlreadyOwnedByYou` 로 실패한다.
+
+```bash
+terraform -chdir=.infra import aws_s3_bucket.images marketgo-images
+terraform -chdir=.infra import aws_s3_bucket_public_access_block.images marketgo-images
+terraform -chdir=.infra import aws_s3_bucket_ownership_controls.images marketgo-images
+terraform -chdir=.infra import aws_s3_bucket_server_side_encryption_configuration.images marketgo-images
+terraform -chdir=.infra import aws_s3_bucket_policy.images marketgo-images
+terraform -chdir=.infra import aws_iam_role_policy.ec2_image_storage marketgo-ec2-runtime:marketgo-image-storage
+```
