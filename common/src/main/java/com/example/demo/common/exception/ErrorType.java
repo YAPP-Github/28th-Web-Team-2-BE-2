@@ -14,7 +14,7 @@ public enum ErrorType {
     INVALID_TOKEN("유효하지 않은 인증 토큰입니다."),
     UNAUTHORIZED("로그인이 필요한 서비스입니다."),
     FORBIDDEN("해당 권한이 없습니다."),
-    NEWS_UNAVAILABLE("뉴스를 조회할 수 없습니다."),
+    NEWS_UNAVAILABLE("조회할 뉴스 데이터가 없습니다."),
     STORE_SYNC_ERROR("가게 정보를 동기화할 수 없습니다."),
     INVALID_IMAGE_FORMAT("PNG 또는 JPEG 이미지만 등록할 수 있습니다."),
     IMAGE_TOO_LARGE("이미지 크기는 5MB를 넘을 수 없습니다."),
