@@ -1,9 +1,12 @@
 package com.example.demo.report.infrastructure;
 
 import com.example.demo.report.application.port.UserReportQueryPort;
+import com.example.demo.report.application.query.MyReportQuery;
 import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.application.query.UserReportSort;
 import com.example.demo.report.domain.UserReport;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,6 +37,19 @@ public class UserReportQueryAdapter implements UserReportQueryPort {
                 query.itemId(), query.regionId(), unit, pageable(query));
     }
 
+    @Override
+    public Page<UserReport> findByUser(final MyReportQuery query) {
+        return userReportJpaRepository.findAllByUserId(
+                query.userId(), PageRequest.of(query.page(), query.size(), latestFirst()));
+    }
+
+    @Override
+    public List<UserReport> findByUserInPeriod(
+            final Long userId, final LocalDate from, final LocalDate to) {
+        return userReportJpaRepository
+                .findAllByUserIdAndReportDateBetweenOrderByReportDateAscIdAsc(userId, from, to);
+    }
+
     private Pageable pageable(final RegionItemReportQuery query) {
         return PageRequest.of(query.page(), query.size(), sort(query.sort()));
     }
@@ -42,6 +58,11 @@ public class UserReportQueryAdapter implements UserReportQueryPort {
         if (sort == UserReportSort.PRICE_ASC) {
             return Sort.by(Sort.Order.asc("price"), Sort.Order.asc("id"));
         }
+        return latestFirst();
+    }
+
+    /** 최신 제보부터. 같은 날짜는 id 역순으로 안정 정렬한다. */
+    private Sort latestFirst() {
         return Sort.by(Sort.Order.desc("reportDate"), Sort.Order.desc("id"));
     }
 }
