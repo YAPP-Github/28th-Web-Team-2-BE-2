@@ -114,7 +114,8 @@ class StoreDetailE2ETest {
                 .andExpect(jsonPath("$.data.distance")
                         .value(allOf(greaterThanOrEqualTo(870), lessThanOrEqualTo(890))))
                 .andExpect(jsonPath("$.data.walkTimeMinutes").value(nullValue()))
-                .andExpect(jsonPath("$.data.businessHours").value(nullValue()))
+                .andExpect(jsonPath("$.data.businessHours").isArray())
+                .andExpect(jsonPath("$.data.businessHours").isEmpty())
                 .andExpect(jsonPath("$.data.openStatus").value("UNKNOWN"));
     }
 
