@@ -1,6 +1,6 @@
 # 0002. 제보 사진 인식에 Qwen vision 을 쓴다
 
-- 상태: 승인 (실호출 검증 완료, 1건 잔여)
+- 상태: 승인 (실호출 검증 완료)
 - 날짜: 2026-08-19 (검증 2026-08-20)
 
 ## 배경
@@ -27,7 +27,7 @@ DashScope 의 OpenAI 호환 endpoint(`/compatible-mode/v1/chat/completions`)로 
 
 ## 실호출 검증 결과 (2026-08-20)
 
-`QwenVisionLiveSmokeTest` 를 실제 키로 돌려 확인했다. 아래 5건이 해소됐고 1건이 남았다.
+`QwenVisionLiveSmokeTest` 를 실제 키로 돌려 확인했다. 아래 항목이 모두 해소됐다.
 검증에 쓴 endpoint 는 `{workspaceId}.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1`,
 모델은 `qwen-vl-plus` 다.
 
@@ -41,10 +41,13 @@ DashScope 의 OpenAI 호환 endpoint(`/compatible-mode/v1/chat/completions`)로 
 | 응답 `message.content` 가 문자열인지 | ✅ 문자열 |
 | 출력 잘림 | ✅ `finish_reason: stop`, 23 토큰 |
 
-**남은 1건**: DashScope 가 우리 S3 URL 을 가져올 수 있는지. 버킷이 아직 없어서 확인하지 못했다.
-`terraform apply` 후 `-Dqwen.live.imageUrl=<우리 URL>` 로 같은 테스트를 다시 돌린다. DashScope 는
-`ap-southeast-1`, 버킷은 `ap-northeast-2` 라 리전 간 접근이다 — 공개 읽기이므로 될 것으로 보지만
-확인 전까지 단정하지 않는다.
+**남은 1건도 해소(2026-08-20).** 버킷을 만든 뒤 우리 URL 로 다시 확인했다. DashScope
+(`ap-southeast-1`)가 버킷(`ap-northeast-2`)의 공개 읽기 객체를 가져와 가격표를 정확히 읽었다 —
+`{"itemName":"감자","price":3900,"priceBasis":"1kg"}`, `HTTP 200`, 1.6s, `finish_reason: stop`.
+리전 간 접근에 추가 설정은 필요하지 않았다.
+
+버킷 정책도 함께 확인했다. `images/` 접두사는 자격증명 없이 200, 같은 버킷의 다른 경로는 403,
+`http` 접근은 `DenyInsecureTransport` 로 403 이다.
 
 ### 실측에서 새로 드러난 것
 
@@ -52,12 +55,17 @@ DashScope 의 OpenAI 호환 endpoint(`/compatible-mode/v1/chat/completions`)로 
 해상도에 비례한다. 지금은 5MB 원본을 그대로 올리므로, 업로드 전 리사이즈를 넣으면 비용이 크게
 줄어들 여지가 있다. 실사용량을 보고 판단한다.
 
+**`otherNumberCount` 는 정확하지 않다.** "1인 5개 제한"이 든 가격표에서 모델이 `2` 대신 `5` 를
+답했다. 이 필드는 값이 0 인지 아닌지로만 쓰므로(0 보다 크면 신뢰도를 깎는다) 이 오차는 결과를
+바꾸지 않는다. 다만 반대로 숫자가 남았는데 `0` 을 답하면 깎아야 할 신뢰도를 못 깎는다. 개수를
+그대로 노출하거나 임계값을 두는 방향으로 쓰면 안 된다.
+
 **계정에서 쓸 수 있는 모델이 `qwen-vl-plus` 보다 최신이다.** `/models` 응답에 `qwen3.8-27b`,
 `qwen3.8-2.4t-a95b`, `qwen-image-3.0-pro`, `deepseek-v4-pro-0813`, `ZHIPU/GLM-5.3` 등이 있다.
 `qwen-vl-plus` 로 동작은 하지만 가격표 OCR 정확도를 위해 최신 VL 모델을 비교해 볼 만하다
 (`-Dqwen.live.model=` 로 같은 테스트를 돌리면 된다). 모델 id 는 설정값이므로 코드 변경이 없다.
 
-## 확인 방법 — 남은 1건과 회귀
+## 확인 방법 — 회귀
 
 `QwenVisionLiveSmokeTest` 를 쓴다. 레포의 다른 live smoke 테스트와 같은 방식으로
 기본값에서는 skip 되고 `-Dqwen.live=true` 일 때만 돈다.
@@ -77,7 +85,7 @@ QWEN_API_KEY=... ./gradlew :external:qwen-client:test \
 -Dqwen.live.imageUrl=https://<bucket>.s3.ap-northeast-2.amazonaws.com/images/<uuid>.jpg
 ```
 
-버킷이 준비되면 마지막 프로퍼티로 남은 1건(우리 S3 URL 접근)까지 확인된다.
+마지막 프로퍼티로 우리 S3 URL 접근까지 확인한다. 이 경로는 이미 한 번 확인됐다.
 
 수동 확인이 필요하면:
 
