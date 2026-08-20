@@ -2,6 +2,7 @@ package com.example.demo.report.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -26,6 +27,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.http.HttpStatus;
@@ -38,7 +40,8 @@ class CreateUserReportUseCaseTest {
     private static final long REPORT_ID = 40L;
     private static final int PRICE = 4980;
     private static final String UNIT = "1kg";
-    private static final BigDecimal AMOUNT = new BigDecimal("2");
+    /** 기준 단위 1개분. 환산이 주제가 아닌 테스트는 이 값을 써서 가격이 옮겨지지 않게 둔다. */
+    private static final BigDecimal AMOUNT = BigDecimal.ONE;
     private static final String PHOTO_URL = "https://cdn.example.com/reports/40.jpg";
 
     @Test
@@ -126,6 +129,109 @@ class CreateUserReportUseCaseTest {
         useCase.execute(command);
 
         verify(userReportCommandPort).save(command, null, null, null);
+    }
+
+    @Test
+    void 수량_접두사가_없는_단위도_같은_단위로_보고_기준_단위로_바꿔_저장한다() {
+        // AMOUNT가 1이 아니라 가격도 함께 옮겨진다 — 여기서는 단위 표기만 확인한다.
+        final StoreCommandPort storeCommandPort = mock(StoreCommandPort.class);
+        final UserReportCommandPort userReportCommandPort = mock(UserReportCommandPort.class);
+        final ItemExistencePort itemExistencePort = mock(ItemExistencePort.class);
+        final PublicPriceQueryPort publicPriceQueryPort = mock(PublicPriceQueryPort.class);
+        when(itemExistencePort.findById(ITEM_ID)).thenReturn(Optional.of(item()));
+        when(publicPriceQueryPort.findLatestByItemIdAndRegionId(ITEM_ID, "1121510100"))
+                .thenReturn(Optional.empty());
+        final StoreSnapshot storeSnapshot = new StoreSnapshot("장보고 마트", "서울특별시 마포구 월드컵로 1");
+        when(storeCommandPort.save(storeSnapshot)).thenReturn(STORE_ID);
+        when(userReportCommandPort.save(any(), any(), any(), any())).thenReturn(savedReport(STORE_ID));
+        final CreateUserReportUseCase useCase = new CreateUserReportUseCase(
+                storeCommandPort, userReportCommandPort, itemExistencePort, publicPriceQueryPort);
+
+        // 클라이언트는 화면에 보여 준 표기를 그대로 보낸다 — 기준 단위 "1kg"의 접두 수량이 없다.
+        useCase.execute(new CreateUserReportCommand(
+                ITEM_ID, USER_ID, "1121510100", PRICE, "kg", AMOUNT, ReportType.PURCHASE,
+                storeSnapshot, PHOTO_URL));
+
+        final ArgumentCaptor<CreateUserReportCommand> saved =
+                ArgumentCaptor.forClass(CreateUserReportCommand.class);
+        verify(userReportCommandPort).save(saved.capture(), any(), any(), any());
+        assertThat(saved.getValue().unit()).isEqualTo(UNIT);
+    }
+
+    @Test
+    void 무게_단위가_다르면_기준_단위_기준_수량으로_환산한다() {
+        final StoreCommandPort storeCommandPort = mock(StoreCommandPort.class);
+        final UserReportCommandPort userReportCommandPort = mock(UserReportCommandPort.class);
+        final ItemExistencePort itemExistencePort = mock(ItemExistencePort.class);
+        final PublicPriceQueryPort publicPriceQueryPort = mock(PublicPriceQueryPort.class);
+        when(itemExistencePort.findById(ITEM_ID)).thenReturn(Optional.of(item()));
+        when(publicPriceQueryPort.findLatestByItemIdAndRegionId(ITEM_ID, "1121510100"))
+                .thenReturn(Optional.empty());
+        final StoreSnapshot storeSnapshot = new StoreSnapshot("장보고 마트", "서울특별시 마포구 월드컵로 1");
+        when(storeCommandPort.save(storeSnapshot)).thenReturn(STORE_ID);
+        when(userReportCommandPort.save(any(), any(), any(), any())).thenReturn(savedReport(STORE_ID));
+        final CreateUserReportUseCase useCase = new CreateUserReportUseCase(
+                storeCommandPort, userReportCommandPort, itemExistencePort, publicPriceQueryPort);
+
+        // 기준 단위 "1kg" 품목에 "500g에 3000원" — 1kg 기준이면 6000원이다.
+        useCase.execute(new CreateUserReportCommand(
+                ITEM_ID, USER_ID, "1121510100", 3000, "g", new BigDecimal("500"),
+                ReportType.PURCHASE, storeSnapshot, PHOTO_URL));
+
+        final ArgumentCaptor<CreateUserReportCommand> saved =
+                ArgumentCaptor.forClass(CreateUserReportCommand.class);
+        verify(userReportCommandPort).save(saved.capture(), any(), any(), any());
+        assertThat(saved.getValue().unit()).isEqualTo(UNIT);
+        assertThat(saved.getValue().amount()).isEqualByComparingTo("1");
+        assertThat(saved.getValue().price()).isEqualTo(6000);
+    }
+
+    @Test
+    void 기준_단위_여러_개분_제보는_한_개분_가격으로_옮겨_저장한다() {
+        final StoreCommandPort storeCommandPort = mock(StoreCommandPort.class);
+        final UserReportCommandPort userReportCommandPort = mock(UserReportCommandPort.class);
+        final ItemExistencePort itemExistencePort = mock(ItemExistencePort.class);
+        final PublicPriceQueryPort publicPriceQueryPort = mock(PublicPriceQueryPort.class);
+        when(itemExistencePort.findById(ITEM_ID)).thenReturn(Optional.of(item()));
+        when(publicPriceQueryPort.findLatestByItemIdAndRegionId(ITEM_ID, "1121510100"))
+                .thenReturn(Optional.empty());
+        final StoreSnapshot storeSnapshot = new StoreSnapshot("장보고 마트", "서울특별시 마포구 월드컵로 1");
+        when(storeCommandPort.save(storeSnapshot)).thenReturn(STORE_ID);
+        when(userReportCommandPort.save(any(), any(), any(), any())).thenReturn(savedReport(STORE_ID));
+        final CreateUserReportUseCase useCase = new CreateUserReportUseCase(
+                storeCommandPort, userReportCommandPort, itemExistencePort, publicPriceQueryPort);
+
+        // "2kg에 8000원" → "1kg에 4000원". 단위가 이미 기준 표기여도 수량이 1이 아니면 옮긴다.
+        useCase.execute(new CreateUserReportCommand(
+                ITEM_ID, USER_ID, "1121510100", 8000, UNIT, new BigDecimal("2"),
+                ReportType.PURCHASE, storeSnapshot, PHOTO_URL));
+
+        final ArgumentCaptor<CreateUserReportCommand> saved =
+                ArgumentCaptor.forClass(CreateUserReportCommand.class);
+        verify(userReportCommandPort).save(saved.capture(), any(), any(), any());
+        assertThat(saved.getValue().unit()).isEqualTo(UNIT);
+        assertThat(saved.getValue().amount()).isEqualByComparingTo("1");
+        assertThat(saved.getValue().price()).isEqualTo(4000);
+    }
+
+    @Test
+    void 무게로_환산할_수_없는_단위는_400으로_거부한다() {
+        final StoreCommandPort storeCommandPort = mock(StoreCommandPort.class);
+        final UserReportCommandPort userReportCommandPort = mock(UserReportCommandPort.class);
+        final ItemExistencePort itemExistencePort = mock(ItemExistencePort.class);
+        final PublicPriceQueryPort publicPriceQueryPort = mock(PublicPriceQueryPort.class);
+        when(itemExistencePort.findById(ITEM_ID)).thenReturn(Optional.of(item()));
+        final CreateUserReportUseCase useCase = new CreateUserReportUseCase(
+                storeCommandPort, userReportCommandPort, itemExistencePort, publicPriceQueryPort);
+
+        // "1kg" 품목에 "개" — 한 개가 몇 kg인지는 품목마다 달라 환산할 수 없다.
+        assertThatThrownBy(() -> useCase.execute(new CreateUserReportCommand(
+                ITEM_ID, USER_ID, "1121510100", PRICE, "개", AMOUNT, ReportType.PURCHASE,
+                new StoreSnapshot("장보고 마트", "서울"), PHOTO_URL)))
+                .isInstanceOf(ApiException.class)
+                .extracting(exception -> ((ApiException) exception).httpStatus())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        verifyNoInteractions(storeCommandPort, userReportCommandPort);
     }
 
     private Item item() {
