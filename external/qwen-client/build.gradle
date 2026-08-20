@@ -1,0 +1,21 @@
+dependencies {
+    // main 은 @JsonProperty 등 애노테이션만 쓴다. ObjectMapper(databind)는 테스트에서만 필요하다.
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:4.1.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:6.0.3'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    // 레포의 *.live 관용구. 기본값 false 라 CI 는 항상 skip 한다.
+    systemProperty 'qwen.live', System.getProperty('qwen.live', 'false')
+    ['qwen.live.url', 'qwen.live.model', 'qwen.live.imageUrl'].each { key ->
+        if (System.getProperty(key)) {
+            systemProperty key, System.getProperty(key)
+        }
+    }
+    testLogging {
+        showStandardStreams = System.getProperty('qwen.live', 'false') == 'true'
+    }
+}
