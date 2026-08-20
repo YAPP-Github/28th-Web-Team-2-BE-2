@@ -25,7 +25,7 @@ class CollectKamisPublicPriceUseCaseTest {
     private static final String REGION_ID = "1144010200";
 
     @Test
-    void KAMIS_가격을_애플리케이션_품목_단위로_정규화해_저장한다() {
+    void KAMIS_convertKgYn_Y_응답은_원단위가_20kg이어도_kg_환산값을_저장한다() {
         final KamisPriceQueryPort priceQueryPort = org.mockito.Mockito.mock(KamisPriceQueryPort.class);
         final KamisItemCatalogPort itemCatalogPort = org.mockito.Mockito.mock(KamisItemCatalogPort.class);
         final PublicPriceCommandPort commandPort = org.mockito.Mockito.mock(PublicPriceCommandPort.class);
@@ -55,7 +55,10 @@ class CollectKamisPublicPriceUseCaseTest {
                 .containsExactlyInAnyOrder(
                         org.assertj.core.groups.Tuple.tuple(1L, 37300, REGION_ID, PRICE_DATE),
                         org.assertj.core.groups.Tuple.tuple(5L, 1415, REGION_ID, PRICE_DATE));
-        verify(priceQueryPort, times(6)).findDailyPrices(any(KamisDailyPriceQuery.class));
+        final ArgumentCaptor<KamisDailyPriceQuery> queryCaptor = ArgumentCaptor.forClass(KamisDailyPriceQuery.class);
+        verify(priceQueryPort, times(6)).findDailyPrices(queryCaptor.capture());
+        assertThat(queryCaptor.getAllValues())
+                .allSatisfy(query -> assertThat(query.convertKgYn()).isEqualTo("Y"));
     }
 
     private KamisDailyPriceItemResult result(
