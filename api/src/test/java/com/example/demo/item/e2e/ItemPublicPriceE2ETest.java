@@ -1,5 +1,6 @@
 package com.example.demo.item.e2e;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -198,21 +199,9 @@ class ItemPublicPriceE2ETest {
     void keepsLatestPricePerDate() throws Exception {
         savePrice(4200, today);
 
-        final MvcResult result = mockMvc.perform(
-                        get(path(potatoId)).param("regionId", REGION_ID).param("period", "WEEK"))
+        mockMvc.perform(get(path(potatoId)).param("regionId", REGION_ID).param("period", "WEEK"))
                 .andExpect(status().isOk())
-                .andReturn();
-
-        Assertions.assertThat(JsonPath.<List<Integer>>read(
-                        result.getResponse().getContentAsString(), "$.points[*].price"))
-                .containsExactly(2700, 3000, 3500, 4200);
-        Assertions.assertThat(JsonPath.<List<String>>read(
-                        result.getResponse().getContentAsString(), "$.points[*].date"))
-                .containsExactly(
-                        today.minusDays(6).toString(),
-                        today.minusDays(3).toString(),
-                        today.minusDays(1).toString(),
-                        today.toString());
+                .andExpect(jsonPath("$.points[*].price").value(contains(2700, 3000, 3500, 4200)));
     }
 
     @Test

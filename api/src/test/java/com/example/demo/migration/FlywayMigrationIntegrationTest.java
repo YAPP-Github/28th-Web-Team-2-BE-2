@@ -39,7 +39,7 @@ class FlywayMigrationIntegrationTest {
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(regionName("1121510100")).isEqualTo("서울특별시 광진구 중곡동");
         assertThat(countRows("public_prices")).isEqualTo(3);
@@ -115,7 +115,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -141,7 +141,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertCategoryMapping();
         assertThat(countRows("stores")).isZero();
         assertThat(countRows("user_reports")).isZero();
@@ -158,7 +158,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertThat(columnNames("store_favorites"))
                 .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
         assertThat(constraintNames("store_favorites"))
@@ -188,7 +188,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21");
         assertThat(columnNullable("user_reports", "store_id")).isTrue();
         assertThat(columnNullable("user_reports", "user_id")).isTrue();
         assertThat(columnNullable("user_reports", "region_id")).isTrue();
@@ -517,6 +517,31 @@ class FlywayMigrationIntegrationTest {
                 return resultSet.getString(1);
             }
         }
+    }
+
+    /**
+     * 조회 코드가 의존하는 제약과 인덱스가 실제 스키마에 있는지 확인한다.
+     *
+     * <p>E2E 테스트는 Flyway 를 쓰지 않고 H2 를 엔티티에서 생성하므로 이 제약들이 재현되지 않는다. 실제로 그 때문에 프로덕션에서
+     * 불가능한 데이터로 테스트가 통과한 사례가 있었다. 여기서만 실제 스키마를 검증한다.
+     */
+    @Test
+    void 조회_코드가_의존하는_제약과_인덱스가_존재한다() throws SQLException {
+        final Flyway flyway = flyway();
+
+        flyway.clean();
+        flyway.migrate();
+
+        // 같은 사용자·품목·가게·날짜·유형의 제보 중복 제출을 막는다 (V16)
+        assertThat(indexNames("user_reports")).contains("uk_user_reports_submission");
+        // 날짜 기준 제보 조회·정렬 (V21)
+        assertThat(indexNames("user_reports")).contains("idx_user_reports_user_report_date");
+        // 동네 품목 제보 조회의 필터 조건 (V21)
+        assertThat(indexNames("user_reports")).contains("idx_user_reports_item_region_unit");
+        // 채널 성격은 필수다 (V20)
+        assertThat(columnNames("online_channels"))
+                .containsExactly("channel_id", "channel_name", "channel_kind");
+        assertThat(constraintNames("online_channels")).contains("ck_online_channels_kind");
     }
 
     private List<String> indexNames(final String tableName) throws SQLException {
