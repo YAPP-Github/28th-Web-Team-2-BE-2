@@ -127,6 +127,8 @@ public final class KakaoResponseDecoder implements Decoder {
     private void validateAddress(final JsonNode address) {
         requireNonBlankText(address, "address_name");
         requireNonBlankText(address, "address_type");
+        requireDecimal(address, "x");
+        requireDecimal(address, "y");
         final JsonNode detail = address.get("address");
         if (detail == null || !detail.isObject()) {
             throw externalApiException();
@@ -220,8 +222,8 @@ public final class KakaoResponseDecoder implements Decoder {
             final ObjectNode address = document.deepCopy();
             address.set("addressName", address.remove("address_name"));
             address.set("addressType", address.remove("address_type"));
-            address.remove("x");
-            address.remove("y");
+            address.set("longitude", address.remove("x"));
+            address.set("latitude", address.remove("y"));
             address.remove("road_address");
             final ObjectNode sourceDetail = (ObjectNode) address.get("address");
             final ObjectNode detail = objectMapper.createObjectNode();

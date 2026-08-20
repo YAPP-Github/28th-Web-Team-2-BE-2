@@ -9,6 +9,7 @@ import com.example.demo.external.kakao.KakaoAddressSearchResult.Address;
 import com.example.demo.external.kakao.KakaoAddressSearchResult.KakaoAddress;
 import com.example.demo.external.kakao.feign.KakaoMapClient;
 import com.example.demo.region.application.query.RegionSearchQuery;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +52,8 @@ class KakaoRegionSearchAdapterTest {
         return new KakaoAddress(
                 firstDepth + " " + secondDepth + " " + thirdDepth,
                 "REGION",
+                new BigDecimal("126.9707"),
+                new BigDecimal("37.5874"),
                 new Address(
                         firstDepth + " " + secondDepth + " " + thirdDepth,
                         firstDepth,

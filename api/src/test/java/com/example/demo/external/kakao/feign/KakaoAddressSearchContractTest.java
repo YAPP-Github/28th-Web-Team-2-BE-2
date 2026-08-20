@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Request;
 import feign.Response;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +37,7 @@ class KakaoAddressSearchContractTest {
     }
 
     @Test
-    void Kakao_주소_응답의_선행_0이_있는_b_code를_String으로_보존한다() throws Exception {
+    void Kakao_주소_응답의_선행_0이_있는_b_code와_좌표를_보존한다() throws Exception {
         final Object result = decode(
                 "{\"meta\":{\"total_count\":1},\"documents\":[{"
                         + "\"address_name\":\"서울특별시 종로구 청운동\","
@@ -50,11 +51,16 @@ class KakaoAddressSearchContractTest {
                         + "\"road_address\":{\"address_name\":\"서울특별시 종로구 자하문로 1\"}}]}");
 
         final List<?> addresses = (List<?>) result.getClass().getMethod("addresses").invoke(result);
-        final Object address = addresses.getFirst().getClass().getMethod("address").invoke(addresses.getFirst());
+        final Object kakaoAddress = addresses.getFirst();
+        final Object address = kakaoAddress.getClass().getMethod("address").invoke(kakaoAddress);
 
         assertThat(address.getClass().getMethod("bCode").invoke(address))
                 .isEqualTo("0111010100")
                 .isInstanceOf(String.class);
+        assertThat(kakaoAddress.getClass().getMethod("longitude").invoke(kakaoAddress))
+                .isEqualTo(new BigDecimal("126.9707"));
+        assertThat(kakaoAddress.getClass().getMethod("latitude").invoke(kakaoAddress))
+                .isEqualTo(new BigDecimal("37.5874"));
     }
 
     @Test
@@ -71,6 +77,7 @@ class KakaoAddressSearchContractTest {
         final String body = "{\"meta\":{\"total_count\":1},\"documents\":[{"
                 + "\"address_name\":\"서울특별시 종로구 청운동\","
                 + "\"address_type\":\"REGION\","
+                + "\"x\":\"126.9707\",\"y\":\"37.5874\","
                 + "\"address\":{\"address_name\":\"서울특별시 종로구 청운동\","
                 + "\"region_1depth_name\":\"서울특별시\","
                 + "\"region_2depth_name\":\"종로구\","
@@ -81,6 +88,23 @@ class KakaoAddressSearchContractTest {
         final Object address = addresses.getFirst().getClass().getMethod("address").invoke(addresses.getFirst());
 
         assertThat(address.getClass().getMethod("bCode").invoke(address)).isEqualTo("");
+    }
+
+    @Test
+    void 좌표가_누락된_Kakao_주소_응답은_EXTERNAL_API_ERROR로_변환한다() {
+        assertThatThrownBy(() -> decode(
+                        "{\"meta\":{\"total_count\":1},\"documents\":[{"
+                                + "\"address_name\":\"서울특별시 종로구 청운동\","
+                                + "\"address_type\":\"REGION\","
+                                + "\"address\":{\"address_name\":\"서울특별시 종로구 청운동\","
+                                + "\"region_1depth_name\":\"서울특별시\","
+                                + "\"region_2depth_name\":\"종로구\","
+                                + "\"region_3depth_name\":\"청운동\","
+                                + "\"b_code\":\"0111010100\"}}]}"))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.errorType()).isEqualTo(ErrorType.EXTERNAL_API_ERROR);
+                    assertThat(exception.httpStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                });
     }
 
     private Object decode(final String body) throws Exception {
