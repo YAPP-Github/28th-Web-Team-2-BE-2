@@ -10,6 +10,7 @@ import com.example.demo.item.application.query.ItemDetailQuery;
 import com.example.demo.item.application.result.ItemDetailResult;
 import com.example.demo.item.application.result.OnlinePriceCrawlResult;
 import com.example.demo.item.domain.Item;
+import com.example.demo.item.domain.ItemUnit;
 import com.example.demo.item.domain.OnlinePrice;
 import com.example.demo.item.domain.PublicPrice;
 import com.example.demo.report.application.port.UserReportQueryPort;
@@ -47,7 +48,7 @@ public class GetItemDetailQueryUseCase {
                 isLiked(userId, item.id()),
                 latestLocalReportPrice(item, query.regionId()),
                 price(latestPrice),
-                onlineLowestPrice(item.id()),
+                onlineLowestPrice(item),
                 publicPriceQueryPort.findLatestPriceDateByRegionId(query.regionId()),
                 priceGap,
                 priceDiffRate(priceGap, previousPrice));
@@ -106,11 +107,26 @@ public class GetItemDetailQueryUseCase {
                 .orElse(null);
     }
 
-    private Integer onlineLowestPrice(final Long itemId) {
+    /**
+     * 온라인 최저가를 품목 기준 단위로 환산해 반환한다.
+     *
+     * <p>crawler 는 품목과 무관하게 100g 기준으로 저장하는데, 이 응답의 {@code latestLocalReportPrice}·
+     * {@code todayPublicPrice}는 품목 기준 단위다. 화면은 단위를 한 번만 표시하고 그 아래 금액들이 모두 그 단위라고
+     * 전제하므로, 환산하지 않으면 표시된 단위가 거짓이 된다.
+     *
+     * <p>{@code 1개}·{@code 1포기}처럼 무게로 환산할 수 없는 단위는 {@code null}이다. 이 응답에는 값마다 단위를 담을
+     * 자리가 없어 100g 가격을 그대로 두면 다른 단위의 금액과 나란히 놓인다.
+     */
+    private Integer onlineLowestPrice(final Item item) {
+        final ItemUnit itemUnit = ItemUnit.of(item.defaultUnit());
+        if (!itemUnit.convertible()) {
+            return null;
+        }
         return onlinePriceQueryPort
                 .findLowestPriceAtLatestCollectionDate(
-                        itemId, OnlinePriceCrawlResult.PER_100_GRAMS)
+                        item.id(), OnlinePriceCrawlResult.PER_100_GRAMS)
                 .map(OnlinePrice::price)
+                .map(price -> itemUnit.convert(price, OnlinePriceCrawlResult.PER_100_GRAMS))
                 .orElse(null);
     }
 }
