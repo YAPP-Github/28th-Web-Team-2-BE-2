@@ -71,6 +71,8 @@ class DemoApplicationTests {
                 .andExpect(jsonPath("$.paths['/api/v1/regions/search'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/regions/search'].get.summary")
                         .value("동 이름으로 법정동을 검색한다"))
+                .andExpect(jsonPath("$.paths['/api/v1/regions/search'].get.responses['200'].content['application/json'].schema")
+                        .exists())
                 .andExpect(jsonPath("$.paths['/api/auth/{providerType}/login'].post.tags[0]").value("Auth"))
                 .andExpect(jsonPath("$.paths['/api/auth/{providerType}/login'].post.summary")
                         .value("OAuth provider의 idToken으로 로그인한다"))
