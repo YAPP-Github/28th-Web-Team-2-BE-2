@@ -144,8 +144,8 @@ class ItemDetailE2ETest {
                 .andExpect(jsonPath("$.todayPublicPrice").value(1500))
                 .andExpect(jsonPath("$.onlineLowestPrice").value(5500))
                 .andExpect(jsonPath("$.baseDate").value(today.toString()))
-                .andExpect(jsonPath("$.priceGap").value(300))
-                .andExpect(jsonPath("$.priceDiffRate").value(25.0));
+                .andExpect(jsonPath("$.priceGap").value(500))
+                .andExpect(jsonPath("$.priceDiffRate").value(50.0));
     }
 
     @Test
