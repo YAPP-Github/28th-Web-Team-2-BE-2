@@ -73,7 +73,7 @@ public class KamisHistoricalPublicPriceBackfillUseCase {
             final List<KamisItem> catalog,
             final List<PublicPriceCandidate> prices) {
         final KamisDailyPriceQuery query = new KamisDailyPriceQuery(
-                PRODUCT_CLASS_CODE, categoryCode, countryCode, null, CONVERT_KG_YES);
+                PRODUCT_CLASS_CODE, categoryCode, countryCode, endDate, CONVERT_KG_YES);
         final List<KamisDailyPriceItemResult> itemVariants = kamisPriceQueryPort.findDailyPrices(query).items();
         for (final KamisDailyPriceItemResult itemVariant : itemVariants) {
             collectVariantPrices(categoryCode, countryCode, startDate, endDate, catalog, itemVariant, prices);
