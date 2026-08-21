@@ -3,9 +3,11 @@ package com.example.demo.store.infrastructure.persistence;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.report.domain.Store;
+import com.example.demo.store.application.port.StoreDetailPersistencePort;
 import com.example.demo.store.application.port.StorePersistencePort;
 import com.example.demo.store.application.result.NearbyStoreCandidate;
 import com.example.demo.store.application.result.NearbyStoreResult;
+import com.example.demo.store.application.result.StoreDetailEnrichment;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -19,7 +21,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
 @RequiredArgsConstructor
-public class StorePersistenceAdapter implements StorePersistencePort {
+public class StorePersistenceAdapter implements StorePersistencePort, StoreDetailPersistencePort {
 
     private static final int MAX_SYNC_ATTEMPTS = 2;
 
@@ -65,6 +67,23 @@ public class StorePersistenceAdapter implements StorePersistencePort {
         } catch (final DataAccessException exception) {
             throw storeSyncException(exception);
         }
+    }
+
+    @Override
+    @Transactional
+    public void update(final Long storeId, final StoreDetailEnrichment enrichment) {
+        storeJpaRepository.updateDetailFields(
+                storeId,
+                enrichment.storeImageUrl(),
+                toBusinessHours(enrichment),
+                enrichment.openStatus());
+    }
+
+    private String toBusinessHours(final StoreDetailEnrichment enrichment) {
+        if (enrichment.businessHours() == null || enrichment.businessHours().isEmpty()) {
+            return null;
+        }
+        return String.join("\n", enrichment.businessHours());
     }
 
     private NearbyStoreResult synchronize(final NearbyStoreCandidate candidate) {

@@ -135,6 +135,24 @@ class StoreDetailE2ETest {
     }
 
     @Test
+    void 저장된_이미지와_영업시간을_다시_상세_응답으로_반환한다() throws Exception {
+        final Store store = saveStore();
+        store.updateDetailFields(
+                "https://cdn.example.com/images/store.jpg",
+                "월 09:00 ~ 18:00\n화 휴무",
+                "OPEN");
+        storeJpaRepository.saveAndFlush(store);
+
+        mockMvc.perform(get("/api/v1/stores/{storeId}", store.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.storeImageUrl")
+                        .value("https://cdn.example.com/images/store.jpg"))
+                .andExpect(jsonPath("$.data.businessHours[0]").value("월 09:00 ~ 18:00"))
+                .andExpect(jsonPath("$.data.businessHours[1]").value("화 휴무"))
+                .andExpect(jsonPath("$.data.openStatus").value("OPEN"));
+    }
+
+    @Test
     void 비로그인과_GUEST는_false이고_ROLE_USER는_본인_찜만_반환한다() throws Exception {
         final Store store = saveStore();
         final User currentUser = saveUser("현재 사용자");
