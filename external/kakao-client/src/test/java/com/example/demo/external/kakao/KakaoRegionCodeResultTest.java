@@ -12,11 +12,11 @@ class KakaoRegionCodeResultTest {
         final var result = new KakaoRegionCodeResult(
                 2,
                 List.of(
-                        new KakaoRegion("B", 4413310500L, "천안시 서북구", "성성동"),
-                        new KakaoRegion("H", 4413357000L, "천안시 서북구", "부성2동")));
+                        new KakaoRegion("B", "0111010100", "천안시 서북구", "성성동"),
+                        new KakaoRegion("H", "4413357000", "천안시 서북구", "부성2동")));
 
         assertThat(result.legalRegions())
                 .singleElement()
-                .isEqualTo(new KakaoRegion("B", 4413310500L, "천안시 서북구", "성성동"));
+                .isEqualTo(new KakaoRegion("B", "0111010100", "천안시 서북구", "성성동"));
     }
 }

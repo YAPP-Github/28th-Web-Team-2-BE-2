@@ -24,8 +24,8 @@ class KakaoNearbyRegionAdapterTest {
                 .thenReturn(new KakaoRegionCodeResult(
                         2,
                         List.of(
-                                new KakaoRegion("B", 4413310500L, "천안시 서북구", "성성동"),
-                                new KakaoRegion("H", 4413357000L, "천안시 서북구", "부성2동"))));
+                                new KakaoRegion("B", "0111010100", "천안시 서북구", "성성동"),
+                                new KakaoRegion("H", "4413357000", "천안시 서북구", "부성2동"))));
 
         final var result = adapter.find(new NearbyRegionQuery(
                 new BigDecimal("36.8358"), new BigDecimal("127.1324")));
@@ -33,7 +33,7 @@ class KakaoNearbyRegionAdapterTest {
         assertThat(result.regions())
                 .singleElement()
                 .satisfies(region -> {
-                    assertThat(region.regionId()).isEqualTo(4413310500L);
+                    assertThat(region.regionId()).isEqualTo("0111010100");
                     assertThat(region.regionName()).isEqualTo("천안시 서북구 성성동");
                 });
     }

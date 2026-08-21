@@ -23,8 +23,8 @@ class KakaoResponseDecoderTest {
     @Test
     void 지역_코드_응답을_결과로_변환한다() throws Exception {
         final var result = decode(
-                "{\"meta\":{\"total_count\":2},\"documents\":["
-                        + "{\"region_type\":\"B\",\"code\":\"4413310500\","
+                        "{\"meta\":{\"total_count\":2},\"documents\":["
+                        + "{\"region_type\":\"B\",\"code\":\"0111010100\","
                         + "\"address_name\":\"충청남도 천안시 서북구 성성동\","
                         + "\"region_1depth_name\":\"충청남도\","
                         + "\"region_2depth_name\":\"천안시 서북구\",\"region_3depth_name\":\"성성동\"},"
@@ -37,6 +37,7 @@ class KakaoResponseDecoderTest {
         assertThat(result.totalCount()).isEqualTo(2);
         assertThat(result.regions()).hasSize(2);
         assertThat(result.legalRegions()).hasSize(1);
+        assertThat(result.regions().getFirst().code()).isEqualTo("0111010100");
     }
 
     @Test
