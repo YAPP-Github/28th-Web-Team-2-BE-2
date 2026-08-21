@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.external.kakao.KakaoAddressSearchResult;
 import com.example.demo.external.kakao.KakaoCategorySearchResult;
 import com.example.demo.external.kakao.KakaoRegionCodeResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,6 +64,62 @@ class KakaoResponseDecoderTest {
             assertThat(place.longitude()).isEqualByComparingTo("127.0276");
             assertThat(place.distanceMeters()).isEqualTo(670);
         });
+    }
+
+    @Test
+    void 주소가_null이거나_법정동_이름이_비어있는_document는_제외한다() throws Exception {
+        final var result = decode("""
+                {"meta":{"total_count":3},"documents":[
+                  {"address_name":"도로명 주소","address_type":"ROAD","x":"126.9707","y":"37.5874","address":null},
+                  {"address_name":"빈 법정동 주소","address_type":"REGION","x":"126.9707","y":"37.5874",
+                   "address":{"address_name":"빈 법정동 주소","region_1depth_name":"서울특별시",
+                   "region_2depth_name":"종로구","region_3depth_name":"","b_code":"0111010100"}},
+                  {"address_name":"서울특별시 종로구 청운동","address_type":"REGION",
+                   "x":"126.9707","y":"37.5874",
+                   "address":{"address_name":"서울특별시 종로구 청운동","region_1depth_name":"서울특별시",
+                   "region_2depth_name":"종로구","region_3depth_name":"청운동","b_code":"0111010100"}}
+                ]}
+                """, KakaoAddressSearchResult.class);
+
+        assertThat(result.addresses()).singleElement().satisfies(address -> {
+            assertThat(address.addressName()).isEqualTo("서울특별시 종로구 청운동");
+            assertThat(address.address().bCode()).isEqualTo("0111010100");
+        });
+    }
+
+    @Test
+    void 주소가_모두_제외되면_빈_결과를_반환한다() throws Exception {
+        final var result = decode("""
+                {"meta":{"total_count":2},"documents":[
+                  {"address_name":"도로명 주소","address_type":"ROAD","x":"126.9707","y":"37.5874","address":null},
+                  {"address_name":"빈 법정동 주소","address_type":"REGION","x":"126.9707","y":"37.5874",
+                   "address":{"address_name":"빈 법정동 주소","region_1depth_name":"서울특별시",
+                   "region_2depth_name":"종로구","region_3depth_name":"","b_code":"0111010100"}}
+                ]}
+                """, KakaoAddressSearchResult.class);
+
+        assertThat(result.addresses()).isEmpty();
+    }
+
+    @Test
+    void 법정동_이름이_비어있어도_필수_필드가_누락되면_거부한다() {
+        assertThatThrownBy(() -> decode("""
+                {"meta":{"total_count":1},"documents":[
+                  {"address_name":"빈 법정동 주소","address_type":"REGION","x":"126.9707","y":"37.5874",
+                   "address":{"region_3depth_name":""}}
+                ]}
+                """, KakaoAddressSearchResult.class))
+                .isInstanceOfSatisfying(ApiException.class, this::assertExternalApiException);
+    }
+
+    @Test
+    void 주소가_null이어도_좌표가_잘못되면_거부한다() {
+        assertThatThrownBy(() -> decode("""
+                {"meta":{"total_count":1},"documents":[
+                  {"address_name":"도로명 주소","address_type":"ROAD","x":"181","y":"37.5874","address":null}
+                ]}
+                """, KakaoAddressSearchResult.class))
+                .isInstanceOfSatisfying(ApiException.class, this::assertExternalApiException);
     }
 
     @Test
