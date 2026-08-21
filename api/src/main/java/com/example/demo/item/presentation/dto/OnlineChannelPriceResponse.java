@@ -6,7 +6,12 @@ import java.time.LocalDate;
 public record OnlineChannelPriceResponse(
         Integer channelId,
         String channelName,
-        @Schema(nullable = true, description = "채널 성격", example = "새벽배송") String channelKind,
+        @Schema(
+                        description = "채널 성격",
+                        example = "새벽배송",
+                        allowableValues = {"새벽배송", "당일배송", "오픈마켓", "즉시배송"},
+                        requiredMode = Schema.RequiredMode.REQUIRED)
+                String channelKind,
         String productName,
         @Schema(description = "unit 기준 가격") Integer price,
         @Schema(description = "가격의 기준 단위. 품목 기준 단위로 환산할 수 없으면 수집 기준인 100g이다", example = "1kg")

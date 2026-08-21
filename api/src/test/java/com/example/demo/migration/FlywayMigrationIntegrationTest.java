@@ -43,6 +43,12 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(regionName("1121510100")).isEqualTo("서울특별시 광진구 중곡동");
         assertThat(countRows("public_prices")).isEqualTo(3);
+        assertThat(onlineChannelMappings())
+                .containsExactly(
+                        "1:오아시스:새벽배송",
+                        "2:컬리:새벽배송",
+                        "3:11번가:오픈마켓",
+                        "4:GS SHOP:오픈마켓");
         assertThat(countRows("batch_job_execution")).isZero();
         assertThat(countRows("batch_item_errors")).isZero();
         assertThat(countRows("news_articles")).isEqualTo(5);
@@ -323,6 +329,22 @@ class FlywayMigrationIntegrationTest {
                         "SELECT COUNT(*) FROM items WHERE " + predicate)) {
             resultSet.next();
             return resultSet.getInt(1);
+        }
+    }
+
+    private List<String> onlineChannelMappings() throws SQLException {
+        try (Connection connection = connection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(
+                        "SELECT channel_id, channel_name, channel_kind "
+                                + "FROM online_channels ORDER BY channel_id")) {
+            final ArrayList<String> mappings = new ArrayList<>();
+            while (resultSet.next()) {
+                mappings.add(resultSet.getInt("channel_id") + ":"
+                        + resultSet.getString("channel_name") + ":"
+                        + resultSet.getString("channel_kind"));
+            }
+            return mappings;
         }
     }
 
