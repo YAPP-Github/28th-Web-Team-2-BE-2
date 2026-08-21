@@ -54,7 +54,11 @@ class RegionControllerTest {
     void setUp() {
         when(getNearbyRegionUseCase.execute(any(NearbyRegionQuery.class)))
                 .thenReturn(new NearbyRegionResult(
-                        List.of(new NearbyRegionResult.Region("0111010100", "천안시 서북구 성성동"))));
+                        List.of(new NearbyRegionResult.Region(
+                                "0111010100",
+                                "천안시 서북구 성성동",
+                                new BigDecimal("36.8358"),
+                                new BigDecimal("127.1324")))));
         when(searchRegionsUseCase.execute(any(RegionSearchQuery.class)))
                 .thenReturn(new RegionSearchResult(List.of(
                         new RegionSearchResult.Region(
@@ -80,7 +84,9 @@ class RegionControllerTest {
                 .andExpect(jsonPath("$.message").value("요청이 성공적으로 처리되었습니다."))
                 .andExpect(jsonPath("$.data[0].regionId").isString())
                 .andExpect(jsonPath("$.data[0].regionId").value("0111010100"))
-                .andExpect(jsonPath("$.data[0].regionName").value("천안시 서북구 성성동"));
+                .andExpect(jsonPath("$.data[0].regionName").value("천안시 서북구 성성동"))
+                .andExpect(jsonPath("$.data[0].latitude").value(36.8358))
+                .andExpect(jsonPath("$.data[0].longitude").value(127.1324));
     }
 
     @Test
