@@ -4,7 +4,9 @@ import com.example.demo.report.application.query.MyReportQuery;
 import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.domain.UserReport;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 
@@ -22,4 +24,7 @@ public interface UserReportQueryPort {
 
     /** 기간 내 현재 사용자의 제보를 조회한다. 양끝 날짜를 포함한다. */
     List<UserReport> findByUserInPeriod(Long userId, LocalDate from, LocalDate to);
+
+    /** 여러 사용자의 누적 제보 건수를 한 번에 조회한다. */
+    Map<Long, Long> findReportCounts(Collection<Long> userIds);
 }

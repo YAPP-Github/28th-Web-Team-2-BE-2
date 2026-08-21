@@ -12,6 +12,14 @@ import com.example.demo.auth.domain.UserRole;
 import com.example.demo.auth.infrastructure.persistence.UserJpaRepository;
 import com.example.demo.auth.infrastructure.token.JwtTokenProvider;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.item.domain.Item;
+import com.example.demo.item.domain.ItemCategory;
+import com.example.demo.item.infrastructure.ItemJpaRepository;
+import com.example.demo.report.domain.ReportType;
+import com.example.demo.report.domain.UserReport;
+import com.example.demo.report.infrastructure.UserReportJpaRepository;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,25 +39,35 @@ class UserMeHttpTest {
 
     private final MockMvc mockMvc;
     private final UserJpaRepository userJpaRepository;
+    private final ItemJpaRepository itemJpaRepository;
+    private final UserReportJpaRepository userReportJpaRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final JdbcTemplate jdbcTemplate;
+    private Long itemId;
 
     @Autowired
     UserMeHttpTest(
             final MockMvc mockMvc,
             final UserJpaRepository userJpaRepository,
+            final ItemJpaRepository itemJpaRepository,
+            final UserReportJpaRepository userReportJpaRepository,
             final JwtTokenProvider jwtTokenProvider,
             final JdbcTemplate jdbcTemplate) {
         this.mockMvc = mockMvc;
         this.userJpaRepository = userJpaRepository;
+        this.itemJpaRepository = itemJpaRepository;
+        this.userReportJpaRepository = userReportJpaRepository;
         this.jwtTokenProvider = jwtTokenProvider;
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @BeforeEach
     void cleanRegions() {
+        jdbcTemplate.update("DELETE FROM user_reports");
         jdbcTemplate.update("DELETE FROM user_regions");
         jdbcTemplate.update("DELETE FROM regions");
+        itemId = itemJpaRepository.saveAndFlush(
+                new Item("등급 테스트 품목", "1kg", null, ItemCategory.ROOT_VEGETABLES)).id();
     }
 
     @Test
@@ -153,6 +171,22 @@ class UserMeHttpTest {
     }
 
     @Test
+    void 제보_건수에_따라_사용자_등급을_직접_응답한다() throws Exception {
+        final User sprout = saveUser("SPROUT 사용자");
+        final User rookie = saveUser("ROOKIE 사용자");
+        final User expert = saveUser("EXPERT 사용자");
+        final User king = saveUser("KING 사용자");
+        saveReports(rookie, 1);
+        saveReports(expert, 5);
+        saveReports(king, 15);
+
+        assertRank(sprout, "SPROUT");
+        assertRank(rookie, "ROOKIE");
+        assertRank(expert, "EXPERT");
+        assertRank(king, "KING");
+    }
+
+    @Test
     void 사용자_기본정보_조회_API를_직접_응답과_함께_OpenAPI에_노출한다() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
@@ -160,7 +194,8 @@ class UserMeHttpTest {
                 .andExpect(jsonPath("$.paths['/api/v1/users/me'].get.responses['401']").exists())
                 .andExpect(jsonPath("$.components.schemas.UserMeResponse.properties.nickname").exists())
                 .andExpect(jsonPath("$.components.schemas.UserMeResponse.properties.currentRegion").exists())
-                .andExpect(jsonPath("$.components.schemas.UserMeResponse.properties.onboardingStep").exists());
+                .andExpect(jsonPath("$.components.schemas.UserMeResponse.properties.onboardingStep").exists())
+                .andExpect(jsonPath("$.components.schemas.UserMeResponse.properties.rank").exists());
     }
 
     private User saveUser(final String name) {
@@ -186,6 +221,30 @@ class UserMeHttpTest {
 
     private String accessToken(final User user) {
         return jwtTokenProvider.createAccessToken(user.id(), user.role());
+    }
+
+    private void assertRank(final User user, final String rank) throws Exception {
+        mockMvc.perform(get(PATH).header(HttpHeaders.AUTHORIZATION, bearer(accessToken(user))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rank").value(rank));
+    }
+
+    private void saveReports(final User user, final int count) {
+        for (int index = 0; index < count; index++) {
+            final UserReport report = userReportJpaRepository.saveAndFlush(new UserReport(
+                    "1121510100",
+                    ReportType.OBSERVED,
+                    null,
+                    itemId,
+                    user.id(),
+                    100,
+                    "1kg",
+                    BigDecimal.ONE,
+                    null));
+            jdbcTemplate.update(
+                    "UPDATE user_reports SET report_date = ? WHERE report_id = ?",
+                    LocalDate.now().minusDays(index), report.id());
+        }
     }
 
     private String bearer(final String token) {

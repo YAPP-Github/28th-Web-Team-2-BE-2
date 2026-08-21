@@ -1,6 +1,7 @@
 package com.example.demo.report.presentation.dto;
 
 import com.example.demo.report.application.result.PriceClassification;
+import com.example.demo.user.domain.UserRank;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,5 +18,5 @@ public record StoreReportResponse(
         BigDecimal priceDiffRate,
         PriceClassification priceClassification,
         String reporterNickname,
-        @Schema(types = {"string", "null"}) String reporterRank,
+        @Schema(nullable = true) UserRank reporterRank,
         @Schema(types = {"string", "null"}) String reporterProfileColor) {}

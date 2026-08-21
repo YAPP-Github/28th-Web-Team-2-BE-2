@@ -1,5 +1,6 @@
 package com.example.demo.report.application.result;
 
+import com.example.demo.user.domain.UserRank;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -15,5 +16,5 @@ public record StoreReportResult(
         BigDecimal priceDiffRate,
         PriceClassification priceClassification,
         String reporterNickname,
-        String reporterRank,
+        UserRank reporterRank,
         String reporterProfileColor) {}
