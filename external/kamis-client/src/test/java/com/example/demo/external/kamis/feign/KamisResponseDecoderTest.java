@@ -41,6 +41,26 @@ class KamisResponseDecoderTest {
     }
 
     @Test
+    void 최상위_단일_배열로_감싼_KAMIS_data_응답을_flat_response로_변환한다() throws Exception {
+        final Response response = Response.builder()
+                .status(200)
+                .request(Request.create(
+                        Request.HttpMethod.GET, "http://kamis.test", Map.of(), (Request.Body) null, null))
+                .body("[{\"condition\":[],\"data\":{\"error_code\":\"000\",\"item\":[{"
+                        + "\"item_name\":\"배추\",\"item_code\":\"211\"}]}}]", StandardCharsets.UTF_8)
+                .build();
+
+        final DailyPriceResponse decoded = (DailyPriceResponse) new KamisResponseDecoder(new ObjectMapper())
+                .decode(response, DailyPriceResponse.class);
+
+        assertThat(decoded.errorCode()).isEqualTo("000");
+        assertThat(decoded.items()).singleElement().satisfies(item -> {
+            assertThat(item.itemName()).isEqualTo("배추");
+            assertThat(item.itemCode()).isEqualTo("211");
+        });
+    }
+
+    @Test
     void 기존_response_body_래퍼도_flat_response로_변환한다() throws Exception {
         final Response.Body body = mock(Response.Body.class);
         when(body.asInputStream()).thenReturn(new ByteArrayInputStream(

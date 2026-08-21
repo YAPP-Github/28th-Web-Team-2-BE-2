@@ -45,13 +45,14 @@ public final class KamisResponseDecoder implements Decoder {
     }
 
     private JsonNode normalize(final JsonNode root) {
-        JsonNode source = root;
-        if (root.has(DATA)) {
-            source = root.get(DATA);
+        final JsonNode unwrappedRoot = unwrapTopLevelArray(root);
+        JsonNode source = unwrappedRoot;
+        if (unwrappedRoot.has(DATA)) {
+            source = unwrappedRoot.get(DATA);
         }
-        final boolean legacyResponse = root.has(RESPONSE);
+        final boolean legacyResponse = unwrappedRoot.has(RESPONSE);
         if (legacyResponse) {
-            source = root.path(RESPONSE).path(BODY);
+            source = unwrappedRoot.path(RESPONSE).path(BODY);
         }
         if (!source.has(ITEMS)) {
             return source;
@@ -66,9 +67,16 @@ public final class KamisResponseDecoder implements Decoder {
         normalized.remove(ITEMS);
         copyMetaFields(source, normalized);
         if (legacyResponse) {
-            copyResultCode(root, normalized);
+            copyResultCode(unwrappedRoot, normalized);
         }
         return normalized;
+    }
+
+    private JsonNode unwrapTopLevelArray(final JsonNode root) {
+        if (!root.isArray() || root.size() != 1 || !root.get(0).isObject()) {
+            return root;
+        }
+        return root.get(0);
     }
 
     private void copyResultCode(final JsonNode root, final ObjectNode normalized) {
