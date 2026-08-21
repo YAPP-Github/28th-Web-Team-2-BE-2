@@ -72,6 +72,27 @@ class KamisHistoricalPublicPriceBackfillUseCaseTest {
     }
 
     @Test
+    void 백필_종료일을_일별_부류_조회일로_전달한다() {
+        final KamisPriceQueryPort dailyPort = mock(KamisPriceQueryPort.class);
+        when(dailyPort.findDailyPrices(any(KamisDailyPriceQuery.class)))
+                .thenReturn(new KamisDailyPriceResult("000", null, List.of()));
+
+        final KamisHistoricalPublicPriceBackfillUseCase useCase = new KamisHistoricalPublicPriceBackfillUseCase(
+                dailyPort,
+                mock(KamisPeriodPriceQueryPort.class),
+                () -> List.of(),
+                mock(PublicPriceCommandPort.class));
+
+        assertThat(useCase.execute(REGION_ID, "1101", START_DATE, END_DATE)).isZero();
+
+        final ArgumentCaptor<KamisDailyPriceQuery> queryCaptor = ArgumentCaptor.forClass(KamisDailyPriceQuery.class);
+        verify(dailyPort, org.mockito.Mockito.times(6)).findDailyPrices(queryCaptor.capture());
+        assertThat(queryCaptor.getAllValues())
+                .extracting(KamisDailyPriceQuery::regDay)
+                .containsOnly(END_DATE);
+    }
+
+    @Test
     void 여러_리전에_저장해도_KAMIS_기간가격은_한번만_조회한다() {
         final KamisPriceQueryPort dailyPort = mock(KamisPriceQueryPort.class);
         final KamisPeriodPriceQueryPort periodPort = mock(KamisPeriodPriceQueryPort.class);
