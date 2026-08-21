@@ -19,18 +19,20 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
             SELECT report
             FROM UserReport report
             WHERE report.storeId IS NOT NULL
+              AND report.regionId = :regionId
+              AND report.publicPriceDiff < 0
               AND NOT EXISTS (
                   SELECT newer.id
                   FROM UserReport newer
                   WHERE newer.itemId = report.itemId
                     AND newer.storeId = report.storeId
+                    AND newer.regionId = report.regionId
+                    AND newer.publicPriceDiff < 0
                     AND (
                         newer.reportDate > report.reportDate
                         OR (newer.reportDate = report.reportDate AND newer.id > report.id)
                     )
               )
-              AND report.priceDiffRate < 0
-              AND report.regionId = :regionId
             """)
     List<UserReport> findLatestCheapReports(@Param("regionId") String regionId);
 
