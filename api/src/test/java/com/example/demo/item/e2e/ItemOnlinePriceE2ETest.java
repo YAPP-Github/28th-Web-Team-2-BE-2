@@ -38,6 +38,7 @@ class ItemOnlinePriceE2ETest {
     private int oasis;
     private int kurly;
     private int elevenSt;
+    private int gsShop;
 
     @Autowired
     ItemOnlinePriceE2ETest(
@@ -61,7 +62,7 @@ class ItemOnlinePriceE2ETest {
         oasis = onlineChannelJpaRepository.save(new OnlineChannel("오아시스", "새벽배송")).id();
         kurly = onlineChannelJpaRepository.save(new OnlineChannel("컬리", "새벽배송")).id();
         elevenSt = onlineChannelJpaRepository.save(new OnlineChannel("11번가", "오픈마켓")).id();
-        onlineChannelJpaRepository.save(new OnlineChannel("GS SHOP", "오픈마켓"));
+        gsShop = onlineChannelJpaRepository.save(new OnlineChannel("GS SHOP", "오픈마켓")).id();
         potatoId = itemJpaRepository.save(
                 new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES)).id();
         onionId = itemJpaRepository.save(
@@ -86,21 +87,25 @@ class ItemOnlinePriceE2ETest {
         save(oasis, 320, today);
         save(kurly, 450, today);
         save(elevenSt, 280, today);
+        save(gsShop, 360, today);
 
         mockMvc.perform(get(path(potatoId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.itemId").value(potatoId))
-                .andExpect(jsonPath("$.onlinePrices[*].channelId").value(contains(oasis, kurly, elevenSt)))
+                .andExpect(jsonPath("$.onlinePrices[*].channelId").value(contains(oasis, kurly, elevenSt, gsShop)))
                 .andExpect(jsonPath("$.onlinePrices[*].channelName")
-                        .value(contains("오아시스", "컬리", "11번가")))
-                .andExpect(jsonPath("$.onlinePrices[*].price").value(contains(3200, 4500, 2800)))
+                        .value(contains("오아시스", "컬리", "11번가", "GS SHOP")))
+                .andExpect(jsonPath("$.onlinePrices[*].channelKind")
+                        .value(contains("새벽배송", "새벽배송", "오픈마켓", "오픈마켓")))
+                .andExpect(jsonPath("$.onlinePrices[*].price").value(contains(3200, 4500, 2800, 3600)))
                 .andExpect(jsonPath("$.onlinePrices[*].deliveryNote")
-                        .value(contains("무료배송", "무료배송", "무료배송")))
+                        .value(contains("무료배송", "무료배송", "무료배송", "무료배송")))
                 .andExpect(jsonPath("$.onlinePrices[*].productUrl")
                         .value(contains(
                                 "https://example.com/" + oasis + "/320",
                                 "https://example.com/" + kurly + "/450",
-                                "https://example.com/" + elevenSt + "/280")))
+                                "https://example.com/" + elevenSt + "/280",
+                                "https://example.com/" + gsShop + "/360")))
                 .andExpect(jsonPath("$.onlinePrices[0].productName").value("감자 320원"))
                 .andExpect(jsonPath("$.onlinePrices[0].unit").value("1kg"))
                 .andExpect(jsonPath("$.onlinePrices[0].channelKind").value("새벽배송"))
@@ -207,6 +212,10 @@ class ItemOnlinePriceE2ETest {
                         .exists())
                 .andExpect(jsonPath("$.components.schemas.OnlineChannelPriceResponse.properties.productUrl")
                         .exists())
+                .andExpect(jsonPath("$.components.schemas.OnlineChannelPriceResponse.properties.channelKind.enum")
+                        .value(contains("새벽배송", "당일배송", "오픈마켓", "즉시배송")))
+                .andExpect(jsonPath("$.components.schemas.OnlineChannelPriceResponse.required")
+                        .value(contains("channelKind")))
                 .andExpect(jsonPath("$.components.schemas.OnlineChannelPriceResponse.properties.deliveryNote")
                         .exists());
     }
