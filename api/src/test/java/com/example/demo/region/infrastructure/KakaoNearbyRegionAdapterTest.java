@@ -35,6 +35,8 @@ class KakaoNearbyRegionAdapterTest {
                 .satisfies(region -> {
                     assertThat(region.regionId()).isEqualTo("0111010100");
                     assertThat(region.regionName()).isEqualTo("천안시 서북구 성성동");
+                    assertThat(region.latitude()).isEqualByComparingTo("36.8358");
+                    assertThat(region.longitude()).isEqualByComparingTo("127.1324");
                 });
     }
 }
