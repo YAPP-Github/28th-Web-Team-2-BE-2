@@ -86,24 +86,24 @@ class RecommendedStoreQueryE2ETest {
                 ReportType.PURCHASE,
                 store.id(),
                 item.id(),
-                2L,
-                3500,
-                "1kg",
-                BigDecimal.ONE,
-                500,
-                new BigDecimal("16.67"),
-                null));
-        userReportJpaRepository.save(new UserReport(
-                REGION_ID,
-                ReportType.PURCHASE,
-                store.id(),
-                item.id(),
                 3L,
                 2400,
                 "1kg",
                 BigDecimal.ONE,
                 -600,
                 new BigDecimal("-20.00"),
+                null));
+        userReportJpaRepository.save(new UserReport(
+                REGION_ID,
+                ReportType.PURCHASE,
+                store.id(),
+                item.id(),
+                2L,
+                3500,
+                "1kg",
+                BigDecimal.ONE,
+                500,
+                new BigDecimal("16.67"),
                 null));
 
         assertThat(userReportJpaRepository.findLatestCheapReports(REGION_ID))
