@@ -93,10 +93,22 @@ class RecommendedStoreQueryE2ETest {
                 500,
                 new BigDecimal("16.67"),
                 null));
+        userReportJpaRepository.save(new UserReport(
+                REGION_ID,
+                ReportType.PURCHASE,
+                store.id(),
+                item.id(),
+                3L,
+                2400,
+                "1kg",
+                BigDecimal.ONE,
+                -600,
+                new BigDecimal("-20.00"),
+                null));
 
         assertThat(userReportJpaRepository.findLatestCheapReports(REGION_ID))
                 .extracting(UserReport::price)
-                .containsExactly(2500);
+                .containsExactly(2400);
 
         mockMvc.perform(get("/api/v1/stores/recommendation")
                         .param("regionId", REGION_ID)
@@ -108,5 +120,45 @@ class RecommendedStoreQueryE2ETest {
                 .andExpect(jsonPath("$.data.stores[0].storeId").value(store.id()))
                 .andExpect(jsonPath("$.data.stores[0].cheapItemCount").value(1))
                 .andExpect(jsonPath("$.data.stores[0].cheapItems[0]").value("양파"));
+    }
+
+    @Test
+    void 고가_제보만_있는_가게는_추천하지_않는다() throws Exception {
+        final Store store = storeJpaRepository.save(new Store(
+                "expensive-store",
+                "비싼 마트",
+                null,
+                null,
+                "서울 강남구",
+                null,
+                null,
+                null,
+                null,
+                new BigDecimal("127.0632"),
+                new BigDecimal("37.5088"),
+                null));
+        final Item item = itemJpaRepository.save(
+                new Item("양파", "1kg", null, ItemCategory.SEASONINGS));
+        userReportJpaRepository.save(new UserReport(
+                REGION_ID,
+                ReportType.PURCHASE,
+                store.id(),
+                item.id(),
+                1L,
+                3500,
+                "1kg",
+                BigDecimal.ONE,
+                500,
+                new BigDecimal("16.67"),
+                null));
+
+        mockMvc.perform(get("/api/v1/stores/recommendation")
+                        .param("regionId", REGION_ID)
+                        .param("latitude", "37.5088")
+                        .param("longitude", "127.0632")
+                        .param("radius", "2000"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalCount").value(0))
+                .andExpect(jsonPath("$.data.stores").isEmpty());
     }
 }
