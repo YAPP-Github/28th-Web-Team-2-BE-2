@@ -8,3 +8,8 @@ kamis:
       region-id: ${KAMIS_PUBLIC_PRICE_REGION_ID:}
       country-code: ${KAMIS_PUBLIC_PRICE_COUNTRY_CODE:1101}
       cron: ${KAMIS_PUBLIC_PRICE_COLLECTION_CRON:0 30 1 * * *}
+    backfill:
+      enabled: ${KAMIS_PUBLIC_PRICE_BACKFILL_ENABLED:false}
+      region-ids: ${KAMIS_PUBLIC_PRICE_BACKFILL_REGION_IDS:}
+      region-id: ${KAMIS_PUBLIC_PRICE_BACKFILL_REGION_ID:}
+      country-code: ${KAMIS_PUBLIC_PRICE_BACKFILL_COUNTRY_CODE:1101}
