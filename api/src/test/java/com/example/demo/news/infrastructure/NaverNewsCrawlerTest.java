@@ -15,6 +15,19 @@ class NaverNewsCrawlerTest {
     private final NaverNewsCrawler crawler = new NaverNewsCrawler();
 
     @Test
+    void 데모용_뉴스_5건을_반환한다() {
+        assertThat(crawler.fetch())
+                .hasSize(5)
+                .extracting(NewsArticle::originalUrl)
+                .containsExactly(
+                        "https://www.yna.co.kr/amp/view/AKR20260821053200527",
+                        "https://m.mk.co.kr/amp/12133150",
+                        "https://m.newspim.com/news/view/20260820000935",
+                        "https://www.yna.co.kr/view/AKR20260812047400030",
+                        "https://www.imaeil.com/page/view/2026081113532545452");
+    }
+
+    @Test
     void 모바일_검색_결과의_mark_텍스트와_절대_원문_URL과_발행일을_파싱한다() {
         final List<NewsArticle> articles = crawler.parse(document("""
                 <article>
