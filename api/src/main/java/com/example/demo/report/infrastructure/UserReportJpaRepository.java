@@ -2,6 +2,7 @@ package com.example.demo.report.infrastructure;
 
 import com.example.demo.report.domain.UserReport;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -41,6 +42,21 @@ public interface UserReportJpaRepository extends JpaRepository<UserReport, Long>
     List<UserReport> findAllByUserIdAndReportDateBetweenOrderByReportDateAscIdAsc(
             Long userId, LocalDate from, LocalDate to);
 
+    @Query("""
+            SELECT report.userId AS userId, COUNT(report.id) AS reportCount
+            FROM UserReport report
+            WHERE report.userId IN :userIds
+            GROUP BY report.userId
+            """)
+    List<ReportCountProjection> findReportCounts(@Param("userIds") Collection<Long> userIds);
+
     Page<UserReport> findAllByItemIdAndRegionIdAndUnit(
             Long itemId, String regionId, String unit, Pageable pageable);
+
+    interface ReportCountProjection {
+
+        Long getUserId();
+
+        Long getReportCount();
+    }
 }

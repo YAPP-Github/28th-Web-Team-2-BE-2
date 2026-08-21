@@ -3,13 +3,19 @@ package com.example.demo.report.application.usecase;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.report.application.port.StoreReportQueryPort;
+import com.example.demo.report.application.port.UserReportQueryPort;
 import com.example.demo.report.application.query.StoreReportsQuery;
 import com.example.demo.report.application.result.PriceClassification;
 import com.example.demo.report.application.result.StoreReportResult;
 import com.example.demo.report.application.result.StoreReportSource;
 import com.example.demo.report.application.result.StoreReportsQueryResult;
 import com.example.demo.report.application.result.StoreReportsResult;
+import com.example.demo.user.domain.UserRank;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +29,7 @@ public class GetStoreReportsUseCase {
     private static final List<String> PROFILE_COLORS = List.of("GREEN", "BLUE", "ORANGE", "GRAY");
 
     private final StoreReportQueryPort storeReportQueryPort;
+    private final UserReportQueryPort userReportQueryPort;
 
     @Transactional(readOnly = true)
     public StoreReportsResult execute(final StoreReportsQuery query) {
@@ -33,20 +40,34 @@ public class GetStoreReportsUseCase {
                     ErrorType.NO_RESOURCE_ERROR,
                     HttpStatus.NOT_FOUND);
         }
+        final Set<Long> reporterIds = result.reports().stream()
+                .map(StoreReportSource::reporterId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        final Map<Long, Long> reportCounts = userReportQueryPort.findReportCounts(reporterIds);
         final List<StoreReportResult> reports = result.reports().stream()
-                .map(this::toResult)
+                .map(source -> toResult(source, reportCounts))
                 .toList();
         return new StoreReportsResult(
                 query.storeId(), result.cheapCount(), result.expensiveCount(), reports,
                 query.page(), query.size(), result.hasNext());
     }
 
-    private StoreReportResult toResult(final StoreReportSource source) {
+    private StoreReportResult toResult(
+            final StoreReportSource source, final Map<Long, Long> reportCounts) {
         return new StoreReportResult(
                 source.reportId(), source.itemId(), source.itemName(), source.itemImageUrl(),
                 source.price(), source.unit(), source.reportedDate(), source.publicPriceDiff(),
-                source.priceDiffRate(), classify(source.publicPriceDiff()), reporterNickname(source), null,
+                source.priceDiffRate(), classify(source.publicPriceDiff()), reporterNickname(source),
+                reporterRank(source.reporterId(), reportCounts),
                 reporterProfileColor(source.reporterId()));
+    }
+
+    private UserRank reporterRank(final Long reporterId, final Map<Long, Long> reportCounts) {
+        if (reporterId == null) {
+            return null;
+        }
+        return UserRank.fromReportCount(reportCounts.getOrDefault(reporterId, 0L));
     }
 
     private String reporterNickname(final StoreReportSource source) {

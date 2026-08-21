@@ -437,7 +437,7 @@ class UserReportE2ETest {
                 .andExpect(jsonPath("$.data.reports[0].priceClassification").value("CHEAP"))
                 .andExpect(jsonPath("$.data.reports[0].itemName").isNotEmpty())
                 .andExpect(jsonPath("$.data.reports[0].reporterNickname").value("첫제보자"))
-                .andExpect(jsonPath("$.data.reports[0].reporterRank").value((Object) null))
+                .andExpect(jsonPath("$.data.reports[0].reporterRank").value("ROOKIE"))
                 .andExpect(jsonPath("$.data.reports[0].reporterProfileColor").isNotEmpty())
                 .andExpect(jsonPath("$.data.reports[0].userId").doesNotExist());
 
@@ -499,6 +499,8 @@ class UserReportE2ETest {
                 .andExpect(jsonPath("$.components.schemas.StoreReportResponse.properties.reporterRank").exists())
                 .andExpect(jsonPath("$.components.schemas.StoreReportResponse.properties.reporterRank.type")
                         .value(org.hamcrest.Matchers.contains("string", "null")))
+                .andExpect(jsonPath("$.components.schemas.StoreReportResponse.properties.reporterRank.enum")
+                        .value(org.hamcrest.Matchers.hasItems("SPROUT", "ROOKIE", "EXPERT", "KING")))
                 .andExpect(jsonPath("$.components.schemas.StoreReportResponse.properties.reporterProfileColor").exists())
                 .andExpect(jsonPath("$.components.schemas.StoreReportResponse.properties.reporterProfileColor.type")
                         .value(org.hamcrest.Matchers.contains("string", "null")))

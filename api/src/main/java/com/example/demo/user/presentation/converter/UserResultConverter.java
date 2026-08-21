@@ -11,7 +11,8 @@ public class UserResultConverter {
         return new UserMeResponse(
                 result.nickname(),
                 toCurrentRegion(result.currentRegion()),
-                toOnboardingStep(result.onboardingStep()));
+                toOnboardingStep(result.onboardingStep()),
+                result.rank());
     }
 
     private UserMeResponse.OnboardingStep toOnboardingStep(

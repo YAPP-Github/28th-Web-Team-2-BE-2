@@ -5,9 +5,13 @@ import com.example.demo.report.application.query.MyReportQuery;
 import com.example.demo.report.application.query.RegionItemReportQuery;
 import com.example.demo.report.application.query.UserReportSort;
 import com.example.demo.report.domain.UserReport;
+import com.example.demo.user.application.port.UserReportCountQueryPort;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +21,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class UserReportQueryAdapter implements UserReportQueryPort {
+public class UserReportQueryAdapter implements UserReportQueryPort, UserReportCountQueryPort {
 
     private final UserReportJpaRepository userReportJpaRepository;
 
@@ -53,6 +57,17 @@ public class UserReportQueryAdapter implements UserReportQueryPort {
             final Long userId, final LocalDate from, final LocalDate to) {
         return userReportJpaRepository
                 .findAllByUserIdAndReportDateBetweenOrderByReportDateAscIdAsc(userId, from, to);
+    }
+
+    @Override
+    public Map<Long, Long> findReportCounts(final Collection<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userReportJpaRepository.findReportCounts(userIds).stream()
+                .collect(Collectors.toMap(
+                        UserReportJpaRepository.ReportCountProjection::getUserId,
+                        UserReportJpaRepository.ReportCountProjection::getReportCount));
     }
 
     private Pageable pageable(final RegionItemReportQuery query) {

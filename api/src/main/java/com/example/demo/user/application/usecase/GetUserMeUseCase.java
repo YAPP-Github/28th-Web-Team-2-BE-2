@@ -4,9 +4,12 @@ import com.example.demo.auth.application.port.UserRepository;
 import com.example.demo.auth.domain.User;
 import com.example.demo.common.exception.ApiException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.user.application.port.UserReportCountQueryPort;
 import com.example.demo.user.application.query.GetUserRegionsQuery;
 import com.example.demo.user.application.result.GetUserMeResult;
 import com.example.demo.user.application.result.GetUserRegionsResult;
+import com.example.demo.user.domain.UserRank;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,7 @@ public class GetUserMeUseCase {
 
     private final UserRepository userRepository;
     private final GetUserRegionsUseCase getUserRegionsUseCase;
+    private final UserReportCountQueryPort userReportCountQueryPort;
 
     @Transactional(readOnly = true)
     public GetUserMeResult execute(final Long userId) {
@@ -28,8 +32,11 @@ public class GetUserMeUseCase {
         final GetUserRegionsResult userRegions = getUserRegionsUseCase.execute(
                 new GetUserRegionsQuery(userId));
         final GetUserMeResult.CurrentRegion currentRegion = findCurrentRegion(userRegions);
+        final long reportCount = userReportCountQueryPort.findReportCounts(Set.of(userId))
+                .getOrDefault(userId, 0L);
         return new GetUserMeResult(
-                user.nickname(), currentRegion, determineOnboardingStep(user.nickname(), currentRegion));
+                user.nickname(), currentRegion, determineOnboardingStep(user.nickname(), currentRegion),
+                UserRank.fromReportCount(reportCount));
     }
 
     private GetUserMeResult.CurrentRegion findCurrentRegion(final GetUserRegionsResult userRegions) {
