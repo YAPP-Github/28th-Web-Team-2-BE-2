@@ -52,8 +52,7 @@ public final class KakaoResponseDecoder implements Decoder {
 
     private ObjectNode normalize(final JsonNode root, final Type type) {
         validateEnvelope(root, type);
-        final JsonNode documents = root.get(DOCUMENTS);
-        validateDocuments(documents, type);
+        final JsonNode documents = validateDocuments(root.get(DOCUMENTS), type);
         final ObjectNode normalized = root.deepCopy();
         final JsonNode meta = root.get(META);
         normalized.set(TOTAL_COUNT_CAMEL_CASE, meta.get(TOTAL_COUNT));
@@ -101,8 +100,22 @@ public final class KakaoResponseDecoder implements Decoder {
         }
     }
 
-    private void validateDocuments(final JsonNode documents, final Type type) {
-        documents.forEach(document -> validateDocument(document, type));
+    private JsonNode validateDocuments(final JsonNode documents, final Type type) {
+        final var validDocuments = objectMapper.createArrayNode();
+        documents.forEach(document -> {
+            if (!document.isObject()) {
+                throw externalApiException();
+            }
+            if (type == KakaoAddressSearchResult.class) {
+                if (validateAddress(document)) {
+                    validDocuments.add(document);
+                }
+                return;
+            }
+            validateDocument(document, type);
+            validDocuments.add(document);
+        });
+        return validDocuments;
     }
 
     private void validateDocument(final JsonNode document, final Type type) {
@@ -129,19 +142,29 @@ public final class KakaoResponseDecoder implements Decoder {
         requireText(region, "region_3depth_name");
     }
 
-    private void validateAddress(final JsonNode address) {
+    private boolean validateAddress(final JsonNode address) {
         requireNonBlankText(address, "address_name");
         requireNonBlankText(address, "address_type");
         validateCoordinates(address);
         final JsonNode detail = address.get("address");
-        if (detail == null || !detail.isObject()) {
+        if (detail == null) {
             throw externalApiException();
         }
+        if (detail.isNull()) {
+            return false;
+        }
+        if (!detail.isObject()) {
+            throw externalApiException();
+        }
+        requireText(detail, "region_3depth_name");
         requireNonBlankText(detail, "address_name");
         requireNonBlankText(detail, "region_1depth_name");
         requireNonBlankText(detail, "region_2depth_name");
-        requireNonBlankText(detail, "region_3depth_name");
         requireText(detail, "b_code");
+        if (detail.get("region_3depth_name").textValue().isBlank()) {
+            return false;
+        }
+        return true;
     }
 
     private void validateCoordinates(final JsonNode address) {
