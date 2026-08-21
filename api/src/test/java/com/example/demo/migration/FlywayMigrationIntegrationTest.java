@@ -65,6 +65,9 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRowsWhere("category_code = 'MUSHROOMS'")).isEqualTo(3);
         assertThat(countRowsWhere("category_code = 'FRUITS'")).isEqualTo(4);
         assertThat(countRowsWhere("category_code IS NULL")).isZero();
+        assertThat(countRowsWhere("item_image_url IS NOT NULL")).isEqualTo(46);
+        assertThat(itemImageUrl(1)).isEqualTo(
+                "https://marketgo-images.s3.ap-northeast-2.amazonaws.com/images/items/potato.jpg");
         assertCategoryMapping();
         assertThat(columnNames("stores"))
                 .containsExactly(
@@ -320,6 +323,18 @@ class FlywayMigrationIntegrationTest {
                         "SELECT COUNT(*) FROM items WHERE " + predicate)) {
             resultSet.next();
             return resultSet.getInt(1);
+        }
+    }
+
+    private String itemImageUrl(final int itemId) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT item_image_url FROM items WHERE item_id = ?")) {
+            statement.setInt(1, itemId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getString(1);
+            }
         }
     }
 
