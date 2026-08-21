@@ -61,6 +61,7 @@ class StoreReportControllerTest {
                 .andExpect(jsonPath("$.data.summary.cheapCount").value(1))
                 .andExpect(jsonPath("$.data.summary.expensiveCount").value(1))
                 .andExpect(jsonPath("$.data.reports[0].priceClassification").value("CHEAP"))
+                .andExpect(jsonPath("$.data.reports[0].reporterNickname").value("떡볶이킬러"))
                 .andExpect(jsonPath("$.data.page").value(1))
                 .andExpect(jsonPath("$.data.size").value(2))
                 .andExpect(jsonPath("$.data.hasNext").value(true));
@@ -103,7 +104,8 @@ class StoreReportControllerTest {
                     java.util.List.of(new StoreReportResult(
                             11L, 3L, "감자", "https://image.example.com/potato.jpg", 900,
                             "1kg", java.time.LocalDate.of(2026, 8, 20), -100,
-                            new java.math.BigDecimal("-10.00"), PriceClassification.CHEAP)),
+                            new java.math.BigDecimal("-10.00"), PriceClassification.CHEAP,
+                            "떡볶이킬러", null, "GREEN")),
                     1,
                     2,
                     true);

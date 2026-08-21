@@ -14,4 +14,7 @@ public record StoreReportResponse(
         LocalDate reportedDate,
         Integer publicPriceDiff,
         BigDecimal priceDiffRate,
-        PriceClassification priceClassification) {}
+        PriceClassification priceClassification,
+        String reporterNickname,
+        String reporterRank,
+        String reporterProfileColor) {}

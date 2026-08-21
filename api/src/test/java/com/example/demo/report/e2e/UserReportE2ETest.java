@@ -386,6 +386,15 @@ class UserReportE2ETest {
         final User secondUser = saveUser("가게 제보 조회 사용자 2");
         final User thirdUser = saveUser("가게 제보 조회 사용자 3");
         final User fourthUser = saveUser("가게 제보 조회 사용자 4");
+        user.changeNickname("첫제보자");
+        secondUser.changeNickname("둘째제보자");
+        thirdUser.changeNickname("셋째제보자");
+        fourthUser.changeNickname("넷째제보자");
+        userJpaRepository.save(user);
+        userJpaRepository.save(secondUser);
+        userJpaRepository.save(thirdUser);
+        userJpaRepository.save(fourthUser);
+        userJpaRepository.flush();
         final Long storeId = saveStore("store-report-query");
         jdbcTemplate.update("""
                 INSERT INTO user_reports (
@@ -427,6 +436,9 @@ class UserReportE2ETest {
                 .andExpect(jsonPath("$.data.reports.length()").value(1))
                 .andExpect(jsonPath("$.data.reports[0].priceClassification").value("CHEAP"))
                 .andExpect(jsonPath("$.data.reports[0].itemName").isNotEmpty())
+                .andExpect(jsonPath("$.data.reports[0].reporterNickname").value("첫제보자"))
+                .andExpect(jsonPath("$.data.reports[0].reporterRank").value((Object) null))
+                .andExpect(jsonPath("$.data.reports[0].reporterProfileColor").isNotEmpty())
                 .andExpect(jsonPath("$.data.reports[0].userId").doesNotExist());
 
         mockMvc.perform(get("/api/v1/stores/{storeId}/reports", storeId)
@@ -435,6 +447,9 @@ class UserReportE2ETest {
                 .andExpect(jsonPath("$.data.reports.length()").value(1))
                 .andExpect(jsonPath("$.data.reports[0].priceClassification").value("EXPENSIVE"));
 
+        userJpaRepository.deleteById(thirdUser.id());
+        userJpaRepository.flush();
+
         mockMvc.perform(get("/api/v1/stores/{storeId}/reports", storeId)
                         .queryParam("filter", "ALL")
                         .queryParam("page", "0")
@@ -442,6 +457,9 @@ class UserReportE2ETest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.reports.length()").value(2))
                 .andExpect(jsonPath("$.data.reports[0].priceClassification").value("EQUAL"))
+                .andExpect(jsonPath("$.data.reports[0].reporterNickname").value("탈퇴한 이웃"))
+                .andExpect(jsonPath("$.data.reports[0].reporterRank").value((Object) null))
+                .andExpect(jsonPath("$.data.reports[0].reporterProfileColor").value((Object) null))
                 .andExpect(jsonPath("$.data.hasNext").value(true));
 
         mockMvc.perform(get("/api/v1/stores/{storeId}/reports", storeId)
@@ -477,6 +495,9 @@ class UserReportE2ETest {
                 .andExpect(jsonPath("$.paths['/api/v1/stores/{storeId}/reports'].get").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/stores/{storeId}/reports'].get.responses['200']").exists())
                 .andExpect(jsonPath("$.components.schemas.StoreReportsResponse.properties.summary").exists())
+                .andExpect(jsonPath("$.components.schemas.StoreReportResponse.properties.reporterNickname").exists())
+                .andExpect(jsonPath("$.components.schemas.StoreReportResponse.properties.reporterRank").exists())
+                .andExpect(jsonPath("$.components.schemas.StoreReportResponse.properties.reporterProfileColor").exists())
                 .andExpect(jsonPath("$.components.schemas.CreateUserReportRequest.required")
                         .value(org.hamcrest.Matchers.hasItems("regionId", "reportType")))
                 .andExpect(jsonPath("$.components.schemas.CreateUserReportRequest.required")

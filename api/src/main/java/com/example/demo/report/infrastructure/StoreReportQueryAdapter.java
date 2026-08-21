@@ -1,5 +1,6 @@
 package com.example.demo.report.infrastructure;
 
+import com.example.demo.auth.domain.QUser;
 import com.example.demo.item.domain.QItem;
 import com.example.demo.report.application.port.StoreReportQueryPort;
 import com.example.demo.report.application.query.ReportFilter;
@@ -26,6 +27,7 @@ public class StoreReportQueryAdapter implements StoreReportQueryPort {
         final QStore store = QStore.store;
         final QUserReport report = QUserReport.userReport;
         final QItem item = QItem.item;
+        final QUser user = QUser.user;
         final BooleanExpression baseCondition = report.storeId.eq(query.storeId())
                 .and(report.unit.eq(item.defaultUnit));
         final BooleanExpression filterCondition = filterCondition(report, query.filter());
@@ -40,9 +42,12 @@ public class StoreReportQueryAdapter implements StoreReportQueryPort {
                         report.unit,
                         report.reportDate,
                         report.publicPriceDiff,
-                        report.priceDiffRate))
+                        report.priceDiffRate,
+                        report.userId,
+                        user.nickname))
                 .from(report)
                 .join(item).on(item.id.eq(report.itemId))
+                .leftJoin(user).on(user.id.eq(report.userId))
                 .where(baseCondition, filterCondition)
                 .orderBy(report.reportDate.desc(), report.id.desc())
                 .offset((long) query.page() * query.size())
