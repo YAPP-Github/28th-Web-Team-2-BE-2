@@ -96,6 +96,14 @@ class ImageDomainTest {
                 .isNotEqualTo(ImageKey.generate(ImageContentType.PNG).value());
     }
 
+    @Test
+    void 가게_이미지_key는_같은_가게에서_같다() {
+        assertThat(ImageKey.forStore(42L, ImageContentType.PNG))
+                .isEqualTo(ImageKey.forStore(42L, ImageContentType.PNG));
+        assertThat(ImageKey.forStore(42L, ImageContentType.PNG))
+                .isNotEqualTo(ImageKey.forStore(43L, ImageContentType.PNG));
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"receipt.jpg", "../images/evil.png", "uploads/a.png", "images/", "images/a.gif"})
     void 형식을_벗어난_key는_만들_수_없다(final String value) {

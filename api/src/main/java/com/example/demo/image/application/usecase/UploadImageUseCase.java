@@ -20,7 +20,10 @@ public class UploadImageUseCase {
     private final ImageStoragePort imageStoragePort;
 
     public UploadedImageResult execute(final UploadImageCommand command) {
-        final ImageKey key = ImageKey.generate(command.contentType());
+        return execute(ImageKey.generate(command.contentType()), command);
+    }
+
+    public UploadedImageResult execute(final ImageKey key, final UploadImageCommand command) {
         return new UploadedImageResult(imageStoragePort.uploadAndReturnUrl(key, command));
     }
 }

@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -78,7 +79,17 @@ public class StoreDetailQueryAdapter implements StoreDetailQueryPort {
                 regionName(region),
                 store.latitude(),
                 store.longitude(),
-                store.placeUrl());
+                store.placeUrl(),
+                store.storeImageUrl(),
+                toBusinessHours(store.businessHours()),
+                store.openStatus());
+    }
+
+    private List<String> toBusinessHours(final String businessHours) {
+        if (businessHours == null || businessHours.isBlank()) {
+            return List.of();
+        }
+        return businessHours.lines().filter(line -> !line.isBlank()).toList();
     }
 
     private StoreRegion findStoreRegion(final Long storeId) {

@@ -2,6 +2,7 @@ package com.example.demo.image.domain;
 
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.common.exception.ImageValidationException;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -39,6 +40,15 @@ public record ImageKey(String value) {
 
     public static ImageKey generate(final ImageContentType contentType) {
         return new ImageKey(PREFIX + UUID.randomUUID() + "." + contentType.extension());
+    }
+
+    public static ImageKey forStore(final Long storeId, final ImageContentType contentType) {
+        if (storeId == null || storeId <= 0 || contentType == null) {
+            throw new ImageValidationException(ErrorType.INVALID_PARAMETER_ERROR);
+        }
+        final UUID stableId = UUID.nameUUIDFromBytes(
+                ("store:" + storeId).getBytes(StandardCharsets.UTF_8));
+        return new ImageKey(PREFIX + stableId + "." + contentType.extension());
     }
 
 }
