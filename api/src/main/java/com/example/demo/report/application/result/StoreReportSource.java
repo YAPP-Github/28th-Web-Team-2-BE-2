@@ -12,4 +12,6 @@ public record StoreReportSource(
         String unit,
         LocalDate reportedDate,
         Integer publicPriceDiff,
-        BigDecimal priceDiffRate) {}
+        BigDecimal priceDiffRate,
+        Long reporterId,
+        String reporterNickname) {}

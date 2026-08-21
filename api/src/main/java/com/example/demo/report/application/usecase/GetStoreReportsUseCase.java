@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class GetStoreReportsUseCase {
 
+    private static final String DELETED_REPORTER_NICKNAME = "탈퇴한 이웃";
+    private static final List<String> PROFILE_COLORS = List.of("GREEN", "BLUE", "ORANGE", "GRAY");
+
     private final StoreReportQueryPort storeReportQueryPort;
 
     @Transactional(readOnly = true)
@@ -42,7 +45,22 @@ public class GetStoreReportsUseCase {
         return new StoreReportResult(
                 source.reportId(), source.itemId(), source.itemName(), source.itemImageUrl(),
                 source.price(), source.unit(), source.reportedDate(), source.publicPriceDiff(),
-                source.priceDiffRate(), classify(source.publicPriceDiff()));
+                source.priceDiffRate(), classify(source.publicPriceDiff()), reporterNickname(source), null,
+                reporterProfileColor(source.reporterId()));
+    }
+
+    private String reporterNickname(final StoreReportSource source) {
+        if (source.reporterId() == null) {
+            return DELETED_REPORTER_NICKNAME;
+        }
+        return source.reporterNickname();
+    }
+
+    private String reporterProfileColor(final Long reporterId) {
+        if (reporterId == null) {
+            return null;
+        }
+        return PROFILE_COLORS.get(Math.floorMod(reporterId, PROFILE_COLORS.size()));
     }
 
     private PriceClassification classify(final Integer priceDiff) {

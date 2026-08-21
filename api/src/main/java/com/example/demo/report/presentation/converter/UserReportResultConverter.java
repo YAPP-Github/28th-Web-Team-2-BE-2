@@ -75,7 +75,8 @@ public class UserReportResultConverter {
         return new StoreReportResponse(
                 result.reportId(), result.itemId(), result.itemName(), result.itemImageUrl(),
                 result.price(), result.unit(), result.reportedDate(), result.publicPriceDiff(),
-                result.priceDiffRate(), result.priceClassification());
+                result.priceDiffRate(), result.priceClassification(), result.reporterNickname(),
+                result.reporterRank(), result.reporterProfileColor());
     }
 
     /** 인식하지 못한 항목은 {@code null}로 내려 보낸다. 빈 껍데기를 주면 값이 있는 것처럼 보인다. */
