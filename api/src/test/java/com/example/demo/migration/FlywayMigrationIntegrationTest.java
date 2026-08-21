@@ -39,7 +39,7 @@ class FlywayMigrationIntegrationTest {
         flyway.migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25");
         assertThat(countRows("regions")).isEqualTo(467);
         assertThat(regionName("1121510100")).isEqualTo("서울특별시 광진구 중곡동");
         assertThat(countRows("public_prices")).isEqualTo(3);
@@ -65,6 +65,9 @@ class FlywayMigrationIntegrationTest {
         assertThat(countRowsWhere("category_code = 'MUSHROOMS'")).isEqualTo(3);
         assertThat(countRowsWhere("category_code = 'FRUITS'")).isEqualTo(4);
         assertThat(countRowsWhere("category_code IS NULL")).isZero();
+        assertThat(countRowsWhere("item_image_url IS NOT NULL")).isEqualTo(46);
+        assertThat(itemImageUrl(1)).isEqualTo(
+                "https://marketgo-images.s3.ap-northeast-2.amazonaws.com/images/items/potato.jpg");
         assertCategoryMapping();
         assertThat(columnNames("stores"))
                 .containsExactly(
@@ -116,7 +119,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25");
         assertThat(countRows("items")).isEqualTo(itemsBefore);
         assertThat(countRows("users")).isEqualTo(usersBefore);
         assertThat(countRows("regions")).isEqualTo(467);
@@ -142,7 +145,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25");
         assertCategoryMapping();
         assertThat(countRows("stores")).isZero();
         assertThat(countRows("user_reports")).isZero();
@@ -159,7 +162,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25");
         assertThat(columnNames("store_favorites"))
                 .containsExactly("store_favorite_id", "user_id", "store_id", "created_at");
         assertThat(constraintNames("store_favorites"))
@@ -189,7 +192,7 @@ class FlywayMigrationIntegrationTest {
         flyway().migrate();
 
         assertThat(migrationVersions()).containsExactly(
-                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24");
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25");
         assertThat(columnNullable("user_reports", "store_id")).isTrue();
         assertThat(columnNullable("user_reports", "user_id")).isTrue();
         assertThat(columnNullable("user_reports", "region_id")).isTrue();
@@ -320,6 +323,18 @@ class FlywayMigrationIntegrationTest {
                         "SELECT COUNT(*) FROM items WHERE " + predicate)) {
             resultSet.next();
             return resultSet.getInt(1);
+        }
+    }
+
+    private String itemImageUrl(final int itemId) throws SQLException {
+        try (Connection connection = connection();
+                var statement = connection.prepareStatement(
+                        "SELECT item_image_url FROM items WHERE item_id = ?")) {
+            statement.setInt(1, itemId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                resultSet.next();
+                return resultSet.getString(1);
+            }
         }
     }
 
