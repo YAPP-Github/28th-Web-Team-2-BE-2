@@ -12,7 +12,11 @@ public class RegionResultConverter {
 
     public List<NearbyRegionResponse> toNearbyRegionResponses(final NearbyRegionResult result) {
         return result.regions().stream()
-                .map(region -> new NearbyRegionResponse(region.regionId(), region.regionName()))
+                .map(region -> new NearbyRegionResponse(
+                        region.regionId(),
+                        region.regionName(),
+                        region.latitude(),
+                        region.longitude()))
                 .toList();
     }
 

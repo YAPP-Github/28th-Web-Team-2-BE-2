@@ -20,18 +20,23 @@ public class KakaoNearbyRegionAdapter implements NearbyRegionQueryPort {
     public NearbyRegionResult find(final NearbyRegionQuery query) {
         final KakaoRegionCodeResult result = kakaoMapClient.searchRegionCode(
                 query.longitude(), query.latitude());
-        return toResult(result);
+        return toResult(result, query);
     }
 
-    private NearbyRegionResult toResult(final KakaoRegionCodeResult result) {
+    private NearbyRegionResult toResult(
+            final KakaoRegionCodeResult result, final NearbyRegionQuery query) {
         final List<NearbyRegionResult.Region> regions = result.legalRegions().stream()
-                .map(this::toRegion)
+                .map(region -> toRegion(region, query))
                 .toList();
         return new NearbyRegionResult(regions);
     }
 
-    private NearbyRegionResult.Region toRegion(final KakaoRegion region) {
+    private NearbyRegionResult.Region toRegion(
+            final KakaoRegion region, final NearbyRegionQuery query) {
         return new NearbyRegionResult.Region(
-                region.code(), region.region2DepthName() + " " + region.region3DepthName());
+                region.code(),
+                region.region2DepthName() + " " + region.region3DepthName(),
+                query.latitude(),
+                query.longitude());
     }
 }
