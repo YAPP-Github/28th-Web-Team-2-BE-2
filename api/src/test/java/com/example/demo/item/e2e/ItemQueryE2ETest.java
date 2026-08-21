@@ -48,6 +48,8 @@ class ItemQueryE2ETest {
     private static final String REGION_ID = "1121510100";
     private static final String OTHER_REGION_ID = "1168010100";
     private static final String SAME_DATE_PRICE_REGION_ID = "9999999999";
+    private static final String POTATO_IMAGE_URL =
+            "https://marketgo-images.s3.ap-northeast-2.amazonaws.com/images/items/potato.jpg";
 
     private final MockMvc mockMvc;
     private final ItemJpaRepository itemJpaRepository;
@@ -91,7 +93,7 @@ class ItemQueryE2ETest {
         referenceDate = LocalDate.now();
 
         final Item potato = itemJpaRepository.save(
-                new Item("감자", "1kg", null, ItemCategory.ROOT_VEGETABLES));
+                new Item("감자", "1kg", POTATO_IMAGE_URL, ItemCategory.ROOT_VEGETABLES));
         final Item onion = itemJpaRepository.save(
                 new Item("양파", "1kg", null, ItemCategory.SEASONINGS));
         final Item greenOnion = itemJpaRepository.save(
@@ -117,6 +119,14 @@ class ItemQueryE2ETest {
         publicPriceJpaRepository.save(new PublicPrice(carrot.id(), REGION_ID, 4000, referenceDate));
         publicPriceJpaRepository.save(new PublicPrice(secondPotato.id(), REGION_ID, 3500, referenceDate));
         publicPriceJpaRepository.save(new PublicPrice(potato.id(), OTHER_REGION_ID, 9999, referenceDate));
+    }
+
+    @Test
+    void 품목_목록은_저장된_S3_이미지_URL을_내려준다() throws Exception {
+        mockMvc.perform(itemListRequest())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].itemName").value("감자"))
+                .andExpect(jsonPath("$.data.items[0].itemImageUrl").value(POTATO_IMAGE_URL));
     }
 
     @Test
