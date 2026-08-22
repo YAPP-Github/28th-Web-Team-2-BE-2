@@ -110,28 +110,21 @@ class ImageControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"image/gif", "application/pdf"})
-    void 허용하지_않는_형식은_저장소에_닿기_전에_거부한다(final String contentType) throws Exception {
+    @ValueSource(strings = {"image/gif", "image/heic", "image/heif", "image/webp", "application/octet-stream"})
+    void 모바일_사진_MIME은_확장자와_무관하게_업로드한다(final String contentType) throws Exception {
         mockMvc.perform(multipart(UPLOAD_PATH)
                         .file(new MockMultipartFile("image", "a.gif", contentType, new byte[] {1}))
                         .header(HttpHeaders.AUTHORIZATION, "Bearer access-token"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_IMAGE_FORMAT.name()));
-
-        verify(uploadImageUseCase, never()).execute(any());
+                .andExpect(status().isCreated());
     }
 
-    // 확장자·MIME 을 위조해도 바이트가 다르면 거부한다.
     @Test
-    void 형식을_위조한_내용은_거부한다() throws Exception {
+    void 확장자와_파일_시그니처가_달라도_업로드한다() throws Exception {
         mockMvc.perform(multipart(UPLOAD_PATH)
                         .file(new MockMultipartFile(
                                 "image", "evil.png", "image/png", new byte[] {0x50, 0x4B, 0x03, 0x04}))
                         .header(HttpHeaders.AUTHORIZATION, "Bearer access-token"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(ErrorType.INVALID_IMAGE_FORMAT.name()));
-
-        verify(uploadImageUseCase, never()).execute(any());
+                .andExpect(status().isCreated());
     }
 
     @Test
