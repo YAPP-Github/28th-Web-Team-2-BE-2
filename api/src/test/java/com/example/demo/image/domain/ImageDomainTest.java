@@ -3,8 +3,8 @@ package com.example.demo.image.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.example.demo.common.exception.ImageValidationException;
 import com.example.demo.common.exception.ErrorType;
+import com.example.demo.common.exception.ImageValidationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -34,22 +34,17 @@ class ImageDomainTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"image/gif", "image/webp", "application/pdf", "text/plain", "image"})
-    void 허용하지_않는_MIME은_거부한다(final String mimeType) {
-        assertThatThrownBy(() -> ImageContentType.from(mimeType, PNG_BYTES))
-                .isInstanceOf(ImageValidationException.class)
-                .extracting("errorType")
-                .isEqualTo(ErrorType.INVALID_IMAGE_FORMAT);
+    @ValueSource(strings = {"image/gif", "image/webp", "image/heic", "image/heif", "application/octet-stream"})
+    void 모바일_이미지_MIME은_허용한다(final String mimeType) {
+        assertThat(ImageContentType.from(mimeType, PNG_BYTES).mimeType()).isEqualTo(mimeType);
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
-    void MIME이_없으면_형식을_판별하지_않고_거부한다(final String mimeType) {
-        assertThatThrownBy(() -> ImageContentType.from(mimeType, PNG_BYTES))
-                .isInstanceOf(ImageValidationException.class)
-                .extracting("errorType")
-                .isEqualTo(ErrorType.INVALID_IMAGE_FORMAT);
+    void MIME이_없어도_기본_Content_Type으로_허용한다(final String mimeType) {
+        assertThat(ImageContentType.from(mimeType, PNG_BYTES).mimeType())
+                .isEqualTo("application/octet-stream");
     }
 
     @Test
@@ -58,27 +53,23 @@ class ImageDomainTest {
         assertThat(ImageContentType.JPEG.extension()).isEqualTo("jpg");
     }
 
-    // 신고된 Content-Type 만 믿으면 인증 사용자가 공개 버킷을 임의 파일 호스트로 쓸 수 있다.
     @Test
-    void MIME_과_선두_바이트가_함께_맞을_때만_형식을_돌려준다() {
+    void MIME만_정규화하고_파일_시그니처는_제한하지_않는다() {
         assertThat(ImageContentType.from("image/png", PNG_BYTES)).isEqualTo(ImageContentType.PNG);
         assertThat(ImageContentType.from("image/jpeg", JPEG_BYTES)).isEqualTo(ImageContentType.JPEG);
     }
 
     @Test
-    void 형식을_위조한_바이트는_거부한다() {
+    void 모바일_이미지의_알려지지_않은_시그니처도_허용한다() {
         final byte[] zip = {0x50, 0x4B, 0x03, 0x04, 1, 2, 3, 4, 5};
 
-        assertThatThrownBy(() -> ImageContentType.from("image/png", zip))
-                .isInstanceOf(ImageValidationException.class)
-                .extracting("errorType")
-                .isEqualTo(ErrorType.INVALID_IMAGE_FORMAT);
+        assertThat(ImageContentType.from("image/heic", zip).mimeType()).isEqualTo("image/heic");
     }
 
     @Test
-    void 시그니처보다_짧은_내용은_거부한다() {
-        assertThatThrownBy(() -> ImageContentType.from("image/png", new byte[] {(byte) 0x89, 0x50}))
-                .isInstanceOf(ImageValidationException.class);
+    void 빈_내용만_형식_오류로_거부한다() {
+        assertThat(ImageContentType.from("image/heic", new byte[] {(byte) 0x01}).mimeType())
+                .isEqualTo("image/heic");
         assertThatThrownBy(() -> ImageContentType.from("image/jpeg", null))
                 .isInstanceOf(ImageValidationException.class);
     }
