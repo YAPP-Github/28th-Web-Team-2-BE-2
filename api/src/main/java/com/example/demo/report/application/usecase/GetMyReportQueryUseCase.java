@@ -12,12 +12,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GetMyReportQueryUseCase {
 
     private final UserReportQueryPort userReportQueryPort;
@@ -26,16 +28,23 @@ public class GetMyReportQueryUseCase {
 
     @Transactional(readOnly = true)
     public MyReportPageResult execute(final MyReportQuery query) {
+        log.info(
+                "my reports query started userId={} page={} size={}",
+                query.userId(), query.page(), query.size());
         final Page<UserReport> reports = userReportQueryPort.findByUser(query);
         final Map<Long, String> itemNames = findItemNames(reports.getContent());
         final Map<String, String> regionNames = findRegionNames(reports.getContent());
-        return new MyReportPageResult(
+        final MyReportPageResult result = new MyReportPageResult(
                 toSummaries(reports.getContent(), itemNames, regionNames),
                 query.page(),
                 query.size(),
                 reports.getTotalElements(),
                 reports.getTotalPages(),
                 reports.hasNext());
+        log.info(
+                "my reports query completed userId={} page={} resultCount={} totalCount={}",
+                query.userId(), query.page(), reports.getNumberOfElements(), reports.getTotalElements());
+        return result;
     }
 
     private String regionName(

@@ -17,6 +17,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GetMyWeeklyReportQueryUseCase {
 
     private final UserReportQueryPort userReportQueryPort;
@@ -38,6 +40,7 @@ public class GetMyWeeklyReportQueryUseCase {
     public MyWeeklyReportResult execute(final Long userId) {
         final LocalDate weekStart = weekStart();
         final LocalDate weekEnd = weekStart.plusWeeks(1);
+        log.info("my weekly reports query started userId={} weekStart={}", userId, weekStart);
         final List<UserReport> reports =
                 userReportQueryPort.findByUserInPeriod(userId, weekStart, weekEnd.minusDays(1));
         final Map<LocalDate, UserReport> firstByDate = firstByDate(reports);
@@ -45,7 +48,11 @@ public class GetMyWeeklyReportQueryUseCase {
         final List<DailyReportResult> dailyReports = weekStart.datesUntil(weekEnd)
                 .map(date -> toDailyReport(date, firstByDate.get(date), itemNames))
                 .toList();
-        return new MyWeeklyReportResult(firstByDate.size(), dailyReports);
+        final MyWeeklyReportResult result = new MyWeeklyReportResult(firstByDate.size(), dailyReports);
+        log.info(
+                "my weekly reports query completed userId={} weekStart={} reportedDays={}",
+                userId, weekStart, result.totalReportedDays());
+        return result;
     }
 
     private LocalDate weekStart() {

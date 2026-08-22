@@ -22,7 +22,11 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
+@ExtendWith(OutputCaptureExtension.class)
 class AnalyzeReportImageUseCaseTest {
 
     private static final String IMAGE_URL = "https://cdn.example.com/images/abc.jpg";
@@ -83,6 +87,19 @@ class AnalyzeReportImageUseCaseTest {
 
         assertThat(result.item()).isEqualTo(CUCUMBER);
         verify(itemCandidateQueryPort, never()).findByName(any());
+    }
+
+    @Test
+    void 사진_분석_성공_로그에_품목_추적값을_남긴다(final CapturedOutput output) {
+        given(extracted("애호박", "0.95", 3000));
+        when(itemCandidateQueryPort.findById(12L)).thenReturn(Optional.of(CUCUMBER));
+
+        useCase.execute(command(12L));
+
+        assertThat(output)
+                .contains("report image analysis completed")
+                .contains("selectedItemId=12")
+                .contains("matchedItemId=12");
     }
 
     @Test

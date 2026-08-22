@@ -16,12 +16,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GetRegionLowestPriceReportsUseCase {
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
@@ -30,6 +32,9 @@ public class GetRegionLowestPriceReportsUseCase {
 
     @Transactional(readOnly = true)
     public RegionLowestPriceReportsResult execute(final RegionLowestPriceReportsQuery query) {
+        log.info(
+                "region lowest price reports query started regionId={} limit={}",
+                query.regionId(), query.limit());
         final LocalDate today = LocalDate.now(SEOUL);
         final RegionLowestPriceReportsQueryResult result = regionLowestPriceReportQueryPort.find(
                 query.regionId(), today.minusDays(6), today);
@@ -39,8 +44,12 @@ public class GetRegionLowestPriceReportsUseCase {
                     ErrorType.NO_RESOURCE_ERROR,
                     HttpStatus.NOT_FOUND);
         }
-        return new RegionLowestPriceReportsResult(
+        final RegionLowestPriceReportsResult response = new RegionLowestPriceReportsResult(
                 result.regionName(), toResults(result.sources(), query.limit()));
+        log.info(
+                "region lowest price reports query completed regionId={} resultCount={}",
+                query.regionId(), response.items().size());
+        return response;
     }
 
     private List<RegionLowestPriceReportResult> toResults(

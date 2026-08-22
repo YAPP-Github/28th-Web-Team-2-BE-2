@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GetRegionItemReportQueryUseCase {
 
     private final ItemCandidateQueryPort itemCandidateQueryPort;
@@ -32,12 +34,15 @@ public class GetRegionItemReportQueryUseCase {
 
     @Transactional(readOnly = true)
     public RegionItemReportResult execute(final RegionItemReportQuery query) {
+        log.info(
+                "region item reports query started regionId={} itemId={} page={} size={}",
+                query.regionId(), query.itemId(), query.page(), query.size());
         final ItemCandidate item = findItem(query.itemId());
         final String regionName = regionName(query.regionId());
         final Page<UserReport> reports =
                 userReportQueryPort.findByRegionAndItem(query, item.defaultUnit());
         final Map<Long, String> storeNames = findStoreNames(reports.getContent());
-        return new RegionItemReportResult(
+        final RegionItemReportResult result = new RegionItemReportResult(
                 query.regionId(),
                 regionName,
                 item.itemId(),
@@ -46,6 +51,10 @@ public class GetRegionItemReportQueryUseCase {
                 query.page(),
                 query.size(),
                 reports.hasNext());
+        log.info(
+                "region item reports query completed regionId={} itemId={} resultCount={} totalCount={}",
+                query.regionId(), query.itemId(), reports.getNumberOfElements(), reports.getTotalElements());
+        return result;
     }
 
     /** 법정동 코드에 해당하는 지역명이다. 참조 데이터에 없는 코드는 조회할 수 없다. */

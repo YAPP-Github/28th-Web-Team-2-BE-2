@@ -5,6 +5,7 @@ import com.example.demo.image.application.port.ImageStoragePort;
 import com.example.demo.image.application.result.UploadedImageResult;
 import com.example.demo.image.domain.ImageKey;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -15,15 +16,23 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UploadImageUseCase {
 
     private final ImageStoragePort imageStoragePort;
 
     public UploadedImageResult execute(final UploadImageCommand command) {
-        return execute(ImageKey.generate(command.contentType()), command);
+        return execute(ImageKey.generate(command.contentType(), command.extension()), command);
     }
 
     public UploadedImageResult execute(final ImageKey key, final UploadImageCommand command) {
-        return new UploadedImageResult(imageStoragePort.uploadAndReturnUrl(key, command));
+        log.info(
+                "image upload started key={} contentType={} sizeBytes={}",
+                key.value(), command.contentType().mimeType(), command.size().bytes());
+        final String imageUrl = imageStoragePort.uploadAndReturnUrl(key, command);
+        log.info(
+                "image upload completed key={} contentType={} sizeBytes={}",
+                key.value(), command.contentType().mimeType(), command.size().bytes());
+        return new UploadedImageResult(imageUrl);
     }
 }

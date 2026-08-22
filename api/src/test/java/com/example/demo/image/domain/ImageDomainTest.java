@@ -97,6 +97,12 @@ class ImageDomainTest {
     }
 
     @Test
+    void 확장자_허용목록없이_대문자만_소문자로_정규화한다() {
+        assertThat(ImageKey.generate(ImageContentType.JPEG, "WEBP").value())
+                .matches("^images/[0-9a-f-]{36}\\.webp$");
+    }
+
+    @Test
     void 가게_이미지_key는_같은_가게에서_같다() {
         assertThat(ImageKey.forStore(42L, ImageContentType.PNG))
                 .isEqualTo(ImageKey.forStore(42L, ImageContentType.PNG));
@@ -105,7 +111,7 @@ class ImageDomainTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"receipt.jpg", "../images/evil.png", "uploads/a.png", "images/", "images/a.gif"})
+    @ValueSource(strings = {"receipt.jpg", "../images/evil.png", "uploads/a.png", "images/"})
     void 형식을_벗어난_key는_만들_수_없다(final String value) {
         assertThatThrownBy(() -> new ImageKey(value)).isInstanceOf(ImageValidationException.class);
     }
