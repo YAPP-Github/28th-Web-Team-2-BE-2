@@ -3,17 +3,18 @@ package com.example.demo.image.domain;
 import com.example.demo.common.exception.ErrorType;
 import com.example.demo.common.exception.ImageValidationException;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 /**
- * S3 객체 key. 계약이 {@code images/{UUID}.{png|jpg}}로 고정한 형식이다.
+ * S3 객체 key. {@code images/{UUID}.{extension}} 형식을 강제한다.
  *
  * <p>key를 문자열로 들고 다니면 어디서든 조립할 수 있게 되어 형식이 갈라진다. 생성자가 형식을
  * 강제하므로 어긋난 값은 만들어지지 않는다.
  *
- * <p>클라이언트가 보낸 파일명은 key에 넣지 않는다. 경로 조작({@code ../})과 한글·공백 같은
- * 서명 깨지는 문자를 매번 걸러 내는 대신, 이름을 아예 쓰지 않는 편이 안전하다.
+ * <p>클라이언트 파일명 전체는 key에 넣지 않고 확장자만 사용한다. 경로 조작({@code ../})과
+ * 한글·공백 같은 서명 깨지는 문자를 key에 섞지 않는다.
  */
 public record ImageKey(String value) {
 
@@ -23,7 +24,8 @@ public record ImageKey(String value) {
      * 허용 형식. 접두사 뒤에 슬래시를 허용하지 않으므로 {@code images/../secret}처럼 상위 경로로
      * 빠져나가는 값이 걸러진다.
      */
-    private static final Pattern FORMAT = Pattern.compile("^images/[^/]+\\.(png|jpg)$");
+    private static final Pattern FORMAT = Pattern.compile("^images/[^/]+\\.[A-Za-z0-9]+$");
+    private static final Pattern EXTENSION = Pattern.compile("^[a-z0-9]+$");
 
     /**
      * 형식이 어긋나면 400 으로 끝낸다({@link ImageValidationException}).
@@ -39,7 +41,23 @@ public record ImageKey(String value) {
     }
 
     public static ImageKey generate(final ImageContentType contentType) {
-        return new ImageKey(PREFIX + UUID.randomUUID() + "." + contentType.extension());
+        if (contentType == null) {
+            throw new ImageValidationException(ErrorType.INVALID_PARAMETER_ERROR);
+        }
+        return generate(contentType, contentType.extension());
+    }
+
+    public static ImageKey generate(final ImageContentType contentType, final String extension) {
+        if (contentType == null) {
+            throw new ImageValidationException(ErrorType.INVALID_PARAMETER_ERROR);
+        }
+        final String normalizedExtension = extension == null
+                ? contentType.extension()
+                : extension.trim().toLowerCase(Locale.ROOT);
+        if (!EXTENSION.matcher(normalizedExtension).matches()) {
+            throw new ImageValidationException(ErrorType.INVALID_PARAMETER_ERROR);
+        }
+        return new ImageKey(PREFIX + UUID.randomUUID() + "." + normalizedExtension);
     }
 
     public static ImageKey forStore(final Long storeId, final ImageContentType contentType) {

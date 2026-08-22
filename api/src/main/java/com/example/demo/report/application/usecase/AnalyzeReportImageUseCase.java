@@ -10,6 +10,7 @@ import com.example.demo.report.application.port.ItemCandidateQueryPort;
 import com.example.demo.report.application.result.ImageAnalysisResult;
 import com.example.demo.report.domain.AnalysisConfidence;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -27,14 +28,24 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AnalyzeReportImageUseCase {
 
     private final ImageAnalysisPort imageAnalysisPort;
     private final ItemCandidateQueryPort itemCandidateQueryPort;
 
     public ImageAnalysisResult execute(final AnalyzeReportImageCommand command) {
+        log.info("report image analysis started selectedItemId={}", command.itemId());
         final ExtractedPriceTag extracted = imageAnalysisPort.analyze(command.imageUrl());
-        return toResult(extracted, resolveItem(command, extracted), command.hasSelectedItem());
+        final ImageAnalysisResult result = toResult(
+                extracted, resolveItem(command, extracted), command.hasSelectedItem());
+        log.info(
+                "report image analysis completed selectedItemId={} matchedItemId={} itemDetected={} priceDetected={}",
+                command.itemId(),
+                itemIdOf(result),
+                result.item() != null,
+                result.price() != null);
+        return result;
     }
 
     private ItemCandidate resolveItem(
@@ -83,6 +94,13 @@ public class AnalyzeReportImageUseCase {
             return null;
         }
         return matched.defaultUnit();
+    }
+
+    private Long itemIdOf(final ImageAnalysisResult result) {
+        if (result.item() == null) {
+            return null;
+        }
+        return result.item().itemId();
     }
 
     /**

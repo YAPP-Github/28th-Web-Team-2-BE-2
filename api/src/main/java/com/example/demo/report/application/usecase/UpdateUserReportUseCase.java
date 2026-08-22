@@ -11,12 +11,14 @@ import com.example.demo.report.domain.UserReport;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UpdateUserReportUseCase {
 
     private final UserReportQueryPort userReportQueryPort;
@@ -25,6 +27,9 @@ public class UpdateUserReportUseCase {
 
     @Transactional
     public void execute(final UpdateUserReportCommand command) {
+        log.info(
+                "user report update started reportId={} userId={}",
+                command.reportId(), command.userId());
         final UserReport report = userReportQueryPort
                 .findByIdAndUserId(command.reportId(), command.userId())
                 .orElseThrow(this::reportNotFound);
@@ -36,6 +41,9 @@ public class UpdateUserReportUseCase {
                 command.price(), command.unit(), command.amount(),
                 publicPriceDiff, calculatePriceDiffRate(publicPriceDiff, report));
         userReportCommandPort.save(report);
+        log.info(
+                "user report updated reportId={} userId={} itemId={}",
+                command.reportId(), command.userId(), report.itemId());
     }
 
     private Integer calculatePublicPriceDiff(final Integer reportPrice, final UserReport report) {

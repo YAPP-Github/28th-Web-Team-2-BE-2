@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CreateUserReportUseCase {
 
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
@@ -46,6 +48,9 @@ public class CreateUserReportUseCase {
 
     @Transactional
     public CreateUserReportResult execute(final CreateUserReportCommand command) {
+        log.info(
+                "user report create started itemId={} userId={} regionId={} reportType={}",
+                command.itemId(), command.userId(), command.regionId(), command.reportType());
         final Item item = itemExistencePort.findById(command.itemId())
                 .orElseThrow(this::itemNotFound);
         final CreateUserReportCommand normalized = normalizeQuantity(command, item.defaultUnit());
@@ -60,11 +65,22 @@ public class CreateUserReportUseCase {
             final Long storeId = resolveStoreId(command);
             final UserReport report = userReportCommandPort.save(
                     normalized, storeId, publicPriceDiff, priceDiffRate);
-            return new CreateUserReportResult(report.id(), report.itemId(), report.storeId(), report.createdAt());
+            final CreateUserReportResult result = new CreateUserReportResult(
+                    report.id(), report.itemId(), report.storeId(), report.createdAt());
+            log.info(
+                    "user report created reportId={} itemId={} userId={} storeId={}",
+                    report.id(), report.itemId(), command.userId(), report.storeId());
+            return result;
         } catch (final DataIntegrityViolationException exception) {
             if (!isDuplicateSubmission(exception)) {
+                log.error(
+                        "user report create failed itemId={} userId={} regionId={}",
+                        command.itemId(), command.userId(), command.regionId(), exception);
                 throw exception;
             }
+            log.warn(
+                    "user report create rejected as duplicate itemId={} userId={} regionId={}",
+                    command.itemId(), command.userId(), command.regionId());
             throw new ApiException(
                     ErrorType.DUPLICATE_USER_REPORT_ERROR.description(),
                     ErrorType.DUPLICATE_USER_REPORT_ERROR,

@@ -3,6 +3,7 @@ package com.example.demo.common.exception;
 import com.example.demo.common.presentation.ApiResponse;
 import feign.FeignException;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
@@ -15,12 +16,14 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<?> handleApiException(
             final ApiException exception,
             final HttpServletRequest request) {
+        logRequestFailure(request, exception, exception.errorType().name(), exception.httpStatus());
         if (isV1Request(request)) {
             return ResponseEntity.status(exception.httpStatus())
                     .body(new ApiResponse<>(
@@ -46,6 +49,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleFeignException(
             final FeignException exception,
             final HttpServletRequest request) {
+        logRequestFailure(request, exception, ErrorType.EXTERNAL_API_ERROR.name(), HttpStatus.BAD_GATEWAY);
         if (isV1Request(request)) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                     .body(new ApiResponse<>(
@@ -77,6 +81,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleInvalidParameter(
             final Exception exception,
             final HttpServletRequest request) {
+        logRequestFailure(
+                request, exception, ErrorType.INVALID_PARAMETER_ERROR.name(), HttpStatus.BAD_REQUEST);
         if (isV1Request(request)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new ApiResponse<>(
@@ -125,5 +131,29 @@ public class GlobalExceptionHandler {
 
     private boolean isV1Request(final HttpServletRequest request) {
         return request.getRequestURI().startsWith("/api/v1/");
+    }
+
+    private void logRequestFailure(
+            final HttpServletRequest request,
+            final Throwable exception,
+            final String errorType,
+            final HttpStatus status) {
+        final String message = "request failed path={} status={} errorType={} exception={}";
+        if (status.is5xxServerError()) {
+            log.error(
+                    message,
+                    request.getRequestURI(),
+                    status.value(),
+                    errorType,
+                    exception.getClass().getSimpleName(),
+                    exception);
+            return;
+        }
+        log.warn(
+                message,
+                request.getRequestURI(),
+                status.value(),
+                errorType,
+                exception.getClass().getSimpleName());
     }
 }

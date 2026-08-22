@@ -13,6 +13,7 @@ import feign.FeignException;
 import feign.RetryableException;
 import java.io.InterruptedIOException;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Component;
  * <p>모델에는 공개 읽기 영구 URL을 그대로 넘긴다. 다만 그 URL이 우리 저장소의 것인지는 확인한다.
  */
 @Component
+@Slf4j
 public class QwenImageAnalysisAdapter implements ImageAnalysisPort {
 
     private final QwenVisionClient qwenVisionClient;
@@ -48,10 +50,25 @@ public class QwenImageAnalysisAdapter implements ImageAnalysisPort {
 
     @Override
     public ExtractedPriceTag analyze(final String imageUrl) {
+        log.info("qwen image analysis started model={}", model);
         // images/ 접두사는 공개 읽기라 서명이 필요 없다. 우리 URL 인지만 확인한다 — 임의 URL 을
         // 넘기면 사용자가 우리 비용으로 아무 호스트나 가져오게 만들 수 있다.
-        final QwenChatResponse response = call(imageUrlPort.requireOwnedUrl(imageUrl));
-        return response.firstContent().map(parser::parse).orElseThrow(this::emptyResponse);
+        try {
+            final QwenChatResponse response = call(imageUrlPort.requireOwnedUrl(imageUrl));
+            final ExtractedPriceTag extracted = response.firstContent()
+                    .map(parser::parse)
+                    .orElseThrow(this::emptyResponse);
+            log.info(
+                    "qwen image analysis completed model={} itemDetected={} priceDetected={}",
+                    model, extracted.hasItemName(), extracted.price() != null);
+            return extracted;
+        } catch (final ApiException exception) {
+            logAnalysisFailure(exception);
+            throw exception;
+        } catch (final RuntimeException exception) {
+            log.error("qwen image analysis failed model={}", model, exception);
+            throw exception;
+        }
     }
 
     private QwenChatResponse call(final String readUrl) {
@@ -133,5 +150,17 @@ public class QwenImageAnalysisAdapter implements ImageAnalysisPort {
                 ErrorType.IMAGE_ANALYSIS_UNAVAILABLE,
                 HttpStatus.BAD_GATEWAY,
                 cause);
+    }
+
+    private void logAnalysisFailure(final ApiException exception) {
+        if (exception.httpStatus().is5xxServerError()) {
+            log.error(
+                    "qwen image analysis failed model={} errorType={}",
+                    model, exception.errorType().name(), exception);
+            return;
+        }
+        log.warn(
+                "qwen image analysis rejected model={} errorType={}",
+                model, exception.errorType().name());
     }
 }

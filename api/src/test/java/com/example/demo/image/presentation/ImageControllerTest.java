@@ -1,5 +1,6 @@
 package com.example.demo.image.presentation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -20,6 +21,7 @@ import com.example.demo.common.exception.ErrorType;
 import com.example.demo.common.security.JwtAccessDeniedHandler;
 import com.example.demo.common.security.JwtAuthenticationEntryPoint;
 import com.example.demo.common.security.SecurityErrorResponseWriter;
+import com.example.demo.image.application.command.UploadImageCommand;
 import com.example.demo.image.application.result.UploadedImageResult;
 import com.example.demo.image.application.usecase.UploadImageUseCase;
 import com.example.demo.image.presentation.converter.ImageCommandConverter;
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -82,6 +85,20 @@ class ImageControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.imageUrl").value(IMAGE_URL));
+    }
+
+    @Test
+    void 확장자_제한없이_대문자_확장자를_소문자로_변환한다() throws Exception {
+        mockMvc.perform(multipart(UPLOAD_PATH)
+                        .file(new MockMultipartFile(
+                                "image", "receipt.WEBP", "image/jpeg",
+                                new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 1}))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer access-token"))
+                .andExpect(status().isCreated());
+
+        final ArgumentCaptor<UploadImageCommand> captor = ArgumentCaptor.forClass(UploadImageCommand.class);
+        verify(uploadImageUseCase).execute(captor.capture());
+        assertThat(captor.getValue().extension()).isEqualTo("webp");
     }
 
     @Test

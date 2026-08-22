@@ -17,12 +17,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class GetStoreReportsUseCase {
 
     private static final String DELETED_REPORTER_NICKNAME = "탈퇴한 이웃";
@@ -33,6 +35,9 @@ public class GetStoreReportsUseCase {
 
     @Transactional(readOnly = true)
     public StoreReportsResult execute(final StoreReportsQuery query) {
+        log.info(
+                "store reports query started storeId={} filter={} page={} size={}",
+                query.storeId(), query.filter(), query.page(), query.size());
         final StoreReportsQueryResult result = storeReportQueryPort.find(query);
         if (!result.storeExists()) {
             throw new ApiException(
@@ -48,9 +53,13 @@ public class GetStoreReportsUseCase {
         final List<StoreReportResult> reports = result.reports().stream()
                 .map(source -> toResult(source, reportCounts))
                 .toList();
-        return new StoreReportsResult(
+        final StoreReportsResult response = new StoreReportsResult(
                 query.storeId(), result.cheapCount(), result.expensiveCount(), reports,
                 query.page(), query.size(), result.hasNext());
+        log.info(
+                "store reports query completed storeId={} resultCount={} cheapCount={} expensiveCount={}",
+                query.storeId(), reports.size(), result.cheapCount(), result.expensiveCount());
+        return response;
     }
 
     private StoreReportResult toResult(

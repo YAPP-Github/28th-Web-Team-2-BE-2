@@ -8,9 +8,8 @@ import java.util.Locale;
 /**
  * 업로드를 허용하는 이미지 형식.
  *
- * <p>계약({@code .agents/skills/image-upload-flow/SKILL.md})이 PNG와 JPEG만 허용하고 key 확장자를
- * {@code png} 또는 {@code jpg}로 못 박아 두었다. MIME과 확장자를 enum 상수 한 자리에만 적어 두면
- * 형식을 추가할 때 고칠 곳이 하나다.
+ * <p>PNG와 JPEG의 실제 형식과 MIME을 한 곳에서 검증한다. 저장 key의 확장자는 업로드 파일명에서
+ * 별도로 정규화하므로 이 타입의 canonical 확장자와 반드시 같을 필요는 없다.
  */
 public enum ImageContentType {
     PNG("image/png", "png"),

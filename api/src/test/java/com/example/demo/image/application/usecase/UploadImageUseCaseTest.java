@@ -14,8 +14,12 @@ import com.example.demo.image.domain.ImageKey;
 import com.example.demo.image.domain.ImageSize;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
+@ExtendWith(OutputCaptureExtension.class)
 class UploadImageUseCaseTest {
 
     private ImageStoragePort imageStoragePort;
@@ -34,6 +38,19 @@ class UploadImageUseCaseTest {
         final UploadedImageResult result = uploadImageUseCase.execute(uploadCommand());
 
         assertThat(result.imageUrl()).isEqualTo("https://cdn.example.com/images/a.jpg");
+    }
+
+    @Test
+    void 업로드_성공_로그에_저장소_추적값을_남긴다(final CapturedOutput output) {
+        when(imageStoragePort.uploadAndReturnUrl(any(), any()))
+                .thenReturn("https://cdn.example.com/images/a.jpg");
+
+        uploadImageUseCase.execute(uploadCommand());
+
+        assertThat(output)
+                .contains("image upload completed")
+                .contains("contentType=image/jpeg")
+                .contains("sizeBytes=3");
     }
 
     // 클라이언트가 보낸 파일명을 key에 쓰면 경로 조작과 서명 깨지는 문자가 들어온다.
